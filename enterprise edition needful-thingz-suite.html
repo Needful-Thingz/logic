@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        .header { text-align: center; border-bottom: 2px solid #edf2f7; margin-bottom: 20px; padding-bottom: 10px; }
+        .brand { font-size: 24px; font-weight: 800; color: #2d3748; letter-spacing: -1px; }
+        .sub-brand { color: #3182ce; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .trade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .trade-box { background: #f7fafc; border: 2px solid #e2e8f0; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .trade-box:hover { border-color: #3182ce; background: #ebf8ff; }
+        .trade-icon { font-size: 30px; margin-bottom: 10px; display: block; }
+        .step { display: none; padding: 10px; }
+        .active { display: block; }
+        .btn-group { margin-top: 20px; display: flex; gap: 10px; }
+        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; flex-grow: 1; }
+        .btn-yes { background: #48bb78; color: white; }
+        .btn-no { background: #f56565; color: white; }
+        .result { background: #fffaf0; border-left: 5px solid #ed8936; padding: 15px; border-radius: 8px; margin-top: 20px; }
+        .footer { text-align: center; font-size: 10px; color: #a0aec0; margin-top: 40px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <div class="brand">Needful Thingz</div>
+        <div class="sub-brand">Lead Tech Logic™ Enterprise</div>
+    </div>
+
+    <div id="mainMenu" class="trade-grid">
+        <div class="trade-box" onclick="showTrade('hvac')">
+            <span class="trade-icon">❄️</span>
+            <strong>HVAC</strong>
+        </div>
+        <div class="trade-box" onclick="showTrade('kitchen')">
+            <span class="trade-icon">🧊</span>
+            <strong>Kitchen</strong>
+        </div>
+        <div class="trade-box" onclick="showTrade('electric')">
+            <span class="trade-icon">⚡</span>
+            <strong>Electrical</strong>
+        </div>
+        <div class="trade-box" onclick="showTrade('solar')">
+            <span class="trade-icon">☀️</span>
+            <strong>Solar</strong>
+        </div>
+    </div>
+
+    <div id="trade-electric" class="hidden">
+        <h3>Electrical Diagnostics</h3>
+        <p><strong>Step 1:</strong> Is there a partial power loss in a wet area (Kitchen/Bath)?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('GFCI CHECK: Locate and reset all GFCI outlets in the circuit.')">YES</button>
+            <button class="btn-no" onclick="showRes('PANEL CHECK: Check for tripped breakers or loose neutrals at the bus bar.')">NO</button>
+        </div>
+    </div>
+
+    <div id="trade-solar" class="hidden">
+        <h3>Solar Pulse Logic</h3>
+        <p><strong>Step 1:</strong> Is the Inverter screen blank?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('DC DISCONNECT: Check the DC switch and string fuses for continuity.')">YES</button>
+            <button class="btn-no" onclick="showRes('SYNC ISSUE: Check AC voltage at the inverter. Ensure grid is present.')">NO</button>
+        </div>
+    </div>
+
+    <div id="resBox" class="result hidden">
+        <strong>Recommendation:</strong>
+        <p id="resText"></p>
+        <button style="width:100%; background:#718096; color:white;" onclick="location.reload()">Back to Main Menu</button>
+    </div>
+
+    <div class="footer">
+        © 2026 Needful Thingz. All Trades Logic™ Suite.<br>
+        Proprietary Intellectual Property.
+    </div>
+</div>
+
+<script>
+    function showTrade(tId) {
+        document.getElementById('mainMenu').classList.add('hidden');
+        document.getElementById('trade-' + tId).classList.remove('hidden');
+    }
+    function showRes(text) {
+        document.querySelectorAll("[id^='trade-']").forEach(t => t.classList.add('hidden'));
+        document.getElementById('resBox').classList.remove('hidden');
+        document.getElementById('resText').innerText = text;
+    }
+</script>
+
+</body>
+</html>

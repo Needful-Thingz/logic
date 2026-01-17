@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #2d3748; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 25px; border-radius: 20px; width: 100%; max-width: 500px; border-top: 5px solid #805ad5; }
+        h2 { color: #44337a; margin: 0; }
+        .menu-item { background: #faf5ff; border: 1px solid #e9d8fd; padding: 10px; margin-bottom: 6px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .result { background: #f3e8ff; border-left: 6px solid #805ad5; padding: 20px; margin-top: 20px; border-radius: 10px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div id="homeMenu">
+        <h2>Needful Thingz</h2>
+        <p style="color:#553c9a; font-weight:bold;">SMART SYNC LOGIC v1.0</p>
+        <div class="menu-item" onclick="showRes('C-WIRE: Check for 24V common. If blank, furnace float switch is likely tripped.')">1. Smart Stat: No Power</div>
+        <div class="menu-item" onclick="showRes('SIGNAL STRENGTH: Install mesh node. Signal cannot penetrate brick/stucco at this distance.')">2. Camera: Offline / Choppy Video</div>
+        <div class="menu-item" onclick="showRes('ALIGNMENT: Door is sagging. The deadbolt is hitting the strike plate, preventing sync.')">3. Smart Lock: Jammed Error</div>
+        <div class="menu-item" onclick="showRes('BAND STEERING: Disable 5GHz or create a 2.4GHz guest network. Device doesn\'t support 5GHz.')">4. Device Won\'t Pair to Wi-Fi</div>
+        <div class="menu-item" onclick="showRes('POE BUDGET: The network switch is overloaded. Unplug lower-priority devices.')">5. PoE Camera Flickering</div>
+        <div class="menu-item" onclick="showRes('DHCP CONFLICT: Two devices have the same IP. Assign a Static IP to the Hub/Gateway.')">6. Gateway/Hub Not Found</div>
+        <div class="menu-item" onclick="showRes('RF INTERFERENCE: Move the hub away from the router or large metal objects.')">7. Zigbee/Z-Wave Range Issues</div>
+        <div class="menu-item" onclick="showRes('BATTERY CALIBRATION: Replace batteries with high-output Alkalines (no rechargeables).')">8. High Battery Drain (Locks/Sensors)</div>
+        <div class="menu-item" onclick="showRes('CLOUD DELAY: Check ISP upload speed. Latency > 100ms causes trigger delays.')">9. Automation Lag (Lights/Sensors)</div>
+        <div class="menu-item" onclick="showRes('FIRMWARE: Update required. Perform a hard reset and re-push the update via USB/App.')">10. Total System Lockup (Black Screen)</div>
+    </div>
+    <div id="resBox" class="result hidden">
+        <strong>Sync Recommendation:</strong>
+        <p id="resText"></p>
+        <button style="width:100%;" onclick="location.reload()">Back to Menu</button>
+    </div>
+</div>
+<script>
+    function showRes(t) { document.getElementById('homeMenu').classList.add('hidden'); document.getElementById('resBox').classList.remove('hidden'); document.getElementById('resText').innerText = t; }
+</script>
+</body>
+</html>

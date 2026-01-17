@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 25px; border-radius: 15px; width: 100%; max-width: 500px; border-top: 5px solid #ecc94b; }
+        h2 { color: #1a202c; margin: 0; }
+        .menu-item { background: #fffff0; border: 1px solid #faf089; padding: 10px; margin-bottom: 6px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .step { display: none; margin-top: 20px; }
+        .active { display: block; }
+        .btn-group { margin-top: 25px; display: flex; gap: 10px; }
+        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; }
+        .btn-yes { background: #38a169; color: white; }
+        .btn-no { background: #dd6b20; color: white; }
+        .result { background: #fffaf0; border-left: 6px solid #ecc94b; padding: 20px; margin-top: 20px; border-radius: 8px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div id="homeMenu">
+        <h2>Needful Thingz</h2>
+        <p style="color:#744210; font-weight:bold;">ELECTRICAL LOGIC v1.0</p>
+        <div class="menu-item" onclick="startFlow('gfci')">1. GFCI Tripped / Partial Power</div>
+        <div class="menu-item" onclick="startFlow('flicker')">2. Flickering Lights (House-wide)</div>
+        <div class="menu-item" onclick="startFlow('breaker')">3. Breaker Trips Immediately</div>
+        <div class="menu-item" onclick="startFlow('overload')">4. Breaker Trips After Minutes</div>
+        <div class="menu-item" onclick="startFlow('burn')">5. Burning Smell at Outlet</div>
+        <div class="menu-item" onclick="startFlow('phase')">6. Dead Half of House (Lost Phase)</div>
+        <div class="menu-item" onclick="startFlow('buzz')">7. Buzzing/Humming Panel</div>
+        <div class="menu-item" onclick="startFlow('afci')">8. AFCI Nuisance Tripping</div>
+        <div class="menu-item" onclick="startFlow('shock')">9. Shock from Appliance (Grounding)</div>
+        <div class="menu-item" onclick="startFlow('dead')">10. Dead Outlet/Switch (No Trip)</div>
+    </div>
+
+    <div id="flow-phase" class="hidden">
+        <p><strong>Step 1:</strong> Do 240V appliances (Stove/Dryer) work, but half the lights are off?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('LOST LEG: You have lost one phase of 120V. Check the Main Breaker. if OK, call the Utility Provider—it is a transformer issue.')">YES</button>
+            <button class="btn-no" onclick="showRes('MAIN BREAKER: If everything is dead, the Main Breaker has tripped or failed.')">NO</button>
+        </div>
+    </div>
+
+    <div id="resBox" class="result hidden">
+        <strong>Lead Tech Recommendation:</strong>
+        <p id="resText"></p>
+        <button style="width:100%; background:#718096; color:white; margin-top:10px;" onclick="location.reload()">Back to Menu</button>
+    </div>
+</div>
+<script>
+    function startFlow(fId) { document.getElementById('homeMenu').classList.add('hidden'); document.getElementById('flow-'+fId).classList.remove('hidden'); }
+    function showRes(t) { document.querySelectorAll("[id^='flow-']").forEach(f => f.classList.add('hidden')); document.getElementById('resBox').classList.remove('hidden'); document.getElementById('resText').innerText = t; }
+</script>
+</body>
+</html>

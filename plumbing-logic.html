@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #2c5282; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 25px; border-radius: 20px; width: 100%; max-width: 500px; border-top: 5px solid #4299e1; }
+        h2 { color: #2a4365; margin: 0; }
+        .menu-item { background: #ebf8ff; border: 1px solid #bee3f8; padding: 10px; margin-bottom: 6px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .result { background: #ebf8ff; border-left: 6px solid #3182ce; padding: 20px; margin-top: 20px; border-radius: 10px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div id="homeMenu">
+        <h2>Needful Thingz</h2>
+        <p style="color:#2b6cb0; font-weight:bold;">PLUMBING LOGIC v1.0</p>
+        <div class="menu-item" onclick="showRes('PRV FAILURE: If low pressure is house-wide, the Pressure Reducing Valve is likely failed or needs adjustment.')">1. Low Water Pressure (House-wide)</div>
+        <div class="menu-item" onclick="showRes('PILOT/ELEMENT: Gas: Check thermocouple. Electric: Test upper/lower elements for continuity.')">2. Water Heater: No Hot Water</div>
+        <div class="menu-item" onclick="showRes('MAIN CLOG: If multiple fixtures are backed up, the main line or roof vent is blocked.')">3. Slow Drain / Main Line Clog</div>
+        <div class="menu-item" onclick="showRes('FILL VALVE: Check flapper seal first. If water is entering the overflow tube, replace fill valve.')">4. Toilet Running Constantly</div>
+        <div class="menu-item" onclick="showRes('DRY P-TRAP: Pour 1 gallon of water down unused drains to restore the sewer gas seal.')">5. Sewer Smell Indoors</div>
+        <div class="menu-item" onclick="showRes('CHECK VALVE: If pump runs but water returns, the check valve is stuck. If it won\'t run, check the tether switch.')">6. Sump Pump Failure</div>
+        <div class="menu-item" onclick="showRes('ALLEN WRENCH: Use the bottom manual override to break the jam. Reset the thermal overload button.')">7. Garbage Disposal Jammed</div>
+        <div class="menu-item" onclick="showRes('WATERLOGGED: Tap the tank. If it sounds "full/dull" rather than hollow, the internal bladder has failed.')">8. Expansion Tank Failure</div>
+        <div class="menu-item" onclick="showRes('HAMMER ARRESTOR: High pressure or loose pipes. Install a hammer arrestor or check PRV setting.')">9. Banging Pipes (Water Hammer)</div>
+        <div class="menu-item" onclick="showRes('SLAB LEAK: Check water meter for movement with all taps off. Feel for hot spots on the floor.')">10. High Water Bill / Mystery Leak</div>
+    </div>
+    <div id="resBox" class="result hidden">
+        <strong>Plumbing Recommendation:</strong>
+        <p id="resText"></p>
+        <button style="width:100%;" onclick="location.reload()">Back to Menu</button>
+    </div>
+</div>
+<script>
+    function showRes(t) { document.getElementById('homeMenu').classList.add('hidden'); document.getElementById('resBox').classList.remove('hidden'); document.getElementById('resText').innerText = t; }
+</script>
+</body>
+</html>

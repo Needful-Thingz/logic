@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 25px; border-radius: 15px; width: 100%; max-width: 500px; border-top: 5px solid #4fd1c5; }
+        h2 { color: #2d3748; margin: 0; }
+        .menu-item { background: #e6fffa; border: 1px solid #b2f5ea; padding: 10px; margin-bottom: 6px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .result { background: #e6fffa; border-left: 6px solid #319795; padding: 20px; margin-top: 20px; border-radius: 8px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div id="homeMenu">
+        <h2>Needful Thingz</h2>
+        <p style="color:#2c7a7b; font-weight:bold;">SOLAR PULSE LOGIC v1.0</p>
+        <div class="menu-item" onclick="showRes('AC DISCONNECT: Check the main solar breaker. The system cannot sync without grid power.')">1. 0 Production / Inverter Dead</div>
+        <div class="menu-item" onclick="showRes('MC4 CONNECTORS: Check roof for burnt connectors or moisture in the junction box.')">2. Arc Fault / Ground Fault</div>
+        <div class="menu-item" onclick="showRes('COMMUNICATION: Wi-Fi signal lost at inverter. Reset the zigbee/gateway module.')">3. Monitoring App Offline</div>
+        <div class="menu-item" onclick="showRes('SAFETY LOCKOUT: Reset the RSD button. Check for 12V supply to the roof controllers.')">4. Rapid Shutdown Tripped</div>
+        <div class="menu-item" onclick="showRes('COMMUNICATION: Data cable between battery and inverter is loose or firmware is mismatched.')">5. Battery Not Communicating</div>
+        <div class="menu-item" onclick="showRes('CT CLIPS: Current Transformers are installed backward or on the wrong phase.')">6. Incorrect Export Readings</div>
+        <div class="menu-item" onclick="showRes('OVERVOLTAGE: Grid voltage is too high (>252V). Utility needs to adjust transformer tap.')">7. Inverter High Voltage Trip</div>
+        <div class="menu-item" onclick="showRes('BYPASS DIODE: One panel in the string is failing or shaded, pulling down the whole string.')">8. Low String Voltage</div>
+        <div class="menu-item" onclick="showRes('LUG TENSION: Main power lugs are loose, causing heat and intermittent shutdowns.')">9. Thermal Shutdown at Inverter</div>
+        <div class="menu-item" onclick="showRes('POLLEN/SOIL: Efficiency loss > 20%. Professional cleaning and recalibration required.')">10. Low Efficiency (No Errors)</div>
+    </div>
+    <div id="resBox" class="result hidden">
+        <strong>Solar Recommendation:</strong>
+        <p id="resText"></p>
+        <button style="width:100%;" onclick="location.reload()">Back to Menu</button>
+    </div>
+</div>
+<script>
+    function showRes(t) { document.getElementById('homeMenu').classList.add('hidden'); document.getElementById('resBox').classList.remove('hidden'); document.getElementById('resText').innerText = t; }
+</script>
+</body>
+</html>

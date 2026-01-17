@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #2d3748; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 25px; border-radius: 15px; width: 100%; max-width: 500px; border-top: 5px solid #ed8936; }
+        h2 { color: #7b341e; margin: 0; }
+        .menu-item { background: #fffaf0; border: 1px solid #feebc8; padding: 10px; margin-bottom: 6px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .step { display: none; margin-top: 20px; }
+        .active { display: block; }
+        .btn-group { margin-top: 25px; display: flex; gap: 10px; }
+        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; }
+        .btn-yes { background: #38a169; color: white; }
+        .btn-no { background: #dd6b20; color: white; }
+        .result { background: #fff5f5; border-left: 6px solid #e53e3e; padding: 20px; margin-top: 20px; border-radius: 8px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div id="homeMenu">
+        <h2>Needful Thingz</h2>
+        <p style="color:#7b341e; font-weight:bold;">KITCHEN LOGIC v1.0</p>
+        <div class="menu-item" onclick="startFlow('ice')">1. Ice Machine: No Production</div>
+        <div class="menu-item" onclick="startFlow('walk')">2. Walk-In: Temp Rising</div>
+        <div class="menu-item" onclick="startFlow('oven')">3. Conv. Oven: No Heat</div>
+        <div class="menu-item" onclick="startFlow('fry')">4. Fryer: Pilot Won't Light</div>
+        <div class="menu-item" onclick="startFlow('wash')">5. Dishwasher: No Hot Water</div>
+        <div class="menu-item" onclick="startFlow('drain')">6. Dishwasher: Not Draining</div>
+        <div class="menu-item" onclick="startFlow('steam')">7. Steam Table: Boiling Dry</div>
+        <div class="menu-item" onclick="startFlow('hood')">8. Exhaust Hood: No Draw</div>
+        <div class="menu-item" onclick="startFlow('mix')">9. Mixer: No Low Speed</div>
+        <div class="menu-item" onclick="startFlow('reach')">10. Reach-In: Rapid Cycling</div>
+    </div>
+
+    <div id="flow-fry" class="hidden">
+        <p><strong>Step 1:</strong> Does the pilot light stay lit when you release the knob?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('THERMOSTAT: Pilot is OK. Check the main gas valve or the Hi-Limit safety switch.')">YES</button>
+            <button class="btn-no" onclick="showRes('THERMOPILE: Replace the thermopile. It is not generating enough millivolts to hold the valve open.')">NO</button>
+        </div>
+    </div>
+
+    <div id="resBox" class="result hidden">
+        <strong>Kitchen Recommendation:</strong>
+        <p id="resText"></p>
+        <button style="width:100%; background:#4a5568; color:white; margin-top:10px;" onclick="location.reload()">Back to Menu</button>
+    </div>
+</div>
+<script>
+    function startFlow(fId) { document.getElementById('homeMenu').classList.add('hidden'); document.getElementById('flow-'+fId).classList.remove('hidden'); }
+    function showRes(t) { document.querySelectorAll("[id^='flow-']").forEach(f => f.classList.add('hidden')); document.getElementById('resBox').classList.remove('hidden'); document.getElementById('resText').innerText = t; }
+</script>
+</body>
+</html>
