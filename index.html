@@ -2,7 +2,21 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
+ /* Logo Header Style */
+.logo-container {
+    text-align: center;
+    margin: -20px -25px 20px -25px; /* Pulls it to the top edges */
+    background: #ffffff; /* Clean white background for the logo */
+    border-radius: 15px 15px 0 0; /* Curves the top corners */
+    padding: 15px 0;
+    border-bottom: 3px solid #006fba; /* Matches the blue in your logo */
+}
+.logo-img {
+    max-width: 85%; /* Perfect size for mobile screens */
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}   <style>
         body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
         .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
         .header { text-align: center; border-bottom: 2px solid #edf2f7; margin-bottom: 20px; padding-bottom: 10px; }
@@ -25,7 +39,9 @@
 </head>
 <body>
 
-<div class="card">
+<div class="card"><div class="logo-container">
+    <img src="nt-logo.png" alt="Needful Thingz Tech & Logic" class="logo-img">
+</div>
     <div class="header">
         <div class="brand">Needful Thingz</div>
         <div class="sub-brand">Lead Tech Logic™ Enterprise</div>
@@ -95,3 +111,4 @@
 </body>
 
 </html>
+
