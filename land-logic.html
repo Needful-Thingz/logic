@@ -1,1 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landscaping Logic</title>
+    <style>
+        /* BRANDING */
+        .logo-container { text-align: center; margin: -20px -20px 20px -20px; background: #ffffff; border-radius: 20px 20px 0 0; padding: 15px 0; border-bottom: 3px solid #006fba; }
+        .logo-img { max-width: 85%; height: auto; display: block; margin: 0 auto; }
+        
+        /* LAYOUT */
+        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        h3 { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
+        
+        /* MENU GRID */
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .menu-btn { background: #f7fafc; border: 2px solid #e2e8f0; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; font-weight: bold; color: #4a5568; font-size: 13px; }
+        .menu-btn:hover { background: #ebf8ff; border-color: #3182ce; color: #2b6cb0; }
+        
+        /* LOGIC BUTTONS */
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; flex-grow: 1; color: white; }
+        .btn-yes { background: #48bb78; } .btn-no { background: #f56565; }
+        
+        .result { background: #fffaf0; border-left: 5px solid #ed8936; padding: 15px; margin-top: 20px; display: none; }
+        .nav-btn { width: 100%; background: #718096; margin-top: 20px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="logo-container"><img src="nt-logo.png" class="logo-img"></div>
+    
+    <div id="mainHeader">
+        <h3>Landscaping & Irrigation Logic</h3>
+        <p style="font-size:12px; color:gray;">Select a Category:</p>
+    </div>
 
+    <div id="mainMenu" class="menu-grid">
+        <div class="menu-btn" onclick="startLogic('irrigation')">Irrigation/Sprinklers</div>
+        <div class="menu-btn" onclick="startLogic('drainage')">Drainage Issues</div>
+        <div class="menu-btn" onclick="startLogic('lawnbrown')">Brown Spots (Lawn)</div>
+        <div class="menu-btn" onclick="startLogic('trees')">Tree & Shrub Health</div>
+        <div class="menu-btn" onclick="startLogic('pavers')">Pavers & Hardscape</div>
+        <div class="menu-btn" onclick="startLogic('lighting')">Outdoor Lighting</div>
+        <div class="menu-btn" onclick="startLogic('weeds')">Weed Control</div>
+        <div class="menu-btn" onclick="startLogic('soil')">Soil Quality</div>
+        <div class="menu-btn" onclick="startLogic('erosion')">Erosion Control</div>
+        <div class="menu-btn" onclick="startLogic('fencing')">Fencing/Gates</div>
+    </div>
+
+    <div id="logic-irrigation" class="hidden">
+        <h3>Irrigation System</h3>
+        <p><strong>Step 1:</strong> Is one specific zone not popping up?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('VALVE FAILURE: Check solenoid wiring or diaphragm in the valve box.')">YES</button>
+            <button class="btn-no" onclick="showRes('CONTROLLER ISSUE: Check timer settings and master valve.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-drainage" class="hidden">
+        <h3>Drainage & Standing Water</h3>
+        <p><strong>Step 1:</strong> Does water pool against the foundation after rain?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('NEGATIVE GRADE: Regrade soil to slope away from home (6 inches over 10 feet).')">YES</button>
+            <button class="btn-no" onclick="showRes('SOIL COMPACTION: Aerate lawn to improve drainage.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-lawnbrown" class="hidden">
+        <h3>Lawn Health (Brown Spots)</h3>
+        <p><strong>Step 1:</strong> Pull on the brown grass. Does it lift up like a carpet?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('GRUBS: Treat with grub control immediately.')">YES</button>
+            <button class="btn-no" onclick="showRes('FUNGUS/WATER: Check for "dollar spot" fungus or lack of water coverage.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-trees" class="hidden">
+        <h3>Tree & Shrub Health</h3>
+        <p><strong>Step 1:</strong> Are the leaves turning yellow with green veins (Chlorosis)?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('IRON DEFICIENCY: Treat soil with chelated iron supplement.')">YES</button>
+            <button class="btn-no" onclick="showRes('WATER STRESS: Check soil moisture depth.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-pavers" class="hidden">
+        <h3>Pavers & Hardscape</h3>
+        <p><strong>Step 1:</strong> Are pavers sinking or uneven?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('BASE FAILURE: Lift pavers, add crushed stone/sand base, re-compact.')">YES</button>
+            <button class="btn-no" onclick="showRes('EDGE RESTRAINT: Check if plastic edging has failed.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-lighting" class="hidden">
+        <h3>Outdoor Lighting (Low Voltage)</h3>
+        <p><strong>Step 1:</strong> Is the entire string of lights out?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('TRANSFORMER: Check GFCI plug and transformer timer/breaker.')">YES</button>
+            <button class="btn-no" onclick="showRes('LINE BREAK: Locate cut wire near first light.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-weeds" class="hidden">
+        <h3>Weed Control</h3>
+        <p><strong>Step 1:</strong> Are weeds growing in mulch beds?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('BARRIER BREACH: Weed fabric may be exposed. Hand pull and add 3 inches mulch.')">YES</button>
+            <button class="btn-no" onclick="showRes('SEED BLOW-IN: Apply Pre-Emergent herbicide.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-soil" class="hidden">
+        <h3>Soil Quality</h3>
+        <p><strong>Step 1:</strong> Is the soil hard, cracked, and difficult to dig?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('CLAY HEAVY: Amend with gypsum and organic compost.')">YES</button>
+            <button class="btn-no" onclick="showRes('COMPACTED: Core aeration required.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-erosion" class="hidden">
+        <h3>Erosion Control</h3>
+        <p><strong>Step 1:</strong> Is soil washing away on a slope?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('STABILIZE: Install jute matting or plant ground cover (e.g., creeping juniper).')">YES</button>
+            <button class="btn-no" onclick="showRes('DIVERT: Install french drain at top of slope.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-fencing" class="hidden">
+        <h3>Fencing & Gates</h3>
+        <p><strong>Step 1:</strong> Is the gate sagging and dragging on the ground?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('POST LEAN: Dig out post footing and reset in concrete.')">YES</button>
+            <button class="btn-no" onclick="showRes('CROSS BRACE: Install a turnbuckle or anti-sag kit.')">NO</button>
+        </div>
+    </div>
+
+    <div id="resBox" class="result">
+        <strong>Recommendation:</strong>
+        <p id="resText"></p>
+        <button class="nav-btn" onclick="location.reload()">Back to Categories</button>
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:5px;">Main Menu</button>
+    </div>
+</div>
+
+<script>
+    function startLogic(catId) {
+        document.getElementById('mainMenu').style.display = 'none';
+        document.getElementById('mainHeader').style.display = 'none';
+        document.getElementById('logic-' + catId).style.display = 'block';
+    }
+
+    function showRes(text) {
+        // Hide all logic divs
+        const logics = document.querySelectorAll('[id^="logic-"]');
+        logics.forEach(l => l.style.display = 'none');
+        
+        document.getElementById('resBox').style.display = 'block';
+        document.getElementById('resText').innerText = text;
+    }
+</script>
+</body>
+</html>
