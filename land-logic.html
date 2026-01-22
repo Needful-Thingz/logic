@@ -37,17 +37,20 @@
         <p style="font-size:12px; color:gray;">Select a Category:</p>
     </div>
 
-    <div id="mainMenu" class="menu-grid">
-        <div class="menu-btn" onclick="startLogic('irrigation')">Irrigation/Sprinklers</div>
-        <div class="menu-btn" onclick="startLogic('drainage')">Drainage Issues</div>
-        <div class="menu-btn" onclick="startLogic('lawnbrown')">Brown Spots (Lawn)</div>
-        <div class="menu-btn" onclick="startLogic('trees')">Tree & Shrub Health</div>
-        <div class="menu-btn" onclick="startLogic('pavers')">Pavers & Hardscape</div>
-        <div class="menu-btn" onclick="startLogic('lighting')">Outdoor Lighting</div>
-        <div class="menu-btn" onclick="startLogic('weeds')">Weed Control</div>
-        <div class="menu-btn" onclick="startLogic('soil')">Soil Quality</div>
-        <div class="menu-btn" onclick="startLogic('erosion')">Erosion Control</div>
-        <div class="menu-btn" onclick="startLogic('fencing')">Fencing/Gates</div>
+    <div id="mainMenu">
+        <div class="menu-grid">
+            <div class="menu-btn" onclick="startLogic('irrigation')">Irrigation/Sprinklers</div>
+            <div class="menu-btn" onclick="startLogic('drainage')">Drainage Issues</div>
+            <div class="menu-btn" onclick="startLogic('lawnbrown')">Brown Spots (Lawn)</div>
+            <div class="menu-btn" onclick="startLogic('trees')">Tree & Shrub Health</div>
+            <div class="menu-btn" onclick="startLogic('pavers')">Pavers & Hardscape</div>
+            <div class="menu-btn" onclick="startLogic('lighting')">Outdoor Lighting</div>
+            <div class="menu-btn" onclick="startLogic('weeds')">Weed Control</div>
+            <div class="menu-btn" onclick="startLogic('soil')">Soil Quality</div>
+            <div class="menu-btn" onclick="startLogic('erosion')">Erosion Control</div>
+            <div class="menu-btn" onclick="startLogic('fencing')">Fencing/Gates</div>
+        </div>
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:20px;">Main Enterprise Menu</button>
     </div>
 
     <div id="logic-irrigation" class="hidden">
@@ -144,7 +147,7 @@
         <strong>Recommendation:</strong>
         <p id="resText"></p>
         <button class="nav-btn" onclick="location.reload()">Back to Categories</button>
-        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:5px;">Main Menu</button>
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:5px;">Main Enterprise Menu</button>
     </div>
 </div>
 
