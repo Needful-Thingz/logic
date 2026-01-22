@@ -1,1 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>General Construction Logic</title>
+    <style>
+        /* BRANDING */
+        .logo-container { text-align: center; margin: -20px -20px 20px -20px; background: #ffffff; border-radius: 20px 20px 0 0; padding: 15px 0; border-bottom: 3px solid #006fba; }
+        .logo-img { max-width: 85%; height: auto; display: block; margin: 0 auto; }
+        
+        /* LAYOUT */
+        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        h3 { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
+        
+        /* MENU GRID */
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .menu-btn { background: #f7fafc; border: 2px solid #e2e8f0; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; font-weight: bold; color: #4a5568; font-size: 13px; }
+        .menu-btn:hover { background: #ebf8ff; border-color: #3182ce; color: #2b6cb0; }
+        
+        /* LOGIC BUTTONS */
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; flex-grow: 1; color: white; }
+        .btn-yes { background: #48bb78; } .btn-no { background: #f56565; }
+        
+        .result { background: #fffaf0; border-left: 5px solid #ed8936; padding: 15px; margin-top: 20px; display: none; }
+        .nav-btn { width: 100%; background: #718096; margin-top: 20px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="logo-container"><img src="nt-logo.png" class="logo-img"></div>
+    
+    <div id="mainHeader">
+        <h3>General Construction (GC) Logic</h3>
+        <p style="font-size:12px; color:gray;">Select a Category:</p>
+    </div>
 
+    <div id="mainMenu" class="menu-grid">
+        <div class="menu-btn" onclick="startLogic('foundation')">Foundation Issues</div>
+        <div class="menu-btn" onclick="startLogic('roof')">Roof Leaks</div>
+        <div class="menu-btn" onclick="startLogic('drywall')">Drywall & Paint</div>
+        <div class="menu-btn" onclick="startLogic('flooring')">Flooring Issues</div>
+        <div class="menu-btn" onclick="startLogic('windows')">Windows & Doors</div>
+        <div class="menu-btn" onclick="startLogic('water')">Water Damage</div>
+        <div class="menu-btn" onclick="startLogic('deck')">Decks & Patios</div>
+        <div class="menu-btn" onclick="startLogic('insulation')">Insulation/Energy</div>
+        <div class="menu-btn" onclick="startLogic('framing')">Structural Framing</div>
+        <div class="menu-btn" onclick="startLogic('permits')">Code & Permits</div>
+    </div>
+
+    <div id="logic-foundation" class="hidden">
+        <h3>Foundation Check</h3>
+        <p><strong>Step 1:</strong> Do you see stair-step cracks in the exterior brick or drywall?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('MAJOR SETTLING: Requires structural engineer. Check drainage around perimeter.')">YES</button>
+            <button class="btn-no" onclick="showRes('MINOR SETTLING: Monitor for 6 months. Patch and seal.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-roof" class="hidden">
+        <h3>Roof Leak Logic</h3>
+        <p><strong>Step 1:</strong> Is the leak appearing near a chimney, vent, or valley?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('FLASHING FAILURE: Reseal or replace flashing kits around penetrations.')">YES</button>
+            <button class="btn-no" onclick="showRes('SHINGLE DAMAGE: Inspect for missing tabs or hail damage.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-drywall" class="hidden">
+        <h3>Drywall Diagnostics</h3>
+        <p><strong>Step 1:</strong> Is the crack a straight vertical line tape joint?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('POOR TAPING: Cut out tape, re-mud, and re-tape. Not structural.')">YES</button>
+            <button class="btn-no" onclick="showRes('STRESS FRACTURE: Check framing movement behind the wall.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-flooring" class="hidden">
+        <h3>Flooring Logic</h3>
+        <p><strong>Step 1:</strong> Is the hardwood cupping (edges higher than center)?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('MOISTURE ISSUE: Check crawlspace humidity or leaks below floor.')">YES</button>
+            <button class="btn-no" onclick="showRes('ACCLIMATION: Floor was installed too wet or too dry.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-windows" class="hidden">
+        <h3>Windows & Doors</h3>
+        <p><strong>Step 1:</strong> Does the door rub against the top of the jamb?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('SAGGING HINGES: Tighten hinge screws into framing (3-inch screws).')">YES</button>
+            <button class="btn-no" onclick="showRes('SETTLING FRAME: Shim behind hinges or plane the door.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-water" class="hidden">
+        <h3>Water Damage</h3>
+        <p><strong>Step 1:</strong> Is the water stain active (wet to touch) or dry?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('ACTIVE LEAK: Stop source immediately before repair.')">ACTIVE</button>
+            <button class="btn-no" onclick="showRes('OLD STAIN: Seal with oil-based primer (Kilz) before painting.')">DRY</button>
+        </div>
+    </div>
+
+    <div id="logic-deck" class="hidden">
+        <h3>Deck Safety</h3>
+        <p><strong>Step 1:</strong> Is the ledger board (attached to house) missing lag bolts?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('CRITICAL SAFETY: Install 1/2 inch lag screws with washers immediately.')">YES</button>
+            <button class="btn-no" onclick="showRes('ROT CHECK: Check post bases for rot.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-insulation" class="hidden">
+        <h3>Insulation & Energy</h3>
+        <p><strong>Step 1:</strong> Are there cold spots on walls or ceilings?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('MISSING BATT: Use thermal camera to verify. Blow in cellulose or add batts.')">YES</button>
+            <button class="btn-no" onclick="showRes('AIR LEAK: Check outlets and windows for drafts.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-framing" class="hidden">
+        <h3>Structural Framing</h3>
+        <p><strong>Step 1:</strong> Are you removing a wall running perpendicular to joists?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('LOAD BEARING: LVL Beam installation required. Consult Engineer.')">YES</button>
+            <button class="btn-no" onclick="showRes('PARTITION WALL: Safe to remove. Check for electrical/plumbing inside.')">NO</button>
+        </div>
+    </div>
+
+    <div id="logic-permits" class="hidden">
+        <h3>Code & Permits</h3>
+        <p><strong>Step 1:</strong> Does the project involve moving plumbing or electric?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('PERMIT REQUIRED: Rough-in inspection needed before closing walls.')">YES</button>
+            <button class="btn-no" onclick="showRes('COSMETIC: Usually no permit needed for finish work only.')">NO</button>
+        </div>
+    </div>
+
+    <div id="resBox" class="result">
+        <strong>Recommendation:</strong>
+        <p id="resText"></p>
+        <button class="nav-btn" onclick="location.reload()">Back to Categories</button>
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:5px;">Main Menu</button>
+    </div>
+</div>
+
+<script>
+    function startLogic(catId) {
+        document.getElementById('mainMenu').style.display = 'none';
+        document.getElementById('mainHeader').style.display = 'none';
+        document.getElementById('logic-' + catId).style.display = 'block';
+    }
+
+    function showRes(text) {
+        // Hide all logic divs
+        const logics = document.querySelectorAll('[id^="logic-"]');
+        logics.forEach(l => l.style.display = 'none');
+        
+        document.getElementById('resBox').style.display = 'block';
+        document.getElementById('resText').innerText = text;
+    }
+</script>
+</body>
+</html>
