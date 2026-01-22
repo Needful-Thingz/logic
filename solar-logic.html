@@ -2,56 +2,159 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    /* Logo Header Style */
-.logo-container {
-    text-align: center;
-    margin: -20px -25px 20px -25px; /* Pulls it to the top edges */
-    background: #ffffff; /* Clean white background for the logo */
-    border-radius: 15px 15px 0 0; /* Curves the top corners */
-    padding: 15px 0;
-    border-bottom: 3px solid #006fba; /* Matches the blue in your logo */
-}
-.logo-img {
-    max-width: 85%; /* Perfect size for mobile screens */
-    height: auto;
-    display: block;
-    margin: 0 auto;
-}<style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .card { background: white; padding: 25px; border-radius: 15px; width: 100%; max-width: 500px; border-top: 5px solid #4fd1c5; }
-        h2 { color: #2d3748; margin: 0; }
-        .menu-item { background: #e6fffa; border: 1px solid #b2f5ea; padding: 10px; margin-bottom: 6px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
-        .result { background: #e6fffa; border-left: 6px solid #319795; padding: 20px; margin-top: 20px; border-radius: 8px; }
+    <title>Solar Logic</title>
+    <style>
+        /* BRANDING */
+        .logo-container { text-align: center; margin: -20px -20px 20px -20px; background: #ffffff; border-radius: 20px 20px 0 0; padding: 15px 0; border-bottom: 3px solid #006fba; }
+        .logo-img { max-width: 85%; height: auto; display: block; margin: 0 auto; }
+        
+        /* LAYOUT */
+        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        h3 { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
+        
+        /* MENU ITEMS */
+        .menu-item { background: #fffff0; border: 1px solid #d69e2e; color: #744210; padding: 12px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .menu-item:hover { background: #faf089; }
+        
+        /* BUTTONS */
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; color: white; }
+        .btn-yes { background: #48bb78; } .btn-no { background: #f56565; }
+        
+        .result { background: #fffaf0; border-left: 5px solid #d69e2e; padding: 15px; margin-top: 20px; display: none; }
+        .nav-btn { width: 100%; background: #718096; margin-top: 10px; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
-<div class="card"><div class="logo-container">
-    <img src="nt-logo.png" alt="Needful Thingz Tech & Logic" class="logo-img">
-</div>
+<div class="card">
+    <div class="logo-container"><img src="nt-logo.png" class="logo-img"></div>
+    
     <div id="homeMenu">
-        <h2>Needful Thingz</h2>
-        <p style="color:#2c7a7b; font-weight:bold;">SOLAR PULSE LOGIC v1.0</p>
-        <div class="menu-item" onclick="showRes('AC DISCONNECT: Check the main solar breaker. The system cannot sync without grid power.')">1. 0 Production / Inverter Dead</div>
-        <div class="menu-item" onclick="showRes('MC4 CONNECTORS: Check roof for burnt connectors or moisture in the junction box.')">2. Arc Fault / Ground Fault</div>
-        <div class="menu-item" onclick="showRes('COMMUNICATION: Wi-Fi signal lost at inverter. Reset the zigbee/gateway module.')">3. Monitoring App Offline</div>
-        <div class="menu-item" onclick="showRes('SAFETY LOCKOUT: Reset the RSD button. Check for 12V supply to the roof controllers.')">4. Rapid Shutdown Tripped</div>
-        <div class="menu-item" onclick="showRes('COMMUNICATION: Data cable between battery and inverter is loose or firmware is mismatched.')">5. Battery Not Communicating</div>
-        <div class="menu-item" onclick="showRes('CT CLIPS: Current Transformers are installed backward or on the wrong phase.')">6. Incorrect Export Readings</div>
-        <div class="menu-item" onclick="showRes('OVERVOLTAGE: Grid voltage is too high (>252V). Utility needs to adjust transformer tap.')">7. Inverter High Voltage Trip</div>
-        <div class="menu-item" onclick="showRes('BYPASS DIODE: One panel in the string is failing or shaded, pulling down the whole string.')">8. Low String Voltage</div>
-        <div class="menu-item" onclick="showRes('LUG TENSION: Main power lugs are loose, causing heat and intermittent shutdowns.')">9. Thermal Shutdown at Inverter</div>
-        <div class="menu-item" onclick="showRes('POLLEN/SOIL: Efficiency loss > 20%. Professional cleaning and recalibration required.')">10. Low Efficiency (No Errors)</div>
+        <h3>Solar & Battery Logic</h3>
+        <p style="font-size:12px; color:gray;">Select the system error:</p>
+        
+        <div class="menu-item" onclick="startFlow('inverter')">1. Inverter Screen Blank / Off</div>
+        <div class="menu-item" onclick="startFlow('lowprod')">2. Low Production (Sunny Day)</div>
+        <div class="menu-item" onclick="startFlow('grid')">3. System Not Exporting to Grid</div>
+        <div class="menu-item" onclick="startFlow('battery')">4. Battery Not Charging</div>
+        <div class="menu-item" onclick="startFlow('micro')">5. Microinverter Reporting Error</div>
+        <div class="menu-item" onclick="startFlow('ground')">6. Ground Fault (Isolation ISO)</div>
+        <div class="menu-item" onclick="startFlow('app')">7. App Shows "No Data"</div>
+        <div class="menu-item" onclick="startFlow('clean')">8. Panels Dirty / Bird Debris</div>
+        <div class="menu-item" onclick="startFlow('conduit')">9. Conduit/Wire Damage on Roof</div>
+        <div class="menu-item" onclick="startFlow('arc')">10. Arc Fault Error (AFCI)</div>
     </div>
-    <div id="resBox" class="result hidden">
-        <strong>Solar Recommendation:</strong>
+
+    <div id="flow-inverter" class="hidden">
+        <h3>Inverter Dead</h3>
+        <p><strong>Step 1:</strong> Is the AC Disconnect (Lever on wall) in the ON position?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('DC SWITCH: Check the DC dial on the inverter itself. Turn it to ON.')">YES</button>
+            <button class="btn-no" onclick="showRes('BREAKER: Check the solar breaker in the main panel. Reset it.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-lowprod" class="hidden">
+        <h3>Low Production</h3>
+        <p><strong>Step 1:</strong> Is there shading from a new tree or obstacle?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('SHADING: Trim vegetation. Even small shade kills string inverter output.')">YES</button>
+            <button class="btn-no" onclick="showRes('DIRT/SOIL: Inspect panels for heavy dust or bird droppings. Clean with water only.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-grid" class="hidden">
+        <h3>Not Exporting</h3>
+        <p><strong>Step 1:</strong> Is the Utility Meter showing an error or blank?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('UTILITY SIDE: The grid voltage may be out of range. Call Utility Co.')">YES</button>
+            <button class="btn-no" onclick="showRes('PROFILE: The inverter Grid Profile settings may be wrong. Call Tech Support.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-battery" class="hidden">
+        <h3>Battery Issue</h3>
+        <p><strong>Step 1:</strong> Is the battery switch/breaker in the ON position?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('COMM ERROR: Check the communication cable between inverter and battery.')">YES</button>
+            <button class="btn-no" onclick="showRes('WAKE UP: Turn breaker ON. Some batteries need a "jump start" if fully drained.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-micro" class="hidden">
+        <h3>Microinverter Fail</h3>
+        <p><strong>Step 1:</strong> Is only ONE specific panel showing 0 production?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('PANEL/MICRO: Inspect that specific panel connection on the roof. Likely loose plug.')">YES</button>
+            <button class="btn-no" onclick="showRes('GATEWAY: If ALL are down, reboot the Envoy/Gateway monitoring box.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-ground" class="hidden">
+        <h3>Ground Fault (ISO)</h3>
+        <p><strong>Step 1:</strong> Did it rain recently?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('MOISTURE INGRESS: Water got into a connector or J-box. Wait to dry or inspect roof.')">YES</button>
+            <button class="btn-no" onclick="showRes('WIRE NICK: A wire is touching the racking rail. visual inspection required.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-app" class="hidden">
+        <h3>App Offline</h3>
+        <p><strong>Step 1:</strong> Did you change your home WiFi password recently?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('RECONNECT: You must update the WiFi credentials on the Solar Gateway device.')">YES</button>
+            <button class="btn-no" onclick="showRes('ETHERNET: Check if the ethernet cable to your router is unplugged.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-clean" class="hidden">
+        <h3>Dirty Panels</h3>
+        <p><strong>Step 1:</strong> Is there hard water or cement dust on them?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('PROFESSIONAL CLEAN: Cement/Paint requires special solvents. Do not scrape.')">YES</button>
+            <button class="btn-no" onclick="showRes('RINSE: Use de-ionized water or hose in early morning. No soap.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-conduit" class="hidden">
+        <h3>Roof Damage</h3>
+        <p><strong>Step 1:</strong> Are wires hanging down touching the roof?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('CLIP FAIL: Re-secure wires with UV-rated metal clips immediately.')">YES</button>
+            <button class="btn-no" onclick="showRes('SQUIRRELS: Check for chew marks on conduit. Repair wires and install critter guard.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-arc" class="hidden">
+        <h3>Arc Fault (AFCI)</h3>
+        <p><strong>Step 1:</strong> Does the error return immediately after reset?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('TRUE ARC: Do not bypass. Locate loose connection or burnt connector on roof.')">YES</button>
+            <button class="btn-no" onclick="showRes('FIRMWARE: Update inverter firmware. Sometimes this is a false alarm.')">NO</button>
+        </div>
+    </div>
+
+    <div id="resBox" class="result">
+        <strong>Recommendation:</strong>
         <p id="resText"></p>
-        <button style="width:100%;" onclick="location.reload()">Back to Menu</button>
+        <button class="nav-btn" onclick="location.reload()">Back to Solar Menu</button>
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748;">Main Menu</button>
     </div>
 </div>
+
 <script>
-    function showRes(t) { document.getElementById('homeMenu').classList.add('hidden'); document.getElementById('resBox').classList.remove('hidden'); document.getElementById('resText').innerText = t; }
+    function startFlow(fId) { 
+        document.getElementById('homeMenu').classList.add('hidden'); 
+        document.getElementById('flow-'+fId).classList.remove('hidden'); 
+    }
+    function showRes(t) { 
+        document.querySelectorAll("[id^='flow-']").forEach(f => f.classList.add('hidden')); 
+        document.getElementById('resBox').style.display = "block";
+        document.getElementById('resText').innerText = t; 
+    }
 </script>
 </body>
-
 </html>
