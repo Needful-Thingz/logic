@@ -45,6 +45,8 @@
         <div class="menu-item" onclick="startFlow('bib')">8. Hose Bib / Spigot Leaking</div>
         <div class="menu-item" onclick="startFlow('sump')">9. Sump Pump Failure</div>
         <div class="menu-item" onclick="startFlow('hammer')">10. Banging Pipes (Water Hammer)</div>
+        
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:20px;">Main Enterprise Menu</button>
     </div>
 
     <div id="flow-hotwater" class="hidden">
@@ -61,4 +63,100 @@
         <p><strong>Step 1:</strong> Open the tank. Is the water level going over the overflow tube?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('FILL VALVE: Float is set too high or valve is broken. Adjust or replace fill valve.')">YES</button>
-            <button class="btn-no" onclick
+            <button class="btn-no" onclick="showRes('FLAPPER: Flapper is not sealing. Replace flapper.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-clogtoilet" class="hidden">
+        <h3>Clogged Toilet</h3>
+        <p><strong>Step 1:</strong> Did plunging it fail to clear the stop?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('AUGER: Use a toilet auger (snake). If that fails, pull toilet to check trapway.')">YES</button>
+            <button class="btn-no" onclick="showRes('PLUNGE PROPERLY: Ensure good seal. Rapid short strokes.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-pressure" class="hidden">
+        <h3>Low Pressure</h3>
+        <p><strong>Step 1:</strong> Is the pressure low at every single faucet?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('PRV FAILURE: The Pressure Reducing Valve (bell shape) on main line has failed.')">YES</button>
+            <button class="btn-no" onclick="showRes('AERATOR: If only one faucet, clean the aerator screen.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-main" class="hidden">
+        <h3>Main Line Backup</h3>
+        <p><strong>Step 1:</strong> When you flush the toilet, does water come up in the shower/tub?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('MAIN CLOG: The main sewer line is blocked. Locate cleanout and use heavy snake.')">YES</button>
+            <button class="btn-no" onclick="showRes('LOCAL CLOG: It is likely just a clog in that bathroom group.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-burst" class="hidden">
+        <h3>Burst Pipe</h3>
+        <p><strong>Step 1:</strong> Can you isolate the shut-off valve for that fixture?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('ISOLATE: Turn off local valve. Repair with SharkBite or solder coupling.')">YES</button>
+            <button class="btn-no" onclick="showRes('EMERGENCY: Shut off MAIN water to house immediately.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-shower" class="hidden">
+        <h3>Shower Temp Issues</h3>
+        <p><strong>Step 1:</strong> Does the water get cold only when someone flushes?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('PRESSURE BALANCE: Install a pressure-balance shower valve.')">YES</button>
+            <button class="btn-no" onclick="showRes('DIP TUBE: If hot runs out quickly everywhere, check water heater dip tube.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-bib" class="hidden">
+        <h3>Leaking Hose Bib</h3>
+        <p><strong>Step 1:</strong> Is it leaking from the vacuum breaker (cap on top)?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('VACUUM BREAKER: Replace the plastic cap kit inside the vacuum breaker.')">YES</button>
+            <button class="btn-no" onclick="showRes('WASHER: Replace the rubber washer inside the handle stem.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-sump" class="hidden">
+        <h3>Sump Pump</h3>
+        <p><strong>Step 1:</strong> Lift the float switch manually. Does the pump turn on?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('FLOAT STUCK: Ensure float hangs freely and isn\'t touching the wall.')">YES</button>
+            <button class="btn-no" onclick="showRes('PUMP FAILURE: Check outlet power. If has power but silent, pump is dead.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-hammer" class="hidden">
+        <h3>Water Hammer</h3>
+        <p><strong>Step 1:</strong> Does it bang when the washing machine stops?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('ARRESTORS: Install water hammer arrestors on the washer supply hoses.')">YES</button>
+            <button class="btn-no" onclick="showRes('STRAPS: Secure loose pipes in the wall/basement with clamps.')">NO</button>
+        </div>
+    </div>
+
+    <div id="resBox" class="result">
+        <strong>Recommendation:</strong>
+        <p id="resText"></p>
+        <button class="nav-btn" onclick="location.reload()">Back to Plumbing Menu</button>
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748;">Main Enterprise Menu</button>
+    </div>
+</div>
+
+<script>
+    function startFlow(fId) { 
+        document.getElementById('homeMenu').classList.add('hidden'); 
+        document.getElementById('flow-'+fId).classList.remove('hidden'); 
+    }
+    function showRes(t) { 
+        document.querySelectorAll("[id^='flow-']").forEach(f => f.classList.add('hidden')); 
+        document.getElementById('resBox').style.display = "block";
+        document.getElementById('resText').innerText = t; 
+    }
+</script>
+</body>
+</html>
