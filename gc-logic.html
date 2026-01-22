@@ -37,17 +37,20 @@
         <p style="font-size:12px; color:gray;">Select a Category:</p>
     </div>
 
-    <div id="mainMenu" class="menu-grid">
-        <div class="menu-btn" onclick="startLogic('foundation')">Foundation Issues</div>
-        <div class="menu-btn" onclick="startLogic('roof')">Roof Leaks</div>
-        <div class="menu-btn" onclick="startLogic('drywall')">Drywall & Paint</div>
-        <div class="menu-btn" onclick="startLogic('flooring')">Flooring Issues</div>
-        <div class="menu-btn" onclick="startLogic('windows')">Windows & Doors</div>
-        <div class="menu-btn" onclick="startLogic('water')">Water Damage</div>
-        <div class="menu-btn" onclick="startLogic('deck')">Decks & Patios</div>
-        <div class="menu-btn" onclick="startLogic('insulation')">Insulation/Energy</div>
-        <div class="menu-btn" onclick="startLogic('framing')">Structural Framing</div>
-        <div class="menu-btn" onclick="startLogic('permits')">Code & Permits</div>
+    <div id="mainMenu">
+        <div class="menu-grid">
+            <div class="menu-btn" onclick="startLogic('foundation')">Foundation Issues</div>
+            <div class="menu-btn" onclick="startLogic('roof')">Roof Leaks</div>
+            <div class="menu-btn" onclick="startLogic('drywall')">Drywall & Paint</div>
+            <div class="menu-btn" onclick="startLogic('flooring')">Flooring Issues</div>
+            <div class="menu-btn" onclick="startLogic('windows')">Windows & Doors</div>
+            <div class="menu-btn" onclick="startLogic('water')">Water Damage</div>
+            <div class="menu-btn" onclick="startLogic('deck')">Decks & Patios</div>
+            <div class="menu-btn" onclick="startLogic('insulation')">Insulation/Energy</div>
+            <div class="menu-btn" onclick="startLogic('framing')">Structural Framing</div>
+            <div class="menu-btn" onclick="startLogic('permits')">Code & Permits</div>
+        </div>
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:20px;">Main Enterprise Menu</button>
     </div>
 
     <div id="logic-foundation" class="hidden">
@@ -144,7 +147,7 @@
         <strong>Recommendation:</strong>
         <p id="resText"></p>
         <button class="nav-btn" onclick="location.reload()">Back to Categories</button>
-        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:5px;">Main Menu</button>
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:5px;">Main Enterprise Menu</button>
     </div>
 </div>
 
