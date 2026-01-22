@@ -2,56 +2,159 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    /* Logo Header Style */
-.logo-container {
-    text-align: center;
-    margin: -20px -25px 20px -25px; /* Pulls it to the top edges */
-    background: #ffffff; /* Clean white background for the logo */
-    border-radius: 15px 15px 0 0; /* Curves the top corners */
-    padding: 15px 0;
-    border-bottom: 3px solid #006fba; /* Matches the blue in your logo */
-}
-.logo-img {
-    max-width: 85%; /* Perfect size for mobile screens */
-    height: auto;
-    display: block;
-    margin: 0 auto;
-}<style>
-        body { font-family: 'Segoe UI', sans-serif; background: #2d3748; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .card { background: white; padding: 25px; border-radius: 20px; width: 100%; max-width: 500px; border-top: 5px solid #805ad5; }
-        h2 { color: #44337a; margin: 0; }
-        .menu-item { background: #faf5ff; border: 1px solid #e9d8fd; padding: 10px; margin-bottom: 6px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
-        .result { background: #f3e8ff; border-left: 6px solid #805ad5; padding: 20px; margin-top: 20px; border-radius: 10px; }
+    <title>Smart Home Logic</title>
+    <style>
+        /* BRANDING */
+        .logo-container { text-align: center; margin: -20px -20px 20px -20px; background: #ffffff; border-radius: 20px 20px 0 0; padding: 15px 0; border-bottom: 3px solid #006fba; }
+        .logo-img { max-width: 85%; height: auto; display: block; margin: 0 auto; }
+        
+        /* LAYOUT */
+        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        h3 { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
+        
+        /* MENU ITEMS */
+        .menu-item { background: #f0fff4; border: 1px solid #38a169; color: #22543d; padding: 12px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .menu-item:hover { background: #c6f6d5; }
+        
+        /* BUTTONS */
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; color: white; }
+        .btn-yes { background: #48bb78; } .btn-no { background: #f56565; }
+        
+        .result { background: #fffaf0; border-left: 5px solid #38a169; padding: 15px; margin-top: 20px; display: none; }
+        .nav-btn { width: 100%; background: #718096; margin-top: 10px; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
-<div class="card"><div class="logo-container">
-    <img src="nt-logo.png" alt="Needful Thingz Tech & Logic" class="logo-img">
-</div>
+<div class="card">
+    <div class="logo-container"><img src="nt-logo.png" class="logo-img"></div>
+    
     <div id="homeMenu">
-        <h2>Needful Thingz</h2>
-        <p style="color:#553c9a; font-weight:bold;">SMART SYNC LOGIC v1.0</p>
-        <div class="menu-item" onclick="showRes('C-WIRE: Check for 24V common. If blank, furnace float switch is likely tripped.')">1. Smart Stat: No Power</div>
-        <div class="menu-item" onclick="showRes('SIGNAL STRENGTH: Install mesh node. Signal cannot penetrate brick/stucco at this distance.')">2. Camera: Offline / Choppy Video</div>
-        <div class="menu-item" onclick="showRes('ALIGNMENT: Door is sagging. The deadbolt is hitting the strike plate, preventing sync.')">3. Smart Lock: Jammed Error</div>
-        <div class="menu-item" onclick="showRes('BAND STEERING: Disable 5GHz or create a 2.4GHz guest network. Device doesn\'t support 5GHz.')">4. Device Won\'t Pair to Wi-Fi</div>
-        <div class="menu-item" onclick="showRes('POE BUDGET: The network switch is overloaded. Unplug lower-priority devices.')">5. PoE Camera Flickering</div>
-        <div class="menu-item" onclick="showRes('DHCP CONFLICT: Two devices have the same IP. Assign a Static IP to the Hub/Gateway.')">6. Gateway/Hub Not Found</div>
-        <div class="menu-item" onclick="showRes('RF INTERFERENCE: Move the hub away from the router or large metal objects.')">7. Zigbee/Z-Wave Range Issues</div>
-        <div class="menu-item" onclick="showRes('BATTERY CALIBRATION: Replace batteries with high-output Alkalines (no rechargeables).')">8. High Battery Drain (Locks/Sensors)</div>
-        <div class="menu-item" onclick="showRes('CLOUD DELAY: Check ISP upload speed. Latency > 100ms causes trigger delays.')">9. Automation Lag (Lights/Sensors)</div>
-        <div class="menu-item" onclick="showRes('FIRMWARE: Update required. Perform a hard reset and re-push the update via USB/App.')">10. Total System Lockup (Black Screen)</div>
+        <h3>Smart Home & Low Voltage</h3>
+        <p style="font-size:12px; color:gray;">Select the device issue:</p>
+        
+        <div class="menu-item" onclick="startFlow('wifi')">1. WiFi Dead Spots / Dropouts</div>
+        <div class="menu-item" onclick="startFlow('camera')">2. Security Camera Offline</div>
+        <div class="menu-item" onclick="startFlow('doorbell')">3. Video Doorbell Power Issue</div>
+        <div class="menu-item" onclick="startFlow('lock')">4. Smart Lock Jammed</div>
+        <div class="menu-item" onclick="startFlow('thermo')">5. Smart Thermostat No Power (C-Wire)</div>
+        <div class="menu-item" onclick="startFlow('voice')">6. Voice Assistant Not Listening</div>
+        <div class="menu-item" onclick="startFlow('bulb')">7. Smart Bulb Not Responding</div>
+        <div class="menu-item" onclick="startFlow('sensor')">8. Alarm Sensor False Positive</div>
+        <div class="menu-item" onclick="startFlow('hub')">9. Hub Offline (Zigbee/Z-Wave)</div>
+        <div class="menu-item" onclick="startFlow('garage')">10. Smart Garage Door Error</div>
     </div>
-    <div id="resBox" class="result hidden">
-        <strong>Sync Recommendation:</strong>
+
+    <div id="flow-wifi" class="hidden">
+        <h3>WiFi Dropouts</h3>
+        <p><strong>Step 1:</strong> Is the router placed inside a metal cabinet or behind a TV?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('INTERFERENCE: Metal blocks WiFi. Move router to open air, high up.')">YES</button>
+            <button class="btn-no" onclick="showRes('MESH NEEDED: Signal is too weak. Install a Mesh WiFi point halfway to dead zone.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-camera" class="hidden">
+        <h3>Camera Offline</h3>
+        <p><strong>Step 1:</strong> Is the camera plugged into power (not battery)?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('REBOOT: Unplug for 30 seconds. Check WiFi signal strength at that location.')">YES</button>
+            <button class="btn-no" onclick="showRes('CHARGE: Battery is likely dead. Cold weather drains batteries faster.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-doorbell" class="hidden">
+        <h3>Doorbell Power</h3>
+        <p><strong>Step 1:</strong> Is the doorbell chiming "phantom" rings or buzzing?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('TRANSFORMER: Voltage is too low (16V required). Replace transformer with 16V/30VA model.')">YES</button>
+            <button class="btn-no" onclick="showRes('CHIME KIT: Install the power kit bypass on the chime box.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-lock" class="hidden">
+        <h3>Smart Lock Jammed</h3>
+        <p><strong>Step 1:</strong> Does the lock beep/grind when trying to lock?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('ALIGNMENT: The deadbolt is hitting the strike plate. Dremel/Deepen the strike hole.')">YES</button>
+            <button class="btn-no" onclick="showRes('CALIBRATION: Run the "Door Handing" calibration in the app.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-thermo" class="hidden">
+        <h3>Thermostat Power</h3>
+        <p><strong>Step 1:</strong> Does the thermostat verify a "C-Wire" is connected?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('CHECK FURNACE: Check if C-Wire is connected to C-terminal at the furnace board.')">YES</button>
+            <button class="btn-no" onclick="showRes('ADAPTER KIT: You need to install the C-Wire Power Adapter kit at the furnace.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-voice" class="hidden">
+        <h3>Voice Assistant</h3>
+        <p><strong>Step 1:</strong> Is the mute button (red ring/light) on?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('UNMUTE: The microphone switch is physically off. Turn it on.')">YES</button>
+            <button class="btn-no" onclick="showRes('REBOOT: Unplug device. Check if internet is down.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-bulb" class="hidden">
+        <h3>Smart Bulb</h3>
+        <p><strong>Step 1:</strong> Did someone turn off the physical wall switch?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('POWER LOSS: Smart bulbs need the switch ON 24/7. Install a switch guard.')">YES</button>
+            <button class="btn-no" onclick="showRes('RESET: Cycle the light on/off 5 times to enter pairing mode.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-sensor" class="hidden">
+        <h3>Sensor False Alarm</h3>
+        <p><strong>Step 1:</strong> Is the sensor (Motion) facing a window or HVAC vent?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('HEAT TRIGGER: Sunlight or heat blasts trigger motion. Relocate sensor.')">YES</button>
+            <button class="btn-no" onclick="showRes('BATTERY: Low battery can cause false triggers. Replace CR123/Coin battery.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-hub" class="hidden">
+        <h3>Hub Offline</h3>
+        <p><strong>Step 1:</strong> Is the Hub LED flashing blue or red?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('NO INTERNET: Hub lost connection to router. Reboot router and Hub.')">YES</button>
+            <button class="btn-no" onclick="showRes('SERVER DOWN: Check manufacturer status page for cloud outage.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-garage" class="hidden">
+        <h3>Smart Garage</h3>
+        <p><strong>Step 1:</strong> Does the app say "Close Error" or "Obstruction"?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('SENSORS: Check the safety eye sensors at the bottom of the tracks for misalignment.')">YES</button>
+            <button class="btn-no" onclick="showRes('WIFI SIGNAL: Garage signal is weak. Install WiFi extender in garage.')">NO</button>
+        </div>
+    </div>
+
+    <div id="resBox" class="result">
+        <strong>Recommendation:</strong>
         <p id="resText"></p>
-        <button style="width:100%;" onclick="location.reload()">Back to Menu</button>
+        <button class="nav-btn" onclick="location.reload()">Back to Smart Home Menu</button>
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748;">Main Menu</button>
     </div>
 </div>
+
 <script>
-    function showRes(t) { document.getElementById('homeMenu').classList.add('hidden'); document.getElementById('resBox').classList.remove('hidden'); document.getElementById('resText').innerText = t; }
+    function startFlow(fId) { 
+        document.getElementById('homeMenu').classList.add('hidden'); 
+        document.getElementById('flow-'+fId).classList.remove('hidden'); 
+    }
+    function showRes(t) { 
+        document.querySelectorAll("[id^='flow-']").forEach(f => f.classList.add('hidden')); 
+        document.getElementById('resBox').style.display = "block";
+        document.getElementById('resText').innerText = t; 
+    }
 </script>
 </body>
-
 </html>
