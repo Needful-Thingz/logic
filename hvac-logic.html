@@ -1,225 +1,162 @@
 <!DOCTYPE html>
 <html>
-/* Logo Header Style */
-.logo-container {
-    text-align: center;
-    margin: -20px -25px 20px -25px; /* Pulls it to the top edges */
-    background: #ffffff; /* Clean white background for the logo */
-    border-radius: 15px 15px 0 0; /* Curves the top corners */
-    padding: 15px 0;
-    border-bottom: 3px solid #006fba; /* Matches the blue in your logo */
-}
-.logo-img {
-    max-width: 85%; /* Perfect size for mobile screens */
-    height: auto;
-    display: block;
-    margin: 0 auto;
-}<head>
+<head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HVAC Logic</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 500px; min-height: 600px; position: relative; border-top: 5px solid #3182ce; }
-        h2 { color: #1a365d; margin-top: 0; margin-bottom: 5px; font-size: 22px; }
-        h3 { color: #2d3748; font-size: 14px; margin-bottom: 20px; font-weight: normal; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
-        .menu-item { background: white; border: 2px solid #e2e8f0; padding: 12px; margin-bottom: 8px; border-radius: 10px; cursor: pointer; transition: 0.2s; font-weight: bold; color: #2d3748; display: flex; align-items: center; }
-        .menu-item:hover { border-color: #3182ce; background: #ebf8ff; transform: translateY(-2px); }
-        .step { display: none; margin-top: 20px; animation: fadeIn 0.3s; }
-        .active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .btn-group { margin-top: 25px; display: flex; gap: 12px; }
-        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; font-size: 16px; }
-        .btn-yes { background: #38a169; color: white; }
-        .btn-no { background: #dd6b20; color: white; }
-        .btn-back { background: #718096; color: white; margin-top: 20px; width: 100%; }
-        .result { background: #fffaf0; border: 2px solid #feebc8; border-left: 6px solid #ed8936; padding: 20px; margin-top: 20px; border-radius: 8px; }
-        .progress { color: #3182ce; font-size: 0.75em; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        /* BRANDING */
+        .logo-container { text-align: center; margin: -20px -20px 20px -20px; background: #ffffff; border-radius: 20px 20px 0 0; padding: 15px 0; border-bottom: 3px solid #006fba; }
+        .logo-img { max-width: 85%; height: auto; display: block; margin: 0 auto; }
+        
+        /* LAYOUT */
+        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        h3 { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
+        
+        /* MENU ITEMS */
+        .menu-item { background: #f7fafc; border: 1px solid #4299e1; color: #2b6cb0; padding: 12px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .menu-item:hover { background: #ebf8ff; }
+        
+        /* BUTTONS */
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; color: white; }
+        .btn-yes { background: #48bb78; } .btn-no { background: #f56565; }
+        
+        .result { background: #fffaf0; border-left: 5px solid #4299e1; padding: 15px; margin-top: 20px; display: none; }
+        .nav-btn { width: 100%; background: #718096; margin-top: 10px; }
         .hidden { display: none; }
-        .footer { text-align: center; font-size: 10px; color: #a0aec0; margin-top: 30px; }
     </style>
 </head>
 <body>
-
-<div class="card"><div class="logo-container">
-    <img src="nt-logo.png" alt="Needful Thingz Tech & Logic" class="logo-img">
-</div>
+<div class="card">
+    <div class="logo-container"><img src="nt-logo.png" class="logo-img"></div>
+    
     <div id="homeMenu">
-        <h2>Needful Thingz</h2>
-        <h3>Lead Tech Logic v1.0</h3>
-        <p style="color: #4a5568; font-size: 14px;">Select Service Symptom:</p>
-        <div class="menu-item" onclick="startFlow('frozen')">❄️ 1. Frozen Evaporator Coil</div>
-        <div class="menu-item" onclick="startFlow('nopower')">⚡ 2. No Power / Dead System</div>
-        <div class="menu-item" onclick="startFlow('ignition')">🔥 3. Ignition Failure</div>
-        <div class="menu-item" onclick="startFlow('head')">🌡️ 4. High Head Pressure</div>
-        <div class="menu-item" onclick="startFlow('hum')">🔊 5. Compressor Humming</div>
-        <div class="menu-item" onclick="startFlow('short')">🔄 6. System Short Cycling</div>
-        <div class="menu-item" onclick="startFlow('water')">💧 7. Water in Drain Pan</div>
-        <div class="menu-item" onclick="startFlow('delta')">📉 8. Weak Cooling (Delta-T)</div>
-        <div class="menu-item" style="opacity: 0.5; cursor: not-allowed;">🛠️ 9-10. Advanced Brand Logic</div>
+        <h3>HVAC Diagnostics</h3>
+        <p style="font-size:12px; color:gray;">Select the system issue:</p>
+        
+        <div class="menu-item" onclick="startFlow('no_cool')">1. AC Blowing Warm Air</div>
+        <div class="menu-item" onclick="startFlow('no_blow')">2. Fan Not Blowing</div>
+        <div class="menu-item" onclick="startFlow('frozen')">3. Unit Frozen Up (Ice)</div>
+        <div class="menu-item" onclick="startFlow('leak')">4. Water Leaking from Attic</div>
+        <div class="menu-item" onclick="startFlow('noise')">5. Loud Noise Outside</div>
+        <div class="menu-item" onclick="startFlow('no_heat')">6. Furnace Blowing Cold Air</div>
+        <div class="menu-item" onclick="startFlow('short')">7. System Short Cycling</div>
+        <div class="menu-item" onclick="startFlow('thermo')">8. Thermostat Blank</div>
+        <div class="menu-item" onclick="startFlow('smell')">9. Burning Smell</div>
+        <div class="menu-item" onclick="startFlow('bills')">10. High Electric Bill</div>
+        
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:20px;">Main Enterprise Menu</button>
+    </div>
+
+    <div id="flow-no_cool" class="hidden">
+        <h3>AC Blowing Warm</h3>
+        <p><strong>Step 1:</strong> Is the outdoor unit fan spinning?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('CAPACITOR: If fan spins but compressor hums, replace capacitor.')">YES</button>
+            <button class="btn-no" onclick="showRes('CONTACTOR: Check for 24V at contactor coil. If present but not pulling in, replace contactor.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-no_blow" class="hidden">
+        <h3>Fan Not Blowing</h3>
+        <p><strong>Step 1:</strong> Set thermostat fan to "ON". Does it blow?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('BOARD/RELAY: Blower motor is good. Issue is likely thermostat or control board relay.')">YES</button>
+            <button class="btn-no" onclick="showRes('MOTOR FAIL: Check capacitor. If good, blower motor has failed.')">NO</button>
+        </div>
     </div>
 
     <div id="flow-frozen" class="hidden">
-        <div class="progress">Diagnostic: Frozen Coil</div>
-        <div id="frozen-s1" class="step active">
-            <p><strong>Step 1:</strong> Is the air filter clean and the return grill unobstructed?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="nextStep('frozen', 2)">YES</button>
-                <button class="btn-no" onclick="showRes('REPLACE FILTER: Restricted airflow is the primary cause. Change filter and allow 1 hour for defrost.')">NO</button>
-            </div>
-        </div>
-        <div id="frozen-s2" class="step">
-            <p><strong>Step 2:</strong> Is the indoor blower motor spinning and moving air?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="nextStep('frozen', 3)">YES</button>
-                <button class="btn-no" onclick="showRes('BLOWER FAULT: Check capacitor, motor windings, or board relay.')">NO</button>
-            </div>
-        </div>
-        <div id="frozen-s3" class="step">
-            <p><strong>Step 3:</strong> Are gauges connected? Is Superheat > 15°F?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="showRes('LOW CHARGE: High superheat suggests a leak. Perform leak search.')">YES</button>
-                <button class="btn-no" onclick="showRes('MECHANICAL: Check for TXV restriction or oversized unit.')">NO</button>
-            </div>
+        <h3>Unit Frozen</h3>
+        <p><strong>Step 1:</strong> Is the air filter dirty?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('AIRFLOW: Replace filter. Thaw unit for 4 hours before restarting.')">YES</button>
+            <button class="btn-no" onclick="showRes('LOW CHARGE: Possible refrigerant leak. Tech required to check subcooling.')">NO</button>
         </div>
     </div>
 
-    <div id="flow-nopower" class="hidden">
-        <div class="progress">Diagnostic: No Power</div>
-        <div id="nopower-s1" class="step active">
-            <p><strong>Step 1:</strong> Is the thermostat display blank/dead?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="nextStep('nopower', 2)">YES</button>
-                <button class="btn-no" onclick="showRes('STAT OK: Check R to Y signal at the control board.')">NO</button>
-            </div>
-        </div>
-        <div id="nopower-s2" class="step">
-            <p><strong>Step 2:</strong> Check Float Switch. Is there water in the drain pan?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="showRes('DRAIN CLOGGED: The float switch has cut power. Clear the drain line.')">YES</button>
-                <button class="btn-no" onclick="nextStep('nopower', 3)">NO</button>
-            </div>
-        </div>
-        <div id="nopower-s3" class="step">
-            <p><strong>Step 3:</strong> Check Board Fuse. Is the 3A/5A automotive fuse blown?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="showRes('SHORT CIRCUIT: Check for rubbed wires or a grounded contactor coil.')">YES</button>
-                <button class="btn-no" onclick="showRes('MAIN POWER: Check 120V/240V breakers and transformer.')">NO</button>
-            </div>
+    <div id="flow-leak" class="hidden">
+        <h3>Water Leak</h3>
+        <p><strong>Step 1:</strong> Is the primary drain line dripping outside?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('PAN CRACK: If line is clear but pan overflows, check for rust/cracks in emergency pan.')">YES</button>
+            <button class="btn-no" onclick="showRes('CLOGGED TRAP: Vacuum the drain line from outside. Pour vinegar in cleanout.')">NO</button>
         </div>
     </div>
 
-    <div id="flow-ignition" class="hidden">
-        <div class="progress">Diagnostic: No Ignition</div>
-        <div id="ignition-s1" class="step active">
-            <p><strong>Step 1:</strong> Is the Pressure Switch closing when the inducer starts?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="nextStep('ignition', 2)">YES</button>
-                <button class="btn-no" onclick="showRes('PRESSURE FAULT: Check for clogged port on inducer or cracked tubing.')">NO</button>
-            </div>
-        </div>
-        <div id="ignition-s2" class="step">
-            <p><strong>Step 2:</strong> Does the Hot Surface Igniter (HSI) glow orange?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="nextStep('ignition', 3)">YES</button>
-                <button class="btn-no" onclick="showRes('IGNITER FAILED: Check for 120V. If voltage exists but no glow, replace igniter.')">NO</button>
-            </div>
-        </div>
-        <div id="ignition-s3" class="step">
-            <p><strong>Step 3:</strong> Does the flame start then drop after 3-5 seconds?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="showRes('FLAME SENSOR: Clean the flame sensor with a Scotch-Brite pad.')">YES</button>
-                <button class="btn-no" onclick="showRes('GAS VALVE: Check for 24V at valve and confirm gas supply.')">NO</button>
-            </div>
+    <div id="flow-noise" class="hidden">
+        <h3>Loud Noise</h3>
+        <p><strong>Step 1:</strong> Is it a metallic screeching sound?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('FAN MOTOR: Bearings shot. Replace outdoor fan motor.')">YES</button>
+            <button class="btn-no" onclick="showRes('COMPRESSOR: If it sounds like a tractor, compressor valves are failing.')">NO</button>
         </div>
     </div>
 
-    <div id="flow-hum" class="hidden">
-        <div class="progress">Diagnostic: Compressor Humming</div>
-        <div id="hum-s1" class="step active">
-            <p><strong>Step 1:</strong> Test Capacitor. Is it within 10% of rating?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="nextStep('hum', 2)">YES</button>
-                <button class="btn-no" onclick="showRes('FAILED CAPACITOR: Replace capacitor. This is the most common cause.')">NO</button>
-            </div>
-        </div>
-        <div id="hum-s2" class="step">
-            <p><strong>Step 2:</strong> Test windings for Ohms. Are they balanced (C-R + C-S = R-S)?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="showRes('LOCKED ROTOR: Windings good but compressor is seized. Try a Hard Start Kit or replace unit.')">YES</button>
-                <button class="btn-no" onclick="showRes('DEAD COMPRESSOR: Windings are grounded or open. Replacement required.')">NO</button>
-            </div>
+    <div id="flow-no_heat" class="hidden">
+        <h3>Furnace No Heat</h3>
+        <p><strong>Step 1:</strong> Does the small inducer fan start up?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('IGNITOR: Check for orange glow. If none, replace Hot Surface Ignitor.')">YES</button>
+            <button class="btn-no" onclick="showRes('PRESSURE SWITCH: Check flue pipe for blockage or water in hose.')">NO</button>
         </div>
     </div>
 
-    <div id="flow-water" class="hidden">
-        <div class="progress">Diagnostic: Water in Pan</div>
-        <div id="water-s1" class="step active">
-            <p><strong>Step 1:</strong> Is the primary drain line flowing outside?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="nextStep('water', 2)">YES</button>
-                <button class="btn-no" onclick="showRes('CLOGGED LINE: Use CO2 or vacuum to clear the primary drain line.')">NO</button>
-            </div>
-        </div>
-        <div id="water-s2" class="step">
-            <p><strong>Step 2:</strong> Is the unit level?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="showRes('COIL ISSUE: Check if water is "blowing off" the coil due to high static or dirty fins.')">YES</button>
-                <button class="btn-no" onclick="showRes('RE-LEVEL: Unit pitch is preventing drainage. Re-level pan/unit.')">NO</button>
-            </div>
+    <div id="flow-short" class="hidden">
+        <h3>Short Cycling</h3>
+        <p><strong>Step 1:</strong> Does it run for less than 2 minutes?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('FLAME SENSOR: Clean flame sensor rod with steel wool.')">YES</button>
+            <button class="btn-no" onclick="showRes('THERMOSTAT: Check heat anticipator setting or placement near heat source.')">NO</button>
         </div>
     </div>
 
-    <div id="flow-delta" class="hidden">
-        <div class="progress">Diagnostic: Weak Cooling</div>
-        <div id="delta-s1" class="step active">
-            <p><strong>Step 1:</strong> Is the temp split between Return/Supply less than 15°F?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="nextStep('delta', 2)">YES</button>
-                <button class="btn-no" onclick="showRes('SYSTEM OK: Check for high indoor humidity or high blower speed.')">NO</button>
-            </div>
-        </div>
-        <div id="delta-s2" class="step">
-            <p><strong>Step 2:</strong> Check ducts in attic. Any major return air leaks?</p>
-            <div class="btn-group">
-                <button class="btn-yes" onclick="showRes('DUCT LEAK: You are sucking in 130 degree attic air. Seal the return.')">YES</button>
-                <button class="btn-no" onclick="showRes('REFRIGERANT: Split is low and airflow is sealed. Check Charge/TXV.')">NO</button>
-            </div>
+    <div id="flow-thermo" class="hidden">
+        <h3>Thermostat Blank</h3>
+        <p><strong>Step 1:</strong> Check the float switch at the indoor unit. Is it full of water?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('DRAIN CLOG: Safety switch cut power. Clear drain line.')">YES</button>
+            <button class="btn-no" onclick="showRes('FUSE: Check 3A or 5A purple fuse on the furnace control board.')">NO</button>
         </div>
     </div>
 
-    <div id="resBox" class="result hidden">
-        <h4 style="margin-top:0; color:#c05621;">Field Recommendation:</h4>
+    <div id="flow-smell" class="hidden">
+        <h3>Burning Smell</h3>
+        <p><strong>Step 1:</strong> Is it the first time turning on heat this season?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('DUST BURN: Normal. Dust on heat exchanger is burning off. Open windows.')">YES</button>
+            <button class="btn-no" onclick="showRes('ELECTRICAL: Turn off immediately. Check blower motor wiring for melting.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-bills" class="hidden">
+        <h3>High Bills</h3>
+        <p><strong>Step 1:</strong> Is the "Emergency Heat" light on thermostat?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('STRIP HEAT: Heat pump failed, running on expensive electric strips. Check outdoor unit.')">YES</button>
+            <button class="btn-no" onclick="showRes('DUCT LEAK: Check attic ductwork for disconnected runs.')">NO</button>
+        </div>
+    </div>
+
+    <div id="resBox" class="result">
+        <strong>Recommendation:</strong>
         <p id="resText"></p>
-        <button class="btn-back" onclick="resetApp()">Return to Menu</button>
-    </div>
-
-    <div class="footer">
-        © 2026 Needful Thingz. Lead Tech Logic™ Proprietary Diagnostic System.<br>
-        Unlicensed distribution prohibited.
+        <button class="nav-btn" onclick="location.reload()">Back to HVAC Menu</button>
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748;">Main Enterprise Menu</button>
     </div>
 </div>
 
 <script>
-    function startFlow(flowId) {
-        document.getElementById('homeMenu').classList.add('hidden');
-        document.getElementById('flow-' + flowId).classList.remove('hidden');
+    function startFlow(fId) { 
+        document.getElementById('homeMenu').classList.add('hidden'); 
+        document.getElementById('flow-'+fId).classList.remove('hidden'); 
     }
-
-    function nextStep(flowId, stepNum) {
-        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-        document.getElementById(flowId + '-s' + stepNum).classList.add('active');
-    }
-
-    function showRes(text) {
-        document.querySelectorAll("[id^='flow-']").forEach(f => f.classList.add('hidden'));
-        document.getElementById('resBox').classList.remove('hidden');
-        document.getElementById('resText').innerText = text;
-    }
-
-    function resetApp() {
-        location.reload();
+    function showRes(t) { 
+        document.querySelectorAll("[id^='flow-']").forEach(f => f.classList.add('hidden')); 
+        document.getElementById('resBox').style.display = "block";
+        document.getElementById('resText').innerText = t; 
     }
 </script>
-
 </body>
-
 </html>
