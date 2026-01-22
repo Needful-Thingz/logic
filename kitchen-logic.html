@@ -2,72 +2,159 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   /* Logo Header Style */
-.logo-container {
-    text-align: center;
-    margin: -20px -25px 20px -25px; /* Pulls it to the top edges */
-    background: #ffffff; /* Clean white background for the logo */
-    border-radius: 15px 15px 0 0; /* Curves the top corners */
-    padding: 15px 0;
-    border-bottom: 3px solid #006fba; /* Matches the blue in your logo */
-}
-.logo-img {
-    max-width: 85%; /* Perfect size for mobile screens */
-    height: auto;
-    display: block;
-    margin: 0 auto;
-} <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #2d3748; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .card { background: white; padding: 25px; border-radius: 15px; width: 100%; max-width: 500px; border-top: 5px solid #ed8936; }
-        h2 { color: #7b341e; margin: 0; }
-        .menu-item { background: #fffaf0; border: 1px solid #feebc8; padding: 10px; margin-bottom: 6px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; }
-        .step { display: none; margin-top: 20px; }
-        .active { display: block; }
-        .btn-group { margin-top: 25px; display: flex; gap: 10px; }
-        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; }
-        .btn-yes { background: #38a169; color: white; }
-        .btn-no { background: #dd6b20; color: white; }
-        .result { background: #fff5f5; border-left: 6px solid #e53e3e; padding: 20px; margin-top: 20px; border-radius: 8px; }
+    <title>Kitchen Logic</title>
+    <style>
+        /* BRANDING */
+        .logo-container { text-align: center; margin: -20px -20px 20px -20px; background: #ffffff; border-radius: 20px 20px 0 0; padding: 15px 0; border-bottom: 3px solid #006fba; }
+        .logo-img { max-width: 85%; height: auto; display: block; margin: 0 auto; }
+        
+        /* LAYOUT */
+        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        h3 { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
+        
+        /* MENU ITEMS */
+        .menu-item { background: #fffaf0; border: 1px solid #ed8936; color: #7c2d12; padding: 12px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .menu-item:hover { background: #feebc8; }
+        
+        /* LOGIC BUTTONS */
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; color: white; }
+        .btn-yes { background: #48bb78; } .btn-no { background: #f56565; }
+        
+        .result { background: #fffaf0; border-left: 5px solid #ed8936; padding: 15px; margin-top: 20px; display: none; }
+        .nav-btn { width: 100%; background: #718096; margin-top: 10px; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
-<div class="card"><div class="logo-container">
-    <img src="nt-logo.png" alt="Needful Thingz Tech & Logic" class="logo-img">
-</div>
+<div class="card">
+    <div class="logo-container"><img src="nt-logo.png" class="logo-img"></div>
+    
     <div id="homeMenu">
-        <h2>Needful Thingz</h2>
-        <p style="color:#7b341e; font-weight:bold;">KITCHEN LOGIC v1.0</p>
-        <div class="menu-item" onclick="startFlow('ice')">1. Ice Machine: No Production</div>
-        <div class="menu-item" onclick="startFlow('walk')">2. Walk-In: Temp Rising</div>
-        <div class="menu-item" onclick="startFlow('oven')">3. Conv. Oven: No Heat</div>
-        <div class="menu-item" onclick="startFlow('fry')">4. Fryer: Pilot Won't Light</div>
-        <div class="menu-item" onclick="startFlow('wash')">5. Dishwasher: No Hot Water</div>
-        <div class="menu-item" onclick="startFlow('drain')">6. Dishwasher: Not Draining</div>
-        <div class="menu-item" onclick="startFlow('steam')">7. Steam Table: Boiling Dry</div>
-        <div class="menu-item" onclick="startFlow('hood')">8. Exhaust Hood: No Draw</div>
-        <div class="menu-item" onclick="startFlow('mix')">9. Mixer: No Low Speed</div>
-        <div class="menu-item" onclick="startFlow('reach')">10. Reach-In: Rapid Cycling</div>
+        <h3>Kitchen & Appliance Logic</h3>
+        <p style="font-size:12px; color:gray;">Select the issue:</p>
+        
+        <div class="menu-item" onclick="startFlow('disposal')">1. Garbage Disposal Jammed/Humming</div>
+        <div class="menu-item" onclick="startFlow('dishwasher')">2. Dishwasher Not Draining</div>
+        <div class="menu-item" onclick="startFlow('fridge')">3. Fridge Warm / Freezer Cold</div>
+        <div class="menu-item" onclick="startFlow('ice')">4. Ice Maker Stopped Working</div>
+        <div class="menu-item" onclick="startFlow('oven')">5. Oven Not Heating</div>
+        <div class="menu-item" onclick="startFlow('burner')">6. Electric Stove Burner Dead</div>
+        <div class="menu-item" onclick="startFlow('faucet')">7. Kitchen Faucet Dripping</div>
+        <div class="menu-item" onclick="startFlow('leak')">8. Leak Under Sink</div>
+        <div class="menu-item" onclick="startFlow('micro')">9. Microwave Dead (No Display)</div>
+        <div class="menu-item" onclick="startFlow('smell')">10. Bad Smell from Sink</div>
     </div>
 
-    <div id="flow-fry" class="hidden">
-        <p><strong>Step 1:</strong> Does the pilot light stay lit when you release the knob?</p>
+    <div id="flow-disposal" class="hidden">
+        <h3>Disposal Jammed</h3>
+        <p><strong>Step 1:</strong> Is the unit humming but not spinning?</p>
         <div class="btn-group">
-            <button class="btn-yes" onclick="showRes('THERMOSTAT: Pilot is OK. Check the main gas valve or the Hi-Limit safety switch.')">YES</button>
-            <button class="btn-no" onclick="showRes('THERMOPILE: Replace the thermopile. It is not generating enough millivolts to hold the valve open.')">NO</button>
+            <button class="btn-yes" onclick="showRes('JAMMED: Use Allen wrench on bottom center port to manually spin it. Press reset button.')">YES</button>
+            <button class="btn-no" onclick="showRes('DEAD: If silent and reset button doesn\'t help, check power outlet or replace unit.')">NO</button>
         </div>
     </div>
 
-    <div id="resBox" class="result hidden">
-        <strong>Kitchen Recommendation:</strong>
+    <div id="flow-dishwasher" class="hidden">
+        <h3>Dishwasher Standing Water</h3>
+        <p><strong>Step 1:</strong> Did you recently install a new garbage disposal?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('KNOCKOUT PLUG: You forgot to remove the plastic plug in the disposal inlet. Punch it out.')">YES</button>
+            <button class="btn-no" onclick="showRes('AIR GAP/FILTER: Clean the filter at bottom of tub and check drain hose for kinks.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-fridge" class="hidden">
+        <h3>Fridge Warm</h3>
+        <p><strong>Step 1:</strong> Is there frost buildup on the back wall of the freezer?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('DEFROST FAIL: Defrost heater or timer failed. Coils are frozen, blocking airflow.')">YES</button>
+            <button class="btn-no" onclick="showRes('CLEAN COILS: Vacuum the dust off the condenser coils underneath/behind fridge.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-ice" class="hidden">
+        <h3>Ice Maker</h3>
+        <p><strong>Step 1:</strong> Is the wire "bail arm" in the up position?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('OFF MODE: Pull the arm down to turn it on.')">YES</button>
+            <button class="btn-no" onclick="showRes('FROZEN LINE: Use a hairdryer to melt ice blocking the fill tube.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-oven" class="hidden">
+        <h3>Oven Not Heating</h3>
+        <p><strong>Step 1:</strong> (Gas Oven) Does the igniter glow orange but no flame appears?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('WEAK IGNITER: Igniter is too weak to open the gas valve. Replace igniter.')">YES</button>
+            <button class="btn-no" onclick="showRes('ELEMENT (Electric): Inspect heating element for visible breaks or blisters.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-burner" class="hidden">
+        <h3>Stove Burner</h3>
+        <p><strong>Step 1:</strong> Does wiggling the element make it spark or work intermittently?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('BAD RECEPTACLE: The socket block is burnt. Replace receptacle and terminals.')">YES</button>
+            <button class="btn-no" onclick="showRes('BAD SWITCH: If element is fine, the infinite switch behind the knob is faulty.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-faucet" class="hidden">
+        <h3>Faucet Drip</h3>
+        <p><strong>Step 1:</strong> Does it drip from the spout or the handle?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('CARTRIDGE: Replace the internal cartridge/seats & springs.')">SPOUT</button>
+            <button class="btn-no" onclick="showRes('O-RINGS: Replace O-rings on the faucet body.')">HANDLE</button>
+        </div>
+    </div>
+
+    <div id="flow-leak" class="hidden">
+        <h3>Under Sink Leak</h3>
+        <p><strong>Step 1:</strong> Is water leaking from where the basket strainer connects to the sink?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('PUTTY FAIL: Remove strainer, apply fresh Plumber\'s Putty, and retighten.')">YES</button>
+            <button class="btn-no" onclick="showRes('P-TRAP: Check slip nuts on the P-trap. Hand tighten only.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-micro" class="hidden">
+        <h3>Microwave Dead</h3>
+        <p><strong>Step 1:</strong> Did it stop while running and now has no display?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('THERMAL FUSE: Internal ceramic fuse blew. Check door switches before replacing.')">YES</button>
+            <button class="btn-no" onclick="showRes('BREAKER: Check your home circuit breaker panel.')">NO</button>
+        </div>
+    </div>
+
+    <div id="flow-smell" class="hidden">
+        <h3>Sink Smell</h3>
+        <p><strong>Step 1:</strong> Is there a black sludge visible in the drain opening?</p>
+        <div class="btn-group">
+            <button class="btn-yes" onclick="showRes('BIO-FILM: Scrub with bottle brush and bleach. Pour baking soda & vinegar down.')">YES</button>
+            <button class="btn-no" onclick="showRes('VENT ISSUE: If it smells like sewage, the P-trap may be dry or vent clogged.')">NO</button>
+        </div>
+    </div>
+
+    <div id="resBox" class="result">
+        <strong>Recommendation:</strong>
         <p id="resText"></p>
-        <button style="width:100%; background:#4a5568; color:white; margin-top:10px;" onclick="location.reload()">Back to Menu</button>
+        <button class="nav-btn" onclick="location.reload()">Back to Kitchen Menu</button>
+        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748;">Main Menu</button>
     </div>
 </div>
+
 <script>
-    function startFlow(fId) { document.getElementById('homeMenu').classList.add('hidden'); document.getElementById('flow-'+fId).classList.remove('hidden'); }
-    function showRes(t) { document.querySelectorAll("[id^='flow-']").forEach(f => f.classList.add('hidden')); document.getElementById('resBox').classList.remove('hidden'); document.getElementById('resText').innerText = t; }
+    function startFlow(fId) { 
+        document.getElementById('homeMenu').classList.add('hidden'); 
+        document.getElementById('flow-'+fId).classList.remove('hidden'); 
+    }
+    function showRes(t) { 
+        document.querySelectorAll("[id^='flow-']").forEach(f => f.classList.add('hidden')); 
+        document.getElementById('resBox').style.display = "block";
+        document.getElementById('resText').innerText = t; 
+    }
 </script>
 </body>
-
 </html>
