@@ -14,125 +14,101 @@
     </header>
 
     <main class="flex-1 max-w-md w-full mx-auto p-6 flex flex-col justify-center">
-        
         <div id="logic-card" class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center transition-all duration-300">
-            
             <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Step 1 of 3</div>
-            
             <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Check for Ice</h2>
             <p class="text-gray-600 mb-8">Go to your outside AC unit (or look at the copper pipes inside). Do you see any thick white ice buildup on the pipes or the unit?</p>
-            
             <div class="space-y-4">
-                <button onclick="handleFrozen(true)" class="w-full block text-center bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-bold py-4 px-4 rounded-xl transition duration-200">
-                    Yes, I see ice
-                </button>
-                <button onclick="handleFrozen(false)" class="w-full block text-center bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-bold py-4 px-4 rounded-xl transition duration-200">
-                    No, there is no ice
-                </button>
+                <button onclick="handleFrozen(true)" class="w-full block text-center bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-bold py-4 px-4 rounded-xl transition duration-200">Yes, I see ice</button>
+                <button onclick="handleFrozen(false)" class="w-full block text-center bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-bold py-4 px-4 rounded-xl transition duration-200">No, there is no ice</button>
             </div>
-
         </div>
-
     </main>
 
     <script>
+        // Central function to save the ticket to our "Database"
+        function submitTicket(issue, details, urgency) {
+            const newTicket = {
+                id: '#RES-' + Math.floor(1000 + Math.random() * 9000), // Generate random 4-digit ID
+                property: 'New Submission (Live Test)',
+                issue: issue,
+                details: details,
+                urgency: urgency,
+                date: new Date().toLocaleDateString()
+            };
+
+            // Pull existing tickets, add the new one, and save back to local storage
+            let tickets = JSON.parse(localStorage.getItem('resolve_tickets')) || [];
+            tickets.unshift(newTicket); // Adds to the top of the list
+            localStorage.setItem('resolve_tickets', JSON.stringify(tickets));
+
+            // Show Success Screen
+            document.getElementById('logic-card').innerHTML = `
+                <div class="text-green-500 text-5xl mb-4">✓</div>
+                <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Ticket Submitted</h2>
+                <p class="text-gray-600 mb-6">Your property manager has received your diagnostic report. A vendor will be dispatched shortly.</p>
+                <div class="bg-gray-100 p-4 rounded-lg text-sm text-gray-700 font-mono">Reference: ${newTicket.id}</div>
+            `;
+        }
+
         function handleFrozen(isFrozen) {
             const card = document.getElementById('logic-card');
-            
             if (isFrozen) {
-                // The unit is frozen - Stop the flow and issue instructions
                 card.innerHTML = `
                     <div class="text-xs font-bold text-red-500 uppercase tracking-widest mb-4">Action Required</div>
                     <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Turn System Off</h2>
                     <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-sm text-left mb-6">
                         <strong>Mandatory:</strong> A technician cannot work on a frozen unit. You must turn your thermostat <strong>COOLING OFF</strong> and turn the <strong>FAN ON</strong> to melt the ice.
                     </div>
-                    <button class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md">
-                        I have done this. Submit Ticket.
-                    </button>
+                    <button onclick="submitTicket('HVAC - Frozen Unit', 'Tenant Logic: Ice verified. Thermostat set to OFF / FAN ON.', 'High')" class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-md">I have done this. Submit Ticket.</button>
                 `;
             } else {
-                // Step 2: The Fan Check
                 card.innerHTML = `
                     <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Step 2 of 3</div>
                     <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Listen to the System</h2>
-                    <p class="text-gray-600 mb-6">Your AC has two main fans: the <strong>blower inside</strong> (pushing air through the vents) and the <strong>condenser fan outside</strong>. Which ones are running?</p>
+                    <p class="text-gray-600 mb-6">Which fans are running?</p>
                     <div class="space-y-3">
-                        <button onclick="handleFans('both')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl transition duration-200">
-                            🔊 Both fans are running
-                        </button>
-                        <button onclick="handleFans('inside')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl transition duration-200">
-                            🏠 ONLY the inside fan is running
-                        </button>
-                        <button onclick="handleFans('outside')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl transition duration-200">
-                            🌳 ONLY the outside fan is running
-                        </button>
-                        <button onclick="handleFans('neither')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl transition duration-200">
-                            🔇 Neither fan is running
-                        </button>
+                        <button onclick="handleFans('both')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl">🔊 Both fans are running</button>
+                        <button onclick="handleFans('inside')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl">🏠 ONLY the inside fan is running</button>
+                        <button onclick="handleFans('outside')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl">🌳 ONLY the outside fan is running</button>
+                        <button onclick="handleFans('neither')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl">🔇 Neither fan is running</button>
                     </div>
                 `;
             }
         }
 
-        // Step 3 Routing
         function handleFans(fanStatus) {
             const card = document.getElementById('logic-card');
-            
             if (fanStatus === 'neither') {
-                // Total Power Loss Logic
                 card.innerHTML = `
                     <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Step 3 of 3</div>
                     <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Power Loss Checklist</h2>
-                    <p class="text-gray-600 mb-6">It sounds like the system is not getting power. Please check these two things before submitting your request:</p>
                     <div class="space-y-4 mb-6 text-left text-sm">
-                        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800">
-                            <strong>1. The Thermostat:</strong> Is the screen completely blank? (If it takes AA/AAA batteries, replace them now).
-                        </div>
-                        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800">
-                            <strong>2. The Breaker Box:</strong> Open your indoor electrical panel. Locate the breaker labeled "AC" or "HVAC". If it is tripped in the middle, flip it entirely OFF, then back ON.
-                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800"><strong>1. Thermostat:</strong> Replace batteries if blank.</div>
+                        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800"><strong>2. Breaker Box:</strong> Reset AC/HVAC breaker inside house.</div>
                     </div>
-                    <button class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md">
-                        I completed this checklist. Submit Ticket.
-                    </button>
+                    <button onclick="submitTicket('HVAC - Total Power Loss', 'Tenant Logic: Both fans dead. Batteries/Breakers checked.', 'High')" class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-md">Completed. Submit Ticket.</button>
                 `;
             } else if (fanStatus === 'inside') {
-                // Inside Fan Only (Protect Compressor)
                 card.innerHTML = `
                     <div class="text-xs font-bold text-red-500 uppercase tracking-widest mb-4">Action Required</div>
                     <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Turn System Off</h2>
-                    <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-sm text-left mb-6">
-                        <strong>Mandatory:</strong> The outside unit is unresponsive. To prevent severe permanent damage to your compressor, you must turn your thermostat to the <strong>OFF</strong> position immediately.
-                    </div>
-                    <button class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md">
-                        System is OFF. Submit Ticket.
-                    </button>
+                    <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-sm text-left mb-6"><strong>Mandatory:</strong> Outside unit unresponsive. Turn thermostat OFF immediately to save compressor.</div>
+                    <button onclick="submitTicket('HVAC - Condenser Dead', 'Tenant Logic: Inside blower only. High prob: Capacitor/Dirty Coil. System is OFF.', 'High')" class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-md">System is OFF. Submit Ticket.</button>
                 `;
             } else if (fanStatus === 'outside') {
-                // Outside Fan Only (Protect from Freezing)
                 card.innerHTML = `
                     <div class="text-xs font-bold text-red-500 uppercase tracking-widest mb-4">Action Required</div>
                     <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Turn System Off</h2>
-                    <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-sm text-left mb-6">
-                        <strong>Mandatory:</strong> Your indoor blower is not running. If you leave the system on, your indoor coils will freeze solid and cause water damage. Please turn your thermostat to the <strong>OFF</strong> position immediately.
-                    </div>
-                    <button class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md">
-                        System is OFF. Submit Ticket.
-                    </button>
+                    <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-sm text-left mb-6"><strong>Mandatory:</strong> Indoor blower dead. Turn thermostat OFF immediately to prevent frozen coils.</div>
+                    <button onclick="submitTicket('HVAC - Blower Dead', 'Tenant Logic: Outside condenser only. High prob: Bad blower motor. System is OFF.', 'High')" class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-md">System is OFF. Submit Ticket.</button>
                 `;
             } else if (fanStatus === 'both') {
-                // Both Fans Running (Airflow/Freon Check)
                 card.innerHTML = `
                     <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Step 3 of 3</div>
                     <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Airflow Check</h2>
-                    <p class="text-gray-600 mb-6">Since both fans are running, we need to check your airflow before dispatching a technician.</p>
-                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800 text-sm text-left mb-6">
-                        <strong>The Filter:</strong> Please locate your indoor air filter. If it is completely covered in a thick layer of grey dust, replace it immediately. A clogged filter will stop the AC from cooling.
-                    </div>
-                    <button class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md">
-                        Filter checked. Submit Ticket.
-                    </button>
+                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800 text-sm text-left mb-6"><strong>The Filter:</strong> Please check your indoor air filter. If clogged, replace it immediately.</div>
+                    <button onclick="submitTicket('HVAC - Airflow/Cooling', 'Tenant Logic: Both fans running. Filter checked. High prob: Low Freon or minor restriction.', 'Routine')" class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-md">Filter checked. Submit Ticket.</button>
                 `;
             }
         }
