@@ -85,26 +85,54 @@
                     <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Step 3 of 3</div>
                     <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Power Loss Checklist</h2>
                     <p class="text-gray-600 mb-6">It sounds like the system is not getting power. Please check these two things before submitting your request:</p>
-                    
                     <div class="space-y-4 mb-6 text-left text-sm">
                         <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800">
-                            <strong>1. The Thermostat:</strong> Is the screen completely blank? (If your thermostat takes AA/AAA batteries, replace them now).
+                            <strong>1. The Thermostat:</strong> Is the screen completely blank? (If it takes AA/AAA batteries, replace them now).
                         </div>
                         <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800">
                             <strong>2. The Breaker Box:</strong> Open your indoor electrical panel. Locate the breaker labeled "AC" or "HVAC". If it is tripped in the middle, flip it entirely OFF, then back ON.
                         </div>
                     </div>
-
                     <button class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md">
                         I completed this checklist. Submit Ticket.
                     </button>
                 `;
-            } else {
-                // Placeholder for the other 3 fan options
+            } else if (fanStatus === 'inside') {
+                // Inside Fan Only (Protect Compressor)
+                card.innerHTML = `
+                    <div class="text-xs font-bold text-red-500 uppercase tracking-widest mb-4">Action Required</div>
+                    <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Turn System Off</h2>
+                    <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-sm text-left mb-6">
+                        <strong>Mandatory:</strong> The outside unit is unresponsive. To prevent severe permanent damage to your compressor, you must turn your thermostat to the <strong>OFF</strong> position immediately.
+                    </div>
+                    <button class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md">
+                        System is OFF. Submit Ticket.
+                    </button>
+                `;
+            } else if (fanStatus === 'outside') {
+                // Outside Fan Only (Protect from Freezing)
+                card.innerHTML = `
+                    <div class="text-xs font-bold text-red-500 uppercase tracking-widest mb-4">Action Required</div>
+                    <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Turn System Off</h2>
+                    <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-sm text-left mb-6">
+                        <strong>Mandatory:</strong> Your indoor blower is not running. If you leave the system on, your indoor coils will freeze solid and cause water damage. Please turn your thermostat to the <strong>OFF</strong> position immediately.
+                    </div>
+                    <button class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md">
+                        System is OFF. Submit Ticket.
+                    </button>
+                `;
+            } else if (fanStatus === 'both') {
+                // Both Fans Running (Airflow/Freon Check)
                 card.innerHTML = `
                     <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Step 3 of 3</div>
-                    <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Final Diagnostic</h2>
-                    <p class="text-gray-600 mb-8">Building the next logic branch...</p>
+                    <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Airflow Check</h2>
+                    <p class="text-gray-600 mb-6">Since both fans are running, we need to check your airflow before dispatching a technician.</p>
+                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800 text-sm text-left mb-6">
+                        <strong>The Filter:</strong> Please locate your indoor air filter. If it is completely covered in a thick layer of grey dust, replace it immediately. A clogged filter will stop the AC from cooling.
+                    </div>
+                    <button class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md">
+                        Filter checked. Submit Ticket.
+                    </button>
                 `;
             }
         }
