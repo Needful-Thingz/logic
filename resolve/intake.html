@@ -52,11 +52,59 @@
                     </button>
                 `;
             } else {
-                // The unit is not frozen - Move to Step 2
+                // Step 2: The Fan Check
                 card.innerHTML = `
                     <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Step 2 of 3</div>
-                    <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Next Diagnostic Step</h2>
-                    <p class="text-gray-600 mb-8">[Waiting on Step 2 Instructions...]</p>
+                    <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Listen to the System</h2>
+                    <p class="text-gray-600 mb-6">Your AC has two main fans: the <strong>blower inside</strong> (pushing air through the vents) and the <strong>condenser fan outside</strong>. Which ones are running?</p>
+                    <div class="space-y-3">
+                        <button onclick="handleFans('both')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl transition duration-200">
+                            🔊 Both fans are running
+                        </button>
+                        <button onclick="handleFans('inside')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl transition duration-200">
+                            🏠 ONLY the inside fan is running
+                        </button>
+                        <button onclick="handleFans('outside')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl transition duration-200">
+                            🌳 ONLY the outside fan is running
+                        </button>
+                        <button onclick="handleFans('neither')" class="w-full text-left bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-semibold py-3 px-4 rounded-xl transition duration-200">
+                            🔇 Neither fan is running
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Step 3 Routing
+        function handleFans(fanStatus) {
+            const card = document.getElementById('logic-card');
+            
+            if (fanStatus === 'neither') {
+                // Total Power Loss Logic
+                card.innerHTML = `
+                    <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Step 3 of 3</div>
+                    <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Power Loss Checklist</h2>
+                    <p class="text-gray-600 mb-6">It sounds like the system is not getting power. Please check these two things before submitting your request:</p>
+                    
+                    <div class="space-y-4 mb-6 text-left text-sm">
+                        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800">
+                            <strong>1. The Thermostat:</strong> Is the screen completely blank? (If your thermostat takes AA/AAA batteries, replace them now).
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-yellow-800">
+                            <strong>2. The Breaker Box:</strong> Open your indoor electrical panel. Locate the breaker labeled "AC" or "HVAC". If it is tripped in the middle, flip it entirely OFF, then back ON.
+                        </div>
+                    </div>
+
+                    <button class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md">
+                        I completed this checklist. Submit Ticket.
+                    </button>
+                `;
+            } else {
+                // Placeholder for the other 3 fan options
+                card.innerHTML = `
+                    <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Step 3 of 3</div>
+                    <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Final Diagnostic</h2>
+                    <p class="text-gray-600 mb-8">Building the next logic branch...</p>
                 `;
             }
         }
