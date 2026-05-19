@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resolve | Maintenance Intake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans antialiased flex flex-col min-h-screen">
+
+    <header class="bg-slate-900 text-white py-4 px-6 shadow-md text-center">
+        <h1 class="text-xl font-bold tracking-wider">Maintenance Portal</h1>
+        <p class="text-sm text-slate-400">Diagnostic Triage</p>
+    </header>
+
+    <main class="flex-1 max-w-md w-full mx-auto p-6 flex flex-col justify-center">
+        
+        <div id="logic-card" class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center transition-all duration-300">
+            
+            <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Step 1 of 3</div>
+            
+            <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Check for Ice</h2>
+            <p class="text-gray-600 mb-8">Go to your outside AC unit (or look at the copper pipes inside). Do you see any thick white ice buildup on the pipes or the unit?</p>
+            
+            <div class="space-y-4">
+                <button onclick="handleFrozen(true)" class="w-full block text-center bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-bold py-4 px-4 rounded-xl transition duration-200">
+                    Yes, I see ice
+                </button>
+                <button onclick="handleFrozen(false)" class="w-full block text-center bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 text-gray-700 font-bold py-4 px-4 rounded-xl transition duration-200">
+                    No, there is no ice
+                </button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        function handleFrozen(isFrozen) {
+            const card = document.getElementById('logic-card');
+            
+            if (isFrozen) {
+                // The unit is frozen - Stop the flow and issue instructions
+                card.innerHTML = `
+                    <div class="text-xs font-bold text-red-500 uppercase tracking-widest mb-4">Action Required</div>
+                    <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Turn System Off</h2>
+                    <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-sm text-left mb-6">
+                        <strong>Mandatory:</strong> A technician cannot work on a frozen unit. You must turn your thermostat <strong>COOLING OFF</strong> and turn the <strong>FAN ON</strong> to melt the ice.
+                    </div>
+                    <button class="w-full block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl transition duration-200 shadow-md">
+                        I have done this. Submit Ticket.
+                    </button>
+                `;
+            } else {
+                // The unit is not frozen - Move to Step 2
+                card.innerHTML = `
+                    <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Step 2 of 3</div>
+                    <h2 class="text-2xl font-extrabold text-gray-900 mb-4">Next Diagnostic Step</h2>
+                    <p class="text-gray-600 mb-8">[Waiting on Step 2 Instructions...]</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
