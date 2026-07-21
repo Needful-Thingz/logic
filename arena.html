@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Arena V2</title>
+    <title>Needful Thingz - Arena V3</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -41,6 +41,10 @@
     let joyStickRight;
     let actionText; 
     
+    // Movement Variables
+    let jumps = 0;
+    let joystickUpReleased = true;
+    
     // Combat Variables
     let currentWeapon = 'Assault Rifle';
     let specialCharge = 0;
@@ -49,24 +53,43 @@
     
     // UI Elements
     let specialButton;
-    let specialFillRect;
+    let specialGraphics; // The new circular ring
 
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
     }
 
     function create() {
+        // 1. The Arena Floor
         const floor = this.add.rectangle(400, 380, 800, 40, 0x444444);
         this.physics.add.existing(floor, true); 
 
-        player = this.add.rectangle(400, 200, 30, 50, 0x00aaff);
+        // 2. The Symmetrical Central Island
+        const islandTop = this.add.rectangle(400, 180, 250, 20, 0x666666);
+        const islandMid = this.add.rectangle(400, 220, 80, 60, 0x555555);
+        const islandBot = this.add.rectangle(400, 260, 250, 20, 0x666666);
+        
+        this.physics.add.existing(islandTop, true);
+        this.physics.add.existing(islandMid, true);
+        this.physics.add.existing(islandBot, true);
+
+        // 3. The Player
+        player = this.add.rectangle(400, 300, 30, 50, 0x00aaff);
         this.physics.add.existing(player);
         player.body.setCollideWorldBounds(true);
+        
+        // Collisions
         this.physics.add.collider(player, floor);
+        this.physics.add.collider(player, islandTop);
+        this.physics.add.collider(player, islandMid);
+        this.physics.add.collider(player, islandBot);
 
-        actionText = this.add.text(400, 50, 'Equipped: Assault Rifle', { fontSize: '20px', fill: '#ffffff' }).setOrigin(0.5);
+        // UI Text
+        actionText = this.add.text(400, 30, 'Equipped: Assault Rifle', { fontSize: '20px', fill: '#ffffff' }).setOrigin(0.5);
 
-        // Left Joystick
+        // --- CONTROLS ---
+
+        // Left Joystick (Movement)
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, {
             x: 120, y: 300, radius: 50,
             base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3),
@@ -74,7 +97,17 @@
             dir: '8dir', forceMin: 16
         });
 
-        // Right Joystick
+        // Left Joystick Center Tap (For Mid-Air Jumps)
+        const leftTapZone = this.add.circle(120, 300, 25, 0xffffff, 0).setInteractive();
+        leftTapZone.on('pointerdown', () => {
+            if (jumps < 3) {
+                player.body.setVelocityY(-450);
+                jumps++;
+                actionText.setText('Triple Jump: ' + jumps + '/3');
+            }
+        });
+
+        // Right Joystick (Aiming)
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, {
             x: 680, y: 300, radius: 50,
             base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3),
@@ -82,7 +115,29 @@
             dir: '8dir', forceMin: 16
         });
 
-        // Melee Button
+        // Right Joystick Center Tap (Shooting Projectiles)
+        const rightTapZone = this.add.circle(680, 300, 25, 0xffffff, 0).setInteractive();
+        rightTapZone.on('pointerdown', () => {
+            // Create the bullet
+            let bullet = this.add.rectangle(player.x, player.y, 15, 5, 0xffff00);
+            this.physics.add.existing(bullet);
+            bullet.body.setAllowGravity(false); // Bullets fly straight
+            
+            // Determine direction based on right stick aim, or default to player facing
+            let angle = joyStickRight.force > 0 ? joyStickRight.rotation : player.rotation;
+            this.physics.velocityFromRotation(angle, 800, bullet.body.velocity);
+            
+            actionText.setText('PEW! PEW!');
+            
+            // Destroy bullet after 1 second so it doesn't fly forever
+            this.time.delayedCall(1000, () => {
+                bullet.destroy();
+            });
+        });
+
+        // --- ACTION BUTTONS ---
+
+        // A. Melee Button (Independent)
         const btnMelee = this.add.circle(570, 300, 25, 0xffaa00).setAlpha(0.5).setInteractive();
         this.add.text(552, 292, 'HIT', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnMelee.on('pointerdown', () => {
@@ -91,7 +146,7 @@
             this.time.delayedCall(200, () => player.fillColor = 0x00aaff);
         });
 
-        // Swap Button
+        // B. Swap Weapon Button 
         const btnSwap = this.add.circle(600, 210, 25, 0xaaaaaa).setAlpha(0.5).setInteractive();
         this.add.text(582, 202, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' });
         btnSwap.on('pointerdown', () => {
@@ -99,11 +154,12 @@
             actionText.setText('Equipped: ' + currentWeapon);
         });
 
-        // Special Button
+        // C. Special Attack Button (Center)
         specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive();
         this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' });
         
-        specialFillRect = this.add.rectangle(680, 220, 60, 5, 0x00ffff);
+        // D. Circular Charge Ring (Around the Special Button)
+        specialGraphics = this.add.graphics();
         
         specialButton.on('pointerdown', () => {
             if (specialReady) {
@@ -118,9 +174,11 @@
                     player.fillColor = 0x00aaff;
                 });
                 
+                // Reset the charge
                 specialCharge = 0;
                 specialReady = false;
                 specialButton.setFillStyle(0x555555); 
+                specialGraphics.clear();
             } else {
                 actionText.setText('Special is still charging...');
             }
@@ -130,6 +188,7 @@
     function update() {
         const speed = 250;
         
+        // Horizontal Movement
         if (joyStickLeft.left) {
             player.body.setVelocityX(-speed);
         } else if (joyStickLeft.right) {
@@ -138,21 +197,41 @@
             player.body.setVelocityX(0);
         }
 
-        if (joyStickLeft.up && player.body.touching.down) {
-            player.body.setVelocityY(-500);
+        // Reset Jumps when touching a solid surface (floor or island)
+        if (player.body.touching.down) {
+            jumps = 0;
         }
 
+        // Joystick UP Jump Logic
+        if (joyStickLeft.up) {
+            // Require the stick to be released before triggering the next jump
+            if (joystickUpReleased && jumps < 3) {
+                player.body.setVelocityY(-450);
+                jumps++;
+                joystickUpReleased = false;
+                actionText.setText('Triple Jump: ' + jumps + '/3');
+            }
+        } else {
+            joystickUpReleased = true;
+        }
+
+        // Aiming Rotation
         if (joyStickRight.force > 0) {
             player.rotation = joyStickRight.rotation; 
-        } else {
-            player.rotation = 0;
         }
 
+        // Circular Ultimate Charge Logic
         if (!specialReady) {
             specialCharge += 0.2; 
             
             let chargePercentage = specialCharge / specialMax;
-            specialFillRect.width = 60 * chargePercentage;
+            
+            // Draw the cyan arc around the outside of the button
+            specialGraphics.clear();
+            specialGraphics.lineStyle(6, 0x00ffff, 1);
+            specialGraphics.beginPath();
+            specialGraphics.arc(680, 180, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * chargePercentage)), false);
+            specialGraphics.strokePath();
 
             if (specialCharge >= specialMax) {
                 specialReady = true;
