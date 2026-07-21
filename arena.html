@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Arena V4</title>
+    <title>Needful Thingz - Arena V6 (Modular Armory)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -35,27 +35,44 @@
 
     const game = new Phaser.Game(config);
     
-    // Core Variables
+    // Core Entities
     let player;
+    let dummy;
     let joyStickLeft;
     let joyStickRight;
     let actionText; 
-    let facingDirection = 0; // 0 = right, Math.PI = left
+    let facingDirection = 0; 
     
     // Movement Variables
     let jumps = 0;
     let joystickUpReleased = true;
     
-    // Combat Variables
-    let currentWeapon = 'Assault Rifle';
+    // Combat & Modular Armory System
+    const weaponArmory = {
+        'Knife': { name: 'Combat Knife', damage: 28, reach: 40, pierce: 0.15, stun: 0, color: 0xcccccc },
+        'Sword': { name: 'Broadsword', damage: 35, reach: 75, pierce: 0.50, stun: 0, color: 0xff3333 },
+        'Whip':  { name: 'Energy Whip',  damage: 12, reach: 170, pierce: 0.90, stun: 1.0, color: 0x00ffff }
+    };
+    let weaponKeys = ['Knife', 'Sword', 'Whip'];
+    let currentWeaponIndex = 0;
+    let activeWeapon = weaponArmory['Knife'];
+    
     let specialCharge = 0;
     const specialMax = 100;
     let specialReady = false;
     let meleeHitbox;
+    let isStunned = false;
+    
+    // Target Stats & UI
+    let dummyHealth = 100;
+    let dummyArmor = 100;
+    let dummyHealthBar;
+    let dummyArmorBar;
     
     // UI Elements
     let specialButton;
     let specialGraphics; 
+    let weaponButtonText;
 
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
@@ -76,23 +93,30 @@
         this.physics.add.existing(islandBot, true);
 
         // 3. The Player
-        player = this.add.rectangle(400, 300, 30, 50, 0x00aaff);
+        player = this.add.rectangle(200, 300, 30, 50, 0x00aaff);
         this.physics.add.existing(player);
         player.body.setCollideWorldBounds(true);
         
-        // 4. Melee Hitbox (The physical reach)
-        meleeHitbox = this.add.rectangle(-100, -100, 40, 15, 0xffaa00).setAlpha(0);
+        // 4. The Training Dummy
+        dummy = this.add.rectangle(600, 335, 30, 50, 0xff5555);
+        this.physics.add.existing(dummy, true);
+
+        // 5. Modular Melee Hitbox
+        meleeHitbox = this.add.rectangle(-100, -100, 40, 20, activeWeapon.color).setAlpha(0);
         this.physics.add.existing(meleeHitbox);
         meleeHitbox.body.setAllowGravity(false);
         
-        // Collisions
+        dummyHealthBar = this.add.graphics();
+        dummyArmorBar = this.add.graphics();
+        updateDummyBars();
+
         this.physics.add.collider(player, floor);
         this.physics.add.collider(player, islandTop);
         this.physics.add.collider(player, islandMid);
         this.physics.add.collider(player, islandBot);
 
         // UI Text
-        actionText = this.add.text(400, 30, 'Equipped: Assault Rifle', { fontSize: '20px', fill: '#ffffff' }).setOrigin(0.5);
+        actionText = this.add.text(400, 30, 'Equipped: Combat Knife', { fontSize: '18px', fill: '#ffffff' }).setOrigin(0.5);
 
         // --- CONTROLS ---
 
@@ -128,23 +152,38 @@
             let angle = joyStickRight.force > 0 ? joyStickRight.rotation : player.rotation;
             this.physics.velocityFromRotation(angle, 800, bullet.body.velocity);
             
+            this.physics.add.overlap(bullet, dummy, () => {
+                bullet.destroy();
+                dealDamage(10, 0.2, 0);
+            });
+
             actionText.setText('PEW! PEW!');
-            this.time.delayedCall(1000, () => { bullet.destroy(); });
+            this.time.delayedCall(1000, () => { if(bullet.active) bullet.destroy(); });
         });
 
         // --- ACTION BUTTONS ---
 
+        // Melee Attack Input
         const btnMelee = this.add.circle(570, 300, 25, 0xffaa00).setAlpha(0.5).setInteractive();
         this.add.text(552, 292, 'HIT', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnMelee.on('pointerdown', () => {
-            actionText.setText('Action: MELEE ATTACK!');
-            player.fillColor = 0xffaa00; 
-            meleeHitbox.setAlpha(1);
+            if (isStunned) return;
             
-            // Push hitbox out based on facing direction
-            let reachX = facingDirection === 0 ? 35 : -35; 
+            actionText.setText(`Action: ${activeWeapon.name} Strike!`);
+            player.fillColor = activeWeapon.color; 
+            meleeHitbox.setAlpha(1);
+            meleeHitbox.width = activeWeapon.reach;
+            
+            let reachX = facingDirection === 0 ? (activeWeapon.reach / 2 + 15) : -(activeWeapon.reach / 2 + 15); 
             meleeHitbox.setPosition(player.x + reachX, player.y);
             meleeHitbox.rotation = facingDirection;
+
+            let hit = Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), dummy.getBounds());
+            if (hit) {
+                dealDamage(activeWeapon.damage, activeWeapon.pierce, activeWeapon.stun);
+                dummy.fillColor = activeWeapon.color; 
+                this.time.delayedCall(100, () => dummy.fillColor = 0xff5555);
+            }
 
             this.time.delayedCall(150, () => { 
                 player.fillColor = 0x00aaff;
@@ -153,13 +192,16 @@
             });
         });
 
+        // Modular Weapon Swap Button
         const btnSwap = this.add.circle(600, 210, 25, 0xaaaaaa).setAlpha(0.5).setInteractive();
-        this.add.text(582, 202, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' });
+        weaponButtonText = this.add.text(582, 202, 'GEAR', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' });
         btnSwap.on('pointerdown', () => {
-            currentWeapon = currentWeapon === 'Assault Rifle' ? 'Shotgun' : 'Assault Rifle';
-            actionText.setText('Equipped: ' + currentWeapon);
+            currentWeaponIndex = (currentWeaponIndex + 1) % weaponKeys.length;
+            activeWeapon = weaponArmory[weaponKeys[currentWeaponIndex]];
+            actionText.setText('Equipped: ' + activeWeapon.name);
         });
 
+        // Ultimate Special Ability Input
         specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive();
         this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' });
         specialGraphics = this.add.graphics();
@@ -170,6 +212,13 @@
                 player.scaleX = 1.5; 
                 player.scaleY = 1.5;
                 player.fillColor = 0x00ffff;
+                
+                let dist = Phaser.Math.Distance.Between(player.x, player.y, dummy.x, dummy.y);
+                if (dist < 180) {
+                    dealDamage(50, 0.8, 0);
+                    dummy.fillColor = 0x00ffff;
+                    this.time.delayedCall(200, () => dummy.fillColor = 0xff5555);
+                }
                 
                 this.time.delayedCall(500, () => {
                     player.scaleX = 1;
@@ -187,16 +236,71 @@
         });
     }
 
+    function dealDamage(dmg, piercePercent, stunDuration) {
+        let piercingDmg = dmg * piercePercent;
+        let standardDmg = dmg - piercingDmg;
+
+        if (dummyArmor > 0) {
+            dummyArmor -= standardDmg;
+            if (dummyArmor < 0) {
+                dummyHealth += dummyArmor; 
+                dummyArmor = 0;
+            }
+        } else {
+            dummyHealth -= standardDmg;
+        }
+
+        dummyHealth -= piercingDmg;
+        if (dummyHealth < 0) dummyHealth = 0;
+        
+        if (stunDuration > 0) {
+            isStunned = true;
+            dummy.fillColor = 0x00ffff;
+            actionText.setText(`ZAPPED! Target frozen for ${stunDuration}s!`);
+            
+            sceneRef = this;
+            setTimeout(() => {
+                isStunned = false;
+                dummy.fillColor = 0xff5555;
+            }, stunDuration * 1000);
+        }
+
+        if (dummyHealth <= 0) {
+            actionText.setText('TARGET ELIMINATED! Respawning...');
+            dummyHealth = 100;
+            dummyArmor = 100;
+        }
+        
+        updateDummyBars();
+    }
+
+    function updateDummyBars() {
+        dummyHealthBar.clear();
+        dummyArmorBar.clear();
+        
+        dummyHealthBar.fillStyle(0x333333, 1);
+        dummyHealthBar.fillRect(dummy.x - 25, dummy.y - 45, 50, 6);
+        dummyArmorBar.fillStyle(0x333333, 1);
+        dummyArmorBar.fillRect(dummy.x - 25, dummy.y - 36, 50, 6);
+        
+        dummyHealthBar.fillStyle(0x00ff00, 1);
+        dummyHealthBar.fillRect(dummy.x - 25, dummy.y - 45, 50 * (dummyHealth / 100), 6);
+        
+        dummyArmorBar.fillStyle(0xcccccc, 1);
+        dummyArmorBar.fillRect(dummy.x - 25, dummy.y - 36, 50 * (dummyArmor / 100), 6);
+    }
+
     function update() {
+        if (isStunned) return;
+
         const speed = 250;
         
-        // Direction tracking and movement
         if (joyStickLeft.left) {
             player.body.setVelocityX(-speed);
-            facingDirection = Math.PI; // Face Left (180 degrees)
+            facingDirection = Math.PI; 
         } else if (joyStickLeft.right) {
             player.body.setVelocityX(speed);
-            facingDirection = 0; // Face Right (0 degrees)
+            facingDirection = 0; 
         } else {
             player.body.setVelocityX(0);
         }
@@ -216,7 +320,6 @@
             joystickUpReleased = true;
         }
 
-        // Aiming Logic: Snap back to forward direction when stick is released
         if (joyStickRight.force > 0) {
             player.rotation = joyStickRight.rotation; 
         } else {
