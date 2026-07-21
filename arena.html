@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Arena V3</title>
+    <title>Needful Thingz - Arena V4</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -40,6 +40,7 @@
     let joyStickLeft;
     let joyStickRight;
     let actionText; 
+    let facingDirection = 0; // 0 = right, Math.PI = left
     
     // Movement Variables
     let jumps = 0;
@@ -50,10 +51,11 @@
     let specialCharge = 0;
     const specialMax = 100;
     let specialReady = false;
+    let meleeHitbox;
     
     // UI Elements
     let specialButton;
-    let specialGraphics; // The new circular ring
+    let specialGraphics; 
 
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
@@ -78,6 +80,11 @@
         this.physics.add.existing(player);
         player.body.setCollideWorldBounds(true);
         
+        // 4. Melee Hitbox (The physical reach)
+        meleeHitbox = this.add.rectangle(-100, -100, 40, 15, 0xffaa00).setAlpha(0);
+        this.physics.add.existing(meleeHitbox);
+        meleeHitbox.body.setAllowGravity(false);
+        
         // Collisions
         this.physics.add.collider(player, floor);
         this.physics.add.collider(player, islandTop);
@@ -89,7 +96,6 @@
 
         // --- CONTROLS ---
 
-        // Left Joystick (Movement)
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, {
             x: 120, y: 300, radius: 50,
             base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3),
@@ -97,7 +103,6 @@
             dir: '8dir', forceMin: 16
         });
 
-        // Left Joystick Center Tap (For Mid-Air Jumps)
         const leftTapZone = this.add.circle(120, 300, 25, 0xffffff, 0).setInteractive();
         leftTapZone.on('pointerdown', () => {
             if (jumps < 3) {
@@ -107,7 +112,6 @@
             }
         });
 
-        // Right Joystick (Aiming)
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, {
             x: 680, y: 300, radius: 50,
             base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3),
@@ -115,38 +119,40 @@
             dir: '8dir', forceMin: 16
         });
 
-        // Right Joystick Center Tap (Shooting Projectiles)
         const rightTapZone = this.add.circle(680, 300, 25, 0xffffff, 0).setInteractive();
         rightTapZone.on('pointerdown', () => {
-            // Create the bullet
             let bullet = this.add.rectangle(player.x, player.y, 15, 5, 0xffff00);
             this.physics.add.existing(bullet);
-            bullet.body.setAllowGravity(false); // Bullets fly straight
+            bullet.body.setAllowGravity(false); 
             
-            // Determine direction based on right stick aim, or default to player facing
             let angle = joyStickRight.force > 0 ? joyStickRight.rotation : player.rotation;
             this.physics.velocityFromRotation(angle, 800, bullet.body.velocity);
             
             actionText.setText('PEW! PEW!');
-            
-            // Destroy bullet after 1 second so it doesn't fly forever
-            this.time.delayedCall(1000, () => {
-                bullet.destroy();
-            });
+            this.time.delayedCall(1000, () => { bullet.destroy(); });
         });
 
         // --- ACTION BUTTONS ---
 
-        // A. Melee Button (Independent)
         const btnMelee = this.add.circle(570, 300, 25, 0xffaa00).setAlpha(0.5).setInteractive();
         this.add.text(552, 292, 'HIT', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnMelee.on('pointerdown', () => {
             actionText.setText('Action: MELEE ATTACK!');
             player.fillColor = 0xffaa00; 
-            this.time.delayedCall(200, () => player.fillColor = 0x00aaff);
+            meleeHitbox.setAlpha(1);
+            
+            // Push hitbox out based on facing direction
+            let reachX = facingDirection === 0 ? 35 : -35; 
+            meleeHitbox.setPosition(player.x + reachX, player.y);
+            meleeHitbox.rotation = facingDirection;
+
+            this.time.delayedCall(150, () => { 
+                player.fillColor = 0x00aaff;
+                meleeHitbox.setAlpha(0);
+                meleeHitbox.setPosition(-100, -100); 
+            });
         });
 
-        // B. Swap Weapon Button 
         const btnSwap = this.add.circle(600, 210, 25, 0xaaaaaa).setAlpha(0.5).setInteractive();
         this.add.text(582, 202, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' });
         btnSwap.on('pointerdown', () => {
@@ -154,11 +160,8 @@
             actionText.setText('Equipped: ' + currentWeapon);
         });
 
-        // C. Special Attack Button (Center)
         specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive();
         this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' });
-        
-        // D. Circular Charge Ring (Around the Special Button)
         specialGraphics = this.add.graphics();
         
         specialButton.on('pointerdown', () => {
@@ -174,7 +177,6 @@
                     player.fillColor = 0x00aaff;
                 });
                 
-                // Reset the charge
                 specialCharge = 0;
                 specialReady = false;
                 specialButton.setFillStyle(0x555555); 
@@ -188,23 +190,22 @@
     function update() {
         const speed = 250;
         
-        // Horizontal Movement
+        // Direction tracking and movement
         if (joyStickLeft.left) {
             player.body.setVelocityX(-speed);
+            facingDirection = Math.PI; // Face Left (180 degrees)
         } else if (joyStickLeft.right) {
             player.body.setVelocityX(speed);
+            facingDirection = 0; // Face Right (0 degrees)
         } else {
             player.body.setVelocityX(0);
         }
 
-        // Reset Jumps when touching a solid surface (floor or island)
         if (player.body.touching.down) {
             jumps = 0;
         }
 
-        // Joystick UP Jump Logic
         if (joyStickLeft.up) {
-            // Require the stick to be released before triggering the next jump
             if (joystickUpReleased && jumps < 3) {
                 player.body.setVelocityY(-450);
                 jumps++;
@@ -215,18 +216,17 @@
             joystickUpReleased = true;
         }
 
-        // Aiming Rotation
+        // Aiming Logic: Snap back to forward direction when stick is released
         if (joyStickRight.force > 0) {
             player.rotation = joyStickRight.rotation; 
+        } else {
+            player.rotation = facingDirection; 
         }
 
-        // Circular Ultimate Charge Logic
         if (!specialReady) {
             specialCharge += 0.2; 
-            
             let chargePercentage = specialCharge / specialMax;
             
-            // Draw the cyan arc around the outside of the button
             specialGraphics.clear();
             specialGraphics.lineStyle(6, 0x00ffff, 1);
             specialGraphics.beginPath();
