@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Weapon Loadout Simulator V3</title>
+<title>Weapon Loadout Simulator V4</title>
 <style>
   body { font-family: sans-serif; background: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
   .arena-box { background: #222; padding: 20px; border-radius: 10px; margin-bottom: 20px; position: relative; height: 150px; overflow: hidden; }
@@ -15,10 +15,11 @@
   label { display: block; margin-top: 15px; font-weight: bold; font-size: 16px; color: #aaa; }
   select, input[type=range] { width: 100%; height: 40px; margin-top: 5px; font-size: 16px; } 
   
-  .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 18px; font-weight: bold; }
-  .bar-container { width: 100%; background: #444; height: 25px; margin-top: 5px; border-radius: 5px; overflow: hidden;}
+  .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 16px; font-weight: bold; }
+  .bar-container { width: 100%; background: #444; height: 20px; margin-top: 5px; border-radius: 5px; overflow: hidden;}
   .bar { height: 100%; transition: width 0.3s; }
   #health-bar { background: #00ff00; width: 100%; }
+  #armor-bar { background: #cccccc; width: 100%; }
   
   button { width: 100%; padding: 20px; margin-top: 10px; font-size: 20px; font-weight: bold; border: none; border-radius: 10px; text-transform: uppercase; }
   #strike-btn { background: #ffaa00; color: #000; }
@@ -27,12 +28,16 @@
 </head>
 <body>
 
-<h2>Weapon Loadout Tester V3</h2>
+<h2>Weapon Loadout Simulator V4 (Armor Integration)</h2>
 
 <div class="stats">
-  <div style="width: 80%;">
-    TARGET HEALTH: <span id="health-val">100</span>
+  <div style="width: 45%;">
+    HEALTH: <span id="health-val">100</span>
     <div class="bar-container"><div id="health-bar" class="bar"></div></div>
+  </div>
+  <div style="width: 45%;">
+    ARMOR: <span id="armor-val">100</span>
+    <div class="bar-container"><div id="armor-bar" class="bar"></div></div>
   </div>
 </div>
 
@@ -49,9 +54,9 @@
   <label>Equip Weapon (From Store):</label>
   <select id="weapon-select" onchange="loadWeapon()">
     <option value="custom">-- Custom Build --</option>
-    <option value="knife" data-dmg="8" data-reach="40" data-color="rgba(200,200,200,0.8)">Starter Combat Knife</option>
-    <option value="sword" data-dmg="25" data-reach="75" data-color="rgba(255,50,50,0.8)">Heavy Broadsword</option>
-    <option value="whip" data-dmg="12" data-reach="190" data-color="rgba(50,255,255,0.8)">Energy Whip</option>
+    <option value="knife" data-dmg="15" data-reach="40" data-pierce="10" data-color="rgba(200,200,200,0.8)">Starter Combat Knife (Low Armor Piercing)</option>
+    <option value="sword" data-dmg="35" data-reach="75" data-pierce="50" data-color="rgba(255,50,50,0.8)">Heavy Broadsword (High Impact)</option>
+    <option value="whip" data-dmg="12" data-reach="190" data-pierce="80" data-color="rgba(50,255,255,0.8)">Energy Whip (Armor Bypass)</option>
   </select>
 
   <label>Damage Output: <span id="dmg-val" style="color: #fff;">20</span></label>
@@ -59,6 +64,9 @@
 
   <label>Physical Reach (Pixels): <span id="reach-val" style="color: #fff;">100</span></label>
   <input type="range" id="reach" min="30" max="300" value="100" oninput="updateUI()">
+
+  <label>Armor Piercing (%): <span id="pierce-val" style="color: #fff;">20</span>%</label>
+  <input type="range" id="pierce" min="0" max="100" value="20" oninput="updateUI()">
 </div>
 
 <button id="strike-btn" onclick="strike()">Execute Strike</button>
@@ -66,6 +74,7 @@
 
 <script>
   let health = 100;
+  let armor = 100;
   let currentColor = "rgba(255, 170, 0, 0.7)";
 
   function loadWeapon() {
@@ -75,6 +84,7 @@
     const selectedOption = select.options[select.selectedIndex];
     document.getElementById('dmg').value = selectedOption.getAttribute('data-dmg');
     document.getElementById('reach').value = selectedOption.getAttribute('data-reach');
+    document.getElementById('pierce').value = selectedOption.getAttribute('data-pierce');
     currentColor = selectedOption.getAttribute('data-color');
     
     updateUI();
@@ -85,7 +95,8 @@
     const selectedOption = select.options[select.selectedIndex];
     if (select.value !== 'custom') {
         if (document.getElementById('dmg').value != selectedOption.getAttribute('data-dmg') || 
-            document.getElementById('reach').value != selectedOption.getAttribute('data-reach')) {
+            document.getElementById('reach').value != selectedOption.getAttribute('data-reach') ||
+            document.getElementById('pierce').value != selectedOption.getAttribute('data-pierce')) {
             select.value = 'custom';
             currentColor = "rgba(255, 170, 0, 0.7)";
         }
@@ -93,8 +104,8 @@
 
     document.getElementById('dmg-val').innerText = document.getElementById('dmg').value;
     document.getElementById('reach-val').innerText = document.getElementById('reach').value;
+    document.getElementById('pierce-val').innerText = document.getElementById('pierce').value;
     
-    // MOVEMENT UPDATE LOGIC
     let pos = document.getElementById('position').value;
     document.getElementById('player').style.left = pos + '%';
     
@@ -106,6 +117,8 @@
 
   function strike() {
     let dmg = parseInt(document.getElementById('dmg').value);
+    let piercePercent = parseInt(document.getElementById('pierce').value) / 100;
+
     let hitboxElement = document.getElementById('hitbox');
     let dummyElement = document.getElementById('dummy');
     
@@ -117,7 +130,21 @@
         return;
     }
 
-    health -= dmg;
+    // Armor and health math breakdown
+    let piercingDmg = dmg * piercePercent;
+    let standardDmg = dmg - piercingDmg;
+
+    if (armor > 0) {
+        armor -= standardDmg;
+        if (armor < 0) {
+            health += armor; // Carryover overflow damage to health
+            armor = 0;
+        }
+    } else {
+        health -= standardDmg;
+    }
+
+    health -= piercingDmg; // Direct health damage bypassing armor
     if (health < 0) health = 0;
 
     hitboxElement.style.background = "#ffffff";
@@ -129,10 +156,14 @@
   function updateBars() {
     document.getElementById('health-val').innerText = Math.round(health);
     document.getElementById('health-bar').style.width = health + '%';
+    
+    document.getElementById('armor-val').innerText = Math.round(armor);
+    document.getElementById('armor-bar').style.width = armor + '%';
   }
 
   function reset() {
     health = 100;
+    armor = 100;
     updateBars();
   }
 
