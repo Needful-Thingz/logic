@@ -2,42 +2,37 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Combat Simulator</title>
+<title>Weapon Loadout Simulator</title>
 <style>
   body { font-family: sans-serif; background: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
-  .arena-box { background: #222; padding: 20px; border-radius: 10px; margin-bottom: 20px; position: relative; height: 150px; }
-  .entity { width: 40px; height: 60px; position: absolute; bottom: 20px; }
+  .arena-box { background: #222; padding: 20px; border-radius: 10px; margin-bottom: 20px; position: relative; height: 150px; overflow: hidden; }
+  .entity { position: absolute; bottom: 20px; }
   #player { background: #00aaff; left: 10%; width: 30px; height: 50px; position: absolute; bottom: 20px;}
   #dummy { background: #ff5555; right: 10%; width: 30px; height: 50px; position: absolute; bottom: 20px;}
-  #hitbox { background: rgba(255, 170, 0, 0.7); height: 20px; position: absolute; bottom: 40px; left: calc(10% + 30px); width: 0px; transition: width 0.1s; }
+  #hitbox { background: rgba(255, 170, 0, 0.7); height: 20px; position: absolute; bottom: 40px; left: calc(10% + 30px); width: 0px; transition: width 0.1s, background-color 0.1s; }
   
-  .controls { text-align: left; background: #333; padding: 15px; border-radius: 10px; }
-  label { display: block; margin-top: 15px; font-weight: bold; font-size: 18px; }
-  input[type=range] { width: 100%; height: 40px; } 
+  .controls { text-align: left; background: #333; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+  label { display: block; margin-top: 15px; font-weight: bold; font-size: 16px; }
+  select, input[type=range] { width: 100%; height: 40px; margin-top: 5px; font-size: 16px; } 
   
   .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 18px; font-weight: bold; }
   .bar-container { width: 100%; background: #444; height: 25px; margin-top: 5px; border-radius: 5px; overflow: hidden;}
   .bar { height: 100%; transition: width 0.3s; }
   #health-bar { background: #00ff00; width: 100%; }
-  #armor-bar { background: #cccccc; width: 100%; }
   
-  button { width: 100%; padding: 20px; margin-top: 20px; font-size: 20px; font-weight: bold; border: none; border-radius: 10px; text-transform: uppercase; }
+  button { width: 100%; padding: 20px; margin-top: 10px; font-size: 20px; font-weight: bold; border: none; border-radius: 10px; text-transform: uppercase; }
   #strike-btn { background: #ffaa00; color: #000; }
-  #reset-btn { background: #555; color: white; margin-top: 10px; }
+  #reset-btn { background: #555; color: white; }
 </style>
 </head>
 <body>
 
-<h2>Combat Math Simulator</h2>
+<h2>Weapon Loadout Tester</h2>
 
 <div class="stats">
-  <div style="width: 45%;">
-    HEALTH: <span id="health-val">100</span>
+  <div style="width: 80%;">
+    TARGET HEALTH: <span id="health-val">100</span>
     <div class="bar-container"><div id="health-bar" class="bar"></div></div>
-  </div>
-  <div style="width: 45%;">
-    ARMOR: <span id="armor-val">100</span>
-    <div class="bar-container"><div id="armor-bar" class="bar"></div></div>
   </div>
 </div>
 
@@ -48,14 +43,19 @@
 </div>
 
 <div class="controls">
-  <label>Weapon Damage: <span id="dmg-val">20</span></label>
+  <label>Equip Weapon (From Store):</label>
+  <select id="weapon-select" onchange="loadWeapon()">
+    <option value="custom">-- Custom Build --</option>
+    <option value="knife" data-dmg="8" data-reach="40" data-color="rgba(200,200,200,0.8)">Starter Combat Knife</option>
+    <option value="sword" data-dmg="25" data-reach="75" data-color="rgba(255,50,50,0.8)">Heavy Broadsword</option>
+    <option value="whip" data-dmg="12" data-reach="190" data-color="rgba(50,255,255,0.8)">Energy Whip</option>
+  </select>
+
+  <label>Damage Output: <span id="dmg-val">20</span></label>
   <input type="range" id="dmg" min="5" max="60" value="20" oninput="updateUI()">
 
-  <label>Weapon Reach (Pixels): <span id="reach-val">100</span></label>
+  <label>Physical Reach (Pixels): <span id="reach-val">100</span></label>
   <input type="range" id="reach" min="30" max="300" value="100" oninput="updateUI()">
-
-  <label>Armor Piercing (%): <span id="pierce-val">0</span>%</label>
-  <input type="range" id="pierce" min="0" max="100" value="0" oninput="updateUI()">
 </div>
 
 <button id="strike-btn" onclick="strike()">Execute Strike</button>
@@ -63,52 +63,58 @@
 
 <script>
   let health = 100;
-  let armor = 100;
+  let currentColor = "rgba(255, 170, 0, 0.7)";
+
+  function loadWeapon() {
+    const select = document.getElementById('weapon-select');
+    if (select.value === 'custom') return;
+    
+    const selectedOption = select.options[select.selectedIndex];
+    document.getElementById('dmg').value = selectedOption.getAttribute('data-dmg');
+    document.getElementById('reach').value = selectedOption.getAttribute('data-reach');
+    currentColor = selectedOption.getAttribute('data-color');
+    
+    updateUI();
+  }
 
   function updateUI() {
+    // If user manually moves a slider, switch dropdown back to "Custom"
+    const select = document.getElementById('weapon-select');
+    const selectedOption = select.options[select.selectedIndex];
+    if (select.value !== 'custom') {
+        if (document.getElementById('dmg').value != selectedOption.getAttribute('data-dmg') || 
+            document.getElementById('reach').value != selectedOption.getAttribute('data-reach')) {
+            select.value = 'custom';
+            currentColor = "rgba(255, 170, 0, 0.7)";
+        }
+    }
+
     document.getElementById('dmg-val').innerText = document.getElementById('dmg').value;
     document.getElementById('reach-val').innerText = document.getElementById('reach').value;
-    document.getElementById('pierce-val').innerText = document.getElementById('pierce').value;
     
-    // Visually extend the orange hitbox to show how far the weapon reaches
-    document.getElementById('hitbox').style.width = document.getElementById('reach').value + 'px';
+    let hitboxElement = document.getElementById('hitbox');
+    hitboxElement.style.width = document.getElementById('reach').value + 'px';
+    hitboxElement.style.backgroundColor = currentColor;
   }
 
   function strike() {
     let dmg = parseInt(document.getElementById('dmg').value);
-    let pierce = parseInt(document.getElementById('pierce').value) / 100;
-
     let hitboxElement = document.getElementById('hitbox');
     let dummyElement = document.getElementById('dummy');
     
     let hitRect = hitboxElement.getBoundingClientRect();
     let dumRect = dummyElement.getBoundingClientRect();
 
-    // Check if the orange box actually touches the red dummy box
     if (hitRect.right < dumRect.left) {
         alert("Swing and a miss! Your reach is too short.");
         return;
     }
 
-    // The actual combat math
-    let directHealthDmg = dmg * pierce;
-    let armorDmg = dmg - directHealthDmg;
-
-    if (armor > 0) {
-        armor -= armorDmg;
-        if (armor < 0) {
-            health += armor; 
-            armor = 0;
-        }
-    } else {
-        health -= armorDmg; 
-    }
-
-    health -= directHealthDmg;
+    health -= dmg;
     if (health < 0) health = 0;
 
     hitboxElement.style.background = "#ffffff";
-    setTimeout(() => hitboxElement.style.background = "rgba(255, 170, 0, 0.7)", 100);
+    setTimeout(() => hitboxElement.style.background = currentColor, 100);
 
     updateBars();
   }
@@ -116,14 +122,10 @@
   function updateBars() {
     document.getElementById('health-val').innerText = Math.round(health);
     document.getElementById('health-bar').style.width = health + '%';
-    
-    document.getElementById('armor-val').innerText = Math.round(armor);
-    document.getElementById('armor-bar').style.width = armor + '%';
   }
 
   function reset() {
     health = 100;
-    armor = 100;
     updateBars();
   }
 
