@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Needful Thingz - Arena V2</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; background-color: #000; overflow: hidden; }
+        canvas { display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<script>
+    const config = {
+        type: Phaser.AUTO,
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH,
+            width: 800,
+            height: 400
+        },
+        physics: {
+            default: 'arcade',
+            arcade: { gravity: { y: 800 }, debug: false }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        }
+    };
+
+    const game = new Phaser.Game(config);
+    
+    // Core Variables
+    let player;
+    let joyStickLeft;
+    let joyStickRight;
+    let actionText; 
+    
+    // Combat Variables
+    let currentWeapon = 'Assault Rifle';
+    let specialCharge = 0;
+    const specialMax = 100;
+    let specialReady = false;
+    
+    // UI Elements
+    let specialButton;
+    let specialFillRect;
+
+    function preload() {
+        this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
+    }
+
+    function create() {
+        const floor = this.add.rectangle(400, 380, 800, 40, 0x444444);
+        this.physics.add.existing(floor, true); 
+
+        player = this.add.rectangle(400, 200, 30, 50, 0x00aaff);
+        this.physics.add.existing(player);
+        player.body.setCollideWorldBounds(true);
+        this.physics.add.collider(player, floor);
+
+        actionText = this.add.text(400, 50, 'Equipped: Assault Rifle', { fontSize: '20px', fill: '#ffffff' }).setOrigin(0.5);
+
+        // Left Joystick
+        joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, {
+            x: 120, y: 300, radius: 50,
+            base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3),
+            thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5),
+            dir: '8dir', forceMin: 16
+        });
+
+        // Right Joystick
+        joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, {
+            x: 680, y: 300, radius: 50,
+            base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3),
+            thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5),
+            dir: '8dir', forceMin: 16
+        });
+
+        // Melee Button
+        const btnMelee = this.add.circle(570, 300, 25, 0xffaa00).setAlpha(0.5).setInteractive();
+        this.add.text(552, 292, 'HIT', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
+        btnMelee.on('pointerdown', () => {
+            actionText.setText('Action: MELEE ATTACK!');
+            player.fillColor = 0xffaa00; 
+            this.time.delayedCall(200, () => player.fillColor = 0x00aaff);
+        });
+
+        // Swap Button
+        const btnSwap = this.add.circle(600, 210, 25, 0xaaaaaa).setAlpha(0.5).setInteractive();
+        this.add.text(582, 202, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' });
+        btnSwap.on('pointerdown', () => {
+            currentWeapon = currentWeapon === 'Assault Rifle' ? 'Shotgun' : 'Assault Rifle';
+            actionText.setText('Equipped: ' + currentWeapon);
+        });
+
+        // Special Button
+        specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive();
+        this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' });
+        
+        specialFillRect = this.add.rectangle(680, 220, 60, 5, 0x00ffff);
+        
+        specialButton.on('pointerdown', () => {
+            if (specialReady) {
+                actionText.setText('Action: SPECIAL UNLEASHED!');
+                player.scaleX = 1.5; 
+                player.scaleY = 1.5;
+                player.fillColor = 0x00ffff;
+                
+                this.time.delayedCall(500, () => {
+                    player.scaleX = 1;
+                    player.scaleY = 1;
+                    player.fillColor = 0x00aaff;
+                });
+                
+                specialCharge = 0;
+                specialReady = false;
+                specialButton.setFillStyle(0x555555); 
+            } else {
+                actionText.setText('Special is still charging...');
+            }
+        });
+    }
+
+    function update() {
+        const speed = 250;
+        
+        if (joyStickLeft.left) {
+            player.body.setVelocityX(-speed);
+        } else if (joyStickLeft.right) {
+            player.body.setVelocityX(speed);
+        } else {
+            player.body.setVelocityX(0);
+        }
+
+        if (joyStickLeft.up && player.body.touching.down) {
+            player.body.setVelocityY(-500);
+        }
+
+        if (joyStickRight.force > 0) {
+            player.rotation = joyStickRight.rotation; 
+        } else {
+            player.rotation = 0;
+        }
+
+        if (!specialReady) {
+            specialCharge += 0.2; 
+            
+            let chargePercentage = specialCharge / specialMax;
+            specialFillRect.width = 60 * chargePercentage;
+
+            if (specialCharge >= specialMax) {
+                specialReady = true;
+                specialButton.setFillStyle(0x00ffff); 
+                actionText.setText('SPECIAL READY!');
+            }
+        }
+    }
+</script>
+
+</body>
+</html>
