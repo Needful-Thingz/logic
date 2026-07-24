@@ -2,26 +2,26 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Weapon Loadout Simulator V8 (Ammo & Reloading)</title>
+<title>Weapon Loadout Simulator V9 (Melee, Guns & Ordnance)</title>
 <style>
   body { font-family: sans-serif; background: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
-  .arena-box { background: #222; border-radius: 10px; margin-bottom: 20px; position: relative; height: 180px; overflow: hidden; }
+  .arena-box { background: #222; border-radius: 10px; margin-bottom: 20px; position: relative; height: 200px; overflow: hidden; }
   
   #player { background: #00aaff; left: 10%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: left 0.1s;}
-  #dummy { background: #ff5555; right: 10%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: background-color 0.1s;}
+  #dummy { background: #ff5555; right: 80%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: background-color 0.1s;}
   
-  /* Melee Visual */
+  /* Visuals */
   #hitbox { background: rgba(255, 170, 0, 0.7); height: 20px; position: absolute; bottom: 40px; left: calc(10% + 30px); width: 0px; opacity: 0; }
-  
-  /* Ranged Visual */
   .bullet { position: absolute; width: 12px; height: 4px; border-radius: 2px; }
+  .grenade { position: absolute; width: 12px; height: 12px; border-radius: 50%; z-index: 5; }
+  .explosion { position: absolute; border-radius: 50%; background: rgba(255, 119, 0, 0.6); transform: translate(-50%, -50%); z-index: 4; }
 
   .controls { text-align: left; background: #333; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
   label { display: block; margin-top: 15px; font-weight: bold; font-size: 14px; color: #aaa; }
   select, input[type=range] { width: 100%; height: 35px; margin-top: 5px; font-size: 16px; } 
   
   .mode-toggle { display: flex; justify-content: space-around; background: #222; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
-  .mode-toggle label { margin: 0; font-size: 16px; color: #fff; cursor: pointer; }
+  .mode-toggle label { margin: 0; font-size: 14px; color: #fff; cursor: pointer; }
 
   .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 16px; font-weight: bold; }
   .bar-container { width: 100%; background: #444; height: 20px; margin-top: 5px; border-radius: 5px; overflow: hidden;}
@@ -29,22 +29,20 @@
   #health-bar { background: #00ff00; width: 100%; }
   #armor-bar { background: #cccccc; width: 100%; }
   
-  #status-log { margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #00ffff; height: 25px; }
-  #ammo-display { font-size: 22px; font-weight: bold; color: #00ffff; margin-bottom: 10px; }
+  #status-log { margin-bottom: 10px; font-size: 16px; font-weight: bold; color: #00ffff; height: 25px; }
+  #ammo-display { font-size: 20px; font-weight: bold; color: #00ffff; margin-bottom: 10px; }
 
-  button { width: 100%; padding: 20px; margin-top: 10px; font-size: 20px; font-weight: bold; border: none; border-radius: 10px; text-transform: uppercase; cursor: pointer; }
+  button { width: 100%; padding: 15px; margin-top: 10px; font-size: 18px; font-weight: bold; border: none; border-radius: 10px; text-transform: uppercase; cursor: pointer; }
   #strike-btn { background: #ffaa00; color: #000; }
   #reload-btn { background: #4444ff; color: white; }
   #reset-btn { background: #555; color: white; }
   
-  /* Utility Classes for Toggling */
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
 
-<h2>Weapon Loadout Simulator V8</h2>
-
+<h2>Weapon Loadout Simulator V9</h2>
 <div id="status-log">Target is ready.</div>
 
 <div class="stats">
@@ -65,79 +63,91 @@
 </div>
 
 <div class="controls">
-  <!-- MODE TOGGLE -->
+  <!-- 3-WAY MODE TOGGLE -->
   <div class="mode-toggle">
-    <label><input type="radio" name="wtype" value="melee" checked onchange="switchMode()"> 🗡️ Melee Armory</label>
-    <label><input type="radio" name="wtype" value="gun" onchange="switchMode()"> 🔫 Gun Armory</label>
+    <label><input type="radio" name="wtype" value="melee" checked onchange="switchMode()"> 🗡️ Melee</label>
+    <label><input type="radio" name="wtype" value="gun" onchange="switchMode()"> 🔫 Guns</label>
+    <label><input type="radio" name="wtype" value="ordnance" onchange="switchMode()"> 💣 Ordnance</label>
   </div>
 
-  <label style="color: #00aaff;">Player Position (Walk Forward/Back):</label>
-  <input type="range" id="position" min="5" max="80" value="10" oninput="updateUI()">
+  <label style="color: #00aaff;">Player Distance to Target:</label>
+  <input type="range" id="position" min="5" max="85" value="20" oninput="updateUI()">
 
-  <!-- MELEE DROPDOWN -->
+  <!-- 1. MELEE DROPDOWN -->
   <select id="melee-select" onchange="loadWeapon()">
     <option value="custom">-- Custom Melee --</option>
-    <option value="knife" data-dmg="28" data-reach="40" data-pierce="15" data-stun="0" data-speed="80" data-color="rgba(200,200,200,0.8)">Starter Combat Knife (Close Assassin)</option>
-    <option value="sword" data-dmg="35" data-reach="75" data-pierce="50" data-stun="0" data-speed="150" data-color="rgba(255,50,50,0.8)" selected>Heavy Broadsword (Armor Breaker)</option>
-    <option value="whip" data-dmg="12" data-reach="190" data-pierce="90" data-stun="1.0" data-speed="250" data-color="rgba(50,255,255,0.8)">Energy Whip (1s Stun / Shock)</option>
+    <option value="knife" data-dmg="28" data-reach="40" data-pierce="15" data-stun="0" data-speed="80" data-color="rgba(200,200,200,0.8)">Combat Knife</option>
+    <option value="sword" data-dmg="35" data-reach="75" data-pierce="50" data-stun="0" data-speed="150" data-color="rgba(255,50,50,0.8)" selected>Broadsword</option>
+    <option value="whip" data-dmg="12" data-reach="170" data-pierce="90" data-stun="1.0" data-speed="250" data-color="rgba(50,255,255,0.8)">Energy Whip</option>
   </select>
 
-  <!-- GUN DROPDOWN (NOW WITH AMMO DATA) -->
+  <!-- 2. GUN DROPDOWN (UPDATED WITH ALL 6 REALISTIC GUNS) -->
   <select id="gun-select" class="hidden" onchange="loadWeapon()">
     <option value="custom">-- Custom Gun --</option>
-    <option value="blaster" data-dmg="15" data-firerate="250" data-projspeed="800" data-count="1" data-lifespan="1000" data-clip="15" data-reload="1200" data-pierce="20" data-stun="0" data-color="rgba(255,255,0,0.8)" selected>Plasma Blaster (Standard)</option>
-    <option value="autorifle" data-dmg="6" data-firerate="80" data-projspeed="1200" data-count="1" data-lifespan="800" data-clip="40" data-reload="1800" data-pierce="20" data-stun="0" data-color="rgba(0,255,0,0.8)">Auto-Rifle (Rapid Fire)</option>
-    <option value="shotgun" data-dmg="10" data-firerate="800" data-projspeed="600" data-count="5" data-lifespan="300" data-clip="4" data-reload="2000" data-pierce="20" data-stun="0" data-color="rgba(255,170,0,0.8)">Scrap Shotgun (Spread)</option>
+    <option value="pistol" data-dmg="15" data-firerate="300" data-projspeed="900" data-count="1" data-lifespan="1000" data-clip="12" data-reload="1000" data-pierce="10" data-stun="0" data-color="rgba(200,200,200,0.8)">Service Pistol</option>
+    <option value="shotgun" data-dmg="10" data-firerate="800" data-projspeed="600" data-count="5" data-lifespan="300" data-clip="6" data-reload="3000" data-pierce="20" data-stun="0" data-color="rgba(255,170,0,0.8)" selected>Pump Shotgun (Spread)</option>
+    <option value="rifle" data-dmg="8" data-firerate="100" data-projspeed="1200" data-count="1" data-lifespan="800" data-clip="30" data-reload="1200" data-pierce="30" data-stun="0" data-color="rgba(0,255,0,0.8)">Assault Rifle</option>
+    <option value="sniper" data-dmg="60" data-firerate="1200" data-projspeed="2000" data-count="1" data-lifespan="1500" data-clip="5" data-reload="2500" data-pierce="90" data-stun="0" data-color="rgba(255,0,255,0.8)">Heavy Sniper (Pierce)</option>
+    <option value="grenadel" data-dmg="45" data-firerate="800" data-projspeed="500" data-count="1" data-lifespan="1200" data-clip="4" data-reload="2200" data-pierce="50" data-stun="0" data-color="rgba(255,85,0,0.8)">Grenade Tube</option>
+    <option value="rocket" data-dmg="90" data-firerate="1000" data-projspeed="900" data-count="1" data-lifespan="2000" data-clip="1" data-reload="3000" data-pierce="100" data-stun="0.5" data-color="rgba(255,0,0,0.8)">RPG Launcher</option>
+  </select>
+
+  <!-- 3. ORDNANCE DROPDOWN (NEW) -->
+  <select id="ordnance-select" class="hidden" onchange="loadWeapon()">
+    <option value="custom">-- Custom Ordnance --</option>
+    <option value="frag" data-dmg="50" data-radius="110" data-fuse="1500" data-clip="3" data-reload="1000" data-pierce="50" data-stun="0" data-color="rgba(0,255,0,1)" selected>Standard Frag Grenade</option>
   </select>
 
   <!-- MELEE SPECIFIC CONTROLS -->
   <div id="melee-controls">
-    <label>Attack Speed (ms): <span id="speed-val" style="color: #fff;">150</span>ms</label>
+    <label>Attack Speed (ms): <span id="speed-val">150</span></label>
     <input type="range" id="speed" min="50" max="500" value="150" oninput="updateUI()">
-
-    <label>Physical Reach (Pixels): <span id="reach-val" style="color: #fff;">100</span></label>
+    <label>Physical Reach (px): <span id="reach-val">100</span></label>
     <input type="range" id="reach" min="30" max="300" value="100" oninput="updateUI()">
   </div>
 
-  <!-- GUN SPECIFIC CONTROLS (NOW WITH AMMO CONTROLS) -->
+  <!-- GUN SPECIFIC CONTROLS -->
   <div id="gun-controls" class="hidden">
-    <label>Clip Size (Ammo): <span id="clip-val" style="color: #fff;">15</span></label>
+    <label>Clip Size (Ammo): <span id="clip-val">15</span></label>
     <input type="range" id="clip" min="1" max="100" value="15" oninput="updateUI()">
-
-    <label>Reload Time (ms): <span id="reload-val" style="color: #fff;">1200</span>ms</label>
+    <label>Reload Time (ms): <span id="reload-val">1200</span></label>
     <input type="range" id="reload" min="100" max="5000" step="100" value="1200" oninput="updateUI()">
-
-    <label>Fire Rate Cooldown (ms): <span id="firerate-val" style="color: #fff;">250</span>ms</label>
-    <input type="range" id="firerate" min="50" max="1000" value="250" oninput="updateUI()">
-
-    <label>Projectile Speed (px/s): <span id="projspeed-val" style="color: #fff;">800</span></label>
-    <input type="range" id="projspeed" min="200" max="2000" value="800" step="50" oninput="updateUI()">
-
-    <label>Bullet Count (Spread): <span id="count-val" style="color: #fff;">1</span></label>
+    <label>Fire Rate (ms): <span id="firerate-val">250</span></label>
+    <input type="range" id="firerate" min="50" max="2000" value="250" oninput="updateUI()">
+    <label>Proj. Speed (px/s): <span id="projspeed-val">800</span></label>
+    <input type="range" id="projspeed" min="200" max="3000" value="800" step="50" oninput="updateUI()">
+    <label>Bullet Count (Spread): <span id="count-val">1</span></label>
     <input type="range" id="count" min="1" max="10" value="1" oninput="updateUI()">
-
-    <label>Lifespan/Range (ms): <span id="lifespan-val" style="color: #fff;">1000</span>ms</label>
-    <input type="range" id="lifespan" min="100" max="2000" value="1000" step="50" oninput="updateUI()">
+    <label>Lifespan/Range (ms): <span id="lifespan-val">1000</span></label>
+    <input type="range" id="lifespan" min="100" max="3000" value="1000" step="50" oninput="updateUI()">
   </div>
 
-  <!-- SHARED CONTROLS -->
+  <!-- ORDNANCE SPECIFIC CONTROLS (NEW) -->
+  <div id="ordnance-controls" class="hidden">
+    <label>Max Carry Capacity: <span id="ord-clip-val">3</span></label>
+    <input type="range" id="ord-clip" min="1" max="10" value="3" oninput="updateUI()">
+    <label>Toss Cooldown (ms): <span id="ord-cooldown-val">1000</span></label>
+    <input type="range" id="ord-cooldown" min="100" max="3000" step="100" value="1000" oninput="updateUI()">
+    <label>Blast Radius (px): <span id="radius-val">110</span></label>
+    <input type="range" id="radius" min="40" max="300" value="110" oninput="updateUI()">
+    <label>Fuse Timer (ms): <span id="fuse-val">1500</span></label>
+    <input type="range" id="fuse" min="500" max="4000" step="100" value="1500" oninput="updateUI()">
+  </div>
+
+  <!-- SHARED DAMAGE CONTROLS -->
   <div id="shared-controls">
     <label>Damage Output: <span id="dmg-val" style="color: #fff;">20</span></label>
-    <input type="range" id="dmg" min="1" max="100" value="20" oninput="updateUI()">
-
-    <label>Armor Piercing (%): <span id="pierce-val" style="color: #fff;">20</span>%</label>
+    <input type="range" id="dmg" min="1" max="200" value="20" oninput="updateUI()">
+    <label>Armor Piercing (%): <span id="pierce-val" style="color: #fff;">20</span></label>
     <input type="range" id="pierce" min="0" max="100" value="20" oninput="updateUI()">
-
-    <label>Stun Duration (Seconds): <span id="stun-val" style="color: #fff;">0</span>s</label>
+    <label>Stun Duration (s): <span id="stun-val" style="color: #fff;">0</span></label>
     <input type="range" id="stun" min="0" max="3" step="0.5" value="0" oninput="updateUI()">
   </div>
-
 </div>
 
-<!-- AMMO DISPLAY (HIDDEN IN MELEE MODE) -->
 <div id="ammo-display" class="hidden">AMMO: 15 / 15</div>
 
-<button id="strike-btn" onclick="executeAction()">ATTACK</button>
+<button id="strike-btn" onclick="executeAction()">ATTACK / TOSS</button>
 <button id="reload-btn" class="hidden" onclick="triggerManualReload()">RELOAD WEAPON</button>
 <button id="reset-btn" onclick="reset()">Reset Target</button>
 
@@ -148,77 +158,76 @@
   let currentColor = "rgba(255, 170, 0, 0.7)";
   let isAttacking = false;
   
-  // Ammo Variables
   let currentAmmo = 15;
   let isReloading = false;
 
-  function getMode() {
-    return document.querySelector('input[name="wtype"]:checked').value;
-  }
+  function getMode() { return document.querySelector('input[name="wtype"]:checked').value; }
 
   function switchMode() {
     let mode = getMode();
+    // Hide all
+    ['melee', 'gun', 'ordnance'].forEach(t => {
+      document.getElementById(`${t}-select`).classList.add('hidden');
+      document.getElementById(`${t}-controls`).classList.add('hidden');
+    });
+
+    // Show selected
+    document.getElementById(`${mode}-select`).classList.remove('hidden');
+    document.getElementById(`${mode}-controls`).classList.remove('hidden');
+
     if (mode === 'melee') {
-      document.getElementById('melee-select').classList.remove('hidden');
-      document.getElementById('melee-controls').classList.remove('hidden');
-      document.getElementById('gun-select').classList.add('hidden');
-      document.getElementById('gun-controls').classList.add('hidden');
       document.getElementById('ammo-display').classList.add('hidden');
       document.getElementById('reload-btn').classList.add('hidden');
-      isReloading = false;
-    } else {
-      document.getElementById('melee-select').classList.add('hidden');
-      document.getElementById('melee-controls').classList.add('hidden');
-      document.getElementById('gun-select').classList.remove('hidden');
-      document.getElementById('gun-controls').classList.remove('hidden');
+      document.getElementById('strike-btn').innerText = "EXECUTE STRIKE";
+    } else if (mode === 'gun') {
       document.getElementById('ammo-display').classList.remove('hidden');
       document.getElementById('reload-btn').classList.remove('hidden');
-      document.getElementById('hitbox').style.opacity = "0"; 
+      document.getElementById('strike-btn').innerText = "FIRE WEAPON";
+    } else if (mode === 'ordnance') {
+      document.getElementById('ammo-display').classList.remove('hidden');
+      document.getElementById('reload-btn').classList.add('hidden'); // No reloading grenades in combat
+      document.getElementById('strike-btn').innerText = "TOSS GRENADE";
     }
+    
+    document.getElementById('hitbox').style.opacity = "0"; 
     loadWeapon();
   }
 
   function loadWeapon() {
     let mode = getMode();
-    let select = mode === 'melee' ? document.getElementById('melee-select') : document.getElementById('gun-select');
-    
+    let select = document.getElementById(`${mode}-select`);
     if (select.value === 'custom') return;
-    
     const opt = select.options[select.selectedIndex];
     
-    // Shared Stats
     document.getElementById('dmg').value = opt.getAttribute('data-dmg');
     document.getElementById('pierce').value = opt.getAttribute('data-pierce');
     document.getElementById('stun').value = opt.getAttribute('data-stun');
     currentColor = opt.getAttribute('data-color');
 
-    // Specific Stats
     if (mode === 'melee') {
         document.getElementById('reach').value = opt.getAttribute('data-reach');
         document.getElementById('speed').value = opt.getAttribute('data-speed');
-    } else {
+    } else if (mode === 'gun') {
         document.getElementById('firerate').value = opt.getAttribute('data-firerate');
         document.getElementById('projspeed').value = opt.getAttribute('data-projspeed');
         document.getElementById('count').value = opt.getAttribute('data-count');
         document.getElementById('lifespan').value = opt.getAttribute('data-lifespan');
-        
-        let newClip = parseInt(opt.getAttribute('data-clip'));
-        document.getElementById('clip').value = newClip;
+        document.getElementById('clip').value = opt.getAttribute('data-clip');
         document.getElementById('reload').value = opt.getAttribute('data-reload');
-        
-        // Auto-fill ammo on swap
-        currentAmmo = newClip;
-        isReloading = false;
-        updateAmmoVisuals();
+        currentAmmo = parseInt(opt.getAttribute('data-clip'));
+    } else if (mode === 'ordnance') {
+        document.getElementById('radius').value = opt.getAttribute('data-radius');
+        document.getElementById('fuse').value = opt.getAttribute('data-fuse');
+        document.getElementById('ord-clip').value = opt.getAttribute('data-clip');
+        document.getElementById('ord-cooldown').value = opt.getAttribute('data-reload');
+        currentAmmo = parseInt(opt.getAttribute('data-clip'));
     }
-    
+    isReloading = false;
     updateUI();
   }
 
   function updateUI() {
     let mode = getMode();
-    
-    // Shared
     document.getElementById('dmg-val').innerText = document.getElementById('dmg').value;
     document.getElementById('pierce-val').innerText = document.getElementById('pierce').value;
     document.getElementById('stun-val').innerText = document.getElementById('stun').value;
@@ -226,23 +235,29 @@
     if (mode === 'melee') {
         document.getElementById('reach-val').innerText = document.getElementById('reach').value;
         document.getElementById('speed-val').innerText = document.getElementById('speed').value;
-    } else {
+    } else if (mode === 'gun') {
         document.getElementById('firerate-val').innerText = document.getElementById('firerate').value;
         document.getElementById('projspeed-val').innerText = document.getElementById('projspeed').value;
         document.getElementById('count-val').innerText = document.getElementById('count').value;
         document.getElementById('lifespan-val').innerText = document.getElementById('lifespan').value;
         document.getElementById('clip-val').innerText = document.getElementById('clip').value;
         document.getElementById('reload-val').innerText = document.getElementById('reload').value;
-        
-        // Ensure current ammo never exceeds the newly adjusted slider clip size
         let maxClip = parseInt(document.getElementById('clip').value);
         if (currentAmmo > maxClip) currentAmmo = maxClip;
-        updateAmmoVisuals();
+    } else if (mode === 'ordnance') {
+        document.getElementById('radius-val').innerText = document.getElementById('radius').value;
+        document.getElementById('fuse-val').innerText = document.getElementById('fuse').value;
+        document.getElementById('ord-clip-val').innerText = document.getElementById('ord-clip').value;
+        document.getElementById('ord-cooldown-val').innerText = document.getElementById('ord-cooldown').value;
+        let maxClip = parseInt(document.getElementById('ord-clip').value);
+        if (currentAmmo > maxClip) currentAmmo = maxClip;
     }
 
-    // Player Movement
+    updateAmmoVisuals();
+
     let pos = document.getElementById('position').value;
     document.getElementById('player').style.left = pos + '%';
+    document.getElementById('dummy').style.left = '80%'; // Fix dummy position
     
     if(mode === 'melee' && !isAttacking) {
         let hitboxElement = document.getElementById('hitbox');
@@ -253,22 +268,20 @@
   }
 
   function updateAmmoVisuals() {
-      if (getMode() !== 'gun') return;
-      let maxClip = parseInt(document.getElementById('clip').value);
+      let mode = getMode();
+      if (mode === 'melee') return;
+      let maxClip = parseInt(document.getElementById(mode === 'gun' ? 'clip' : 'ord-clip').value);
       let ammoDiv = document.getElementById('ammo-display');
+      let label = mode === 'gun' ? 'AMMO' : 'NADES';
       
       if (isReloading) {
           ammoDiv.innerText = "RELOADING...";
           ammoDiv.style.color = "#ff0000";
       } else {
-          ammoDiv.innerText = `AMMO: ${currentAmmo} / ${maxClip}`;
-          if (currentAmmo === 0) {
-              ammoDiv.style.color = "#ff0000";
-          } else if (currentAmmo <= maxClip * 0.25) {
-              ammoDiv.style.color = "#ffaa00";
-          } else {
-              ammoDiv.style.color = "#00ffff";
-          }
+          ammoDiv.innerText = `${label}: ${currentAmmo} / ${maxClip}`;
+          if (currentAmmo === 0) ammoDiv.style.color = "#ff0000";
+          else if (currentAmmo <= maxClip * 0.25) ammoDiv.style.color = "#ffaa00";
+          else ammoDiv.style.color = "#00ffff";
       }
   }
 
@@ -282,7 +295,6 @@
       isReloading = true;
       let reloadTime = parseInt(document.getElementById('reload').value);
       let maxClip = parseInt(document.getElementById('clip').value);
-      
       document.getElementById('status-log').innerText = "Reloading...";
       updateAmmoVisuals();
 
@@ -295,12 +307,7 @@
   }
 
   function executeAction() {
-    if (isAttacking) return; 
-    
-    if (isStunned) {
-        document.getElementById('status-log').innerText = "Target is STUNNED and cannot move!";
-        return;
-    }
+    if (isAttacking || isStunned) return; 
 
     let mode = getMode();
     let dmg = parseInt(document.getElementById('dmg').value);
@@ -309,15 +316,8 @@
 
     // --- GUN EXECUTION ---
     if (mode === 'gun') {
-        if (isReloading) {
-            document.getElementById('status-log').innerText = "Gun is currently reloading!";
-            return;
-        }
-
-        if (currentAmmo <= 0) {
-            processReload();
-            return;
-        }
+        if (isReloading) return;
+        if (currentAmmo <= 0) { processReload(); return; }
 
         isAttacking = true;
         currentAmmo--;
@@ -330,7 +330,6 @@
 
         setTimeout(() => {
             isAttacking = false;
-            // Auto-reload if that shot emptied the clip
             if (currentAmmo <= 0) processReload();
         }, fireRate); 
 
@@ -338,18 +337,14 @@
         let pRect = document.getElementById('player').getBoundingClientRect();
         let dRect = document.getElementById('dummy').getBoundingClientRect();
         let arenaRect = arena.getBoundingClientRect();
-
         let startX = pRect.right - arenaRect.left;
         let startY = (pRect.top - arenaRect.top) + (pRect.height / 2); 
-
         let distToDummy = dRect.left - pRect.right;
         
         let timeToHit = (distToDummy / projSpeed) * 1000; 
-        
         let willHit = timeToHit <= lifespan && distToDummy > 0;
         let actualTravelTime = willHit ? timeToHit : lifespan;
         let travelDist = willHit ? distToDummy : (projSpeed * lifespan / 1000);
-
         let totalDmg = 0;
 
         for (let i = 0; i < count; i++) {
@@ -359,15 +354,12 @@
             bullet.style.left = startX + 'px';
             bullet.style.top = startY + 'px';
             arena.appendChild(bullet);
-
             let spreadY = (i - Math.floor(count / 2)) * 15; 
-
             setTimeout(() => {
                 bullet.style.transition = `left ${actualTravelTime}ms linear, top ${actualTravelTime}ms linear`;
                 bullet.style.left = (startX + travelDist) + 'px';
                 bullet.style.top = (startY + spreadY) + 'px';
             }, 10);
-
             setTimeout(() => {
                 bullet.remove();
                 if (willHit) totalDmg += dmg;
@@ -375,12 +367,83 @@
         }
 
         setTimeout(() => {
-            if (willHit && totalDmg > 0) {
-                applyDamage(totalDmg, piercePercent, stunDuration, `Ranged volley hit! Dealt ${totalDmg} damage.`);
-            } else if (!willHit) {
-                document.getElementById('status-log').innerText = "Bullets fizzled out before reaching target!";
-            }
+            if (willHit && totalDmg > 0) applyDamage(totalDmg, piercePercent, stunDuration, `Ranged hit! Dealt ${totalDmg} dmg.`);
+            else if (!willHit) document.getElementById('status-log').innerText = "Bullets fizzled out!";
         }, actualTravelTime + 15);
+
+    // --- ORDNANCE EXECUTION ---
+    } else if (mode === 'ordnance') {
+        if (currentAmmo <= 0) {
+            document.getElementById('status-log').innerText = "Out of Grenades! (Reset target to restock)";
+            return;
+        }
+
+        isAttacking = true;
+        currentAmmo--;
+        updateAmmoVisuals();
+
+        let cooldown = parseInt(document.getElementById('ord-cooldown').value);
+        let radius = parseInt(document.getElementById('radius').value);
+        let fuse = parseInt(document.getElementById('fuse').value);
+
+        setTimeout(() => { isAttacking = false; }, cooldown); // Allow next toss after cooldown
+
+        let arena = document.getElementById('arena');
+        let pRect = document.getElementById('player').getBoundingClientRect();
+        let dRect = document.getElementById('dummy').getBoundingClientRect();
+        let arenaRect = arena.getBoundingClientRect();
+        
+        // Spawn grenade
+        let nade = document.createElement('div');
+        nade.className = 'grenade';
+        nade.style.backgroundColor = currentColor;
+        nade.style.left = (pRect.right - arenaRect.left) + 'px';
+        nade.style.top = (pRect.top - arenaRect.top) + 'px';
+        arena.appendChild(nade);
+
+        // Calculate toss target (near the dummy)
+        let tossDist = (dRect.left - pRect.right) * 0.8; 
+        
+        // CSS Animation for arc
+        setTimeout(() => {
+            nade.style.transition = `left ${fuse * 0.6}ms ease-out, top ${fuse * 0.6}ms cubic-bezier(0.2, 0.8, 0.4, 1)`;
+            nade.style.left = ((pRect.right - arenaRect.left) + tossDist) + 'px';
+            nade.style.top = (arenaRect.height - 30) + 'px'; // Land on floor
+        }, 20);
+
+        // Explosion
+        setTimeout(() => {
+            let exX = parseFloat(nade.style.left);
+            let exY = parseFloat(nade.style.top);
+            nade.remove();
+
+            // Draw blast radius
+            let blast = document.createElement('div');
+            blast.className = 'explosion';
+            blast.style.width = (radius * 2) + 'px';
+            blast.style.height = (radius * 2) + 'px';
+            blast.style.left = exX + 'px';
+            blast.style.top = exY + 'px';
+            arena.appendChild(blast);
+
+            // Fade blast
+            setTimeout(() => {
+                blast.style.transition = "opacity 0.2s";
+                blast.style.opacity = "0";
+                setTimeout(() => blast.remove(), 200);
+            }, 100);
+
+            // AoE Math (is dummy inside circle?)
+            let dummyCenter = (dRect.left - arenaRect.left) + (dRect.width / 2);
+            let distanceToBlast = Math.abs(dummyCenter - exX);
+
+            if (distanceToBlast <= radius) {
+                applyDamage(dmg, piercePercent, stunDuration, `BOOM! Caught in blast for ${dmg} dmg!`);
+            } else {
+                document.getElementById('status-log').innerText = "BOOM! ...but target was outside the blast radius.";
+            }
+
+        }, fuse);
 
     // --- MELEE EXECUTION ---
     } else {
@@ -401,13 +464,8 @@
         let hitRect = hitboxElement.getBoundingClientRect();
         let dumRect = dummyElement.getBoundingClientRect();
 
-        if (hitRect.right < dumRect.left) {
-            document.getElementById('status-log').innerText = "Swing and a miss! Walk closer.";
-        } else {
-            applyDamage(dmg, piercePercent, stunDuration, "Melee hit landed!");
-            hitboxElement.style.background = "#ffffff";
-            setTimeout(() => hitboxElement.style.background = currentColor, 100);
-        }
+        if (hitRect.right < dumRect.left) document.getElementById('status-log').innerText = "Swing and a miss! Walk closer.";
+        else applyDamage(dmg, piercePercent, stunDuration, "Melee hit landed!");
     }
   }
 
@@ -418,13 +476,8 @@
 
     if (armor > 0) {
         armor -= standardDmg;
-        if (armor < 0) {
-            health += armor; 
-            armor = 0;
-        }
-    } else {
-        health -= standardDmg;
-    }
+        if (armor < 0) { health += armor; armor = 0; }
+    } else health -= standardDmg;
 
     health -= piercingDmg;
     if (health < 0) health = 0;
@@ -433,15 +486,12 @@
         isStunned = true;
         dummyElement.style.backgroundColor = "#00ffff"; 
         document.getElementById('status-log').innerText = `ZAPPED! Target frozen for ${stunDuration}s!`;
-        
         setTimeout(() => {
             isStunned = false;
             dummyElement.style.backgroundColor = "#ff5555";
             document.getElementById('status-log').innerText = "Target recovered from stun.";
         }, stunDuration * 1000);
-    } else {
-        document.getElementById('status-log').innerText = logMessage;
-    }
+    } else document.getElementById('status-log').innerText = logMessage;
 
     updateBars();
   }
@@ -461,17 +511,17 @@
     document.getElementById('dummy').style.backgroundColor = "#ff5555";
     document.getElementById('status-log').innerText = "Target reset.";
     
-    // Replenish ammo on reset if in gun mode
-    if (getMode() === 'gun') {
+    let mode = getMode();
+    if (mode === 'gun') {
         currentAmmo = parseInt(document.getElementById('clip').value);
         isReloading = false;
-        updateAmmoVisuals();
+    } else if (mode === 'ordnance') {
+        currentAmmo = parseInt(document.getElementById('ord-clip').value);
     }
-    
+    updateAmmoVisuals();
     updateBars();
   }
 
-  // Initialize
   updateUI();
 </script>
 
