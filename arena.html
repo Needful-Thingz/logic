@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Arena V6.1 (Combo State Machine)</title>
+    <title>Needful Thingz - Arena V6.2 (Dynamic Weapon Speeds)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -42,17 +42,17 @@
     let joyStickRight;
     let actionText; 
     let facingDirection = 0; 
-    let currentScene; // Used to access timers in global functions
+    let currentScene; 
     
     // Movement Variables
     let jumps = 0;
     let joystickUpReleased = true;
     
-    // Combat & Modular Armory System
+    // Combat & Modular Armory System (NOW WITH SPEED STATS)
     const weaponArmory = {
-        'Knife': { name: 'Combat Knife', damage: 28, reach: 40, pierce: 0.15, stun: 0, color: 0xcccccc },
-        'Sword': { name: 'Broadsword', damage: 35, reach: 75, pierce: 0.50, stun: 0, color: 0xff3333 },
-        'Whip':  { name: 'Energy Whip',  damage: 12, reach: 170, pierce: 0.90, stun: 1.0, color: 0x00ffff }
+        'Knife': { name: 'Combat Knife', damage: 28, reach: 40, pierce: 0.15, stun: 0, speed: 80, color: 0xcccccc },
+        'Sword': { name: 'Broadsword', damage: 35, reach: 75, pierce: 0.50, stun: 0, speed: 150, color: 0xff3333 },
+        'Whip':  { name: 'Energy Whip',  damage: 12, reach: 170, pierce: 0.90, stun: 1.0, speed: 250, color: 0x00ffff }
     };
     let weaponKeys = ['Knife', 'Sword', 'Whip'];
     let currentWeaponIndex = 0;
@@ -89,7 +89,7 @@
     }
 
     function create() {
-        currentScene = this; // Store scene reference for global functions
+        currentScene = this; 
 
         // 1. The Arena Floor
         const floor = this.add.rectangle(400, 380, 800, 40, 0x444444);
@@ -141,7 +141,7 @@
 
         const leftTapZone = this.add.circle(120, 300, 25, 0xffffff, 0).setInteractive();
         leftTapZone.on('pointerdown', () => {
-            if (isAttacking) return; // Prevent jump during combo
+            if (isAttacking) return; 
             if (jumps < 3) {
                 player.body.setVelocityY(-450);
                 jumps++;
@@ -158,7 +158,7 @@
 
         const rightTapZone = this.add.circle(680, 300, 25, 0xffffff, 0).setInteractive();
         rightTapZone.on('pointerdown', () => {
-            if (isAttacking) return; // Prevent shooting during combo
+            if (isAttacking) return; 
             
             let bullet = this.add.rectangle(player.x, player.y, 15, 5, 0xffff00);
             this.physics.add.existing(bullet);
@@ -178,7 +178,6 @@
 
         // --- ACTION BUTTONS ---
 
-        // Melee Attack Input (REWIRED FOR COMBO SYSTEM)
         const btnMelee = this.add.circle(570, 300, 25, 0xffaa00).setAlpha(0.5).setInteractive();
         this.add.text(552, 292, 'HIT', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         
@@ -186,36 +185,30 @@
             if (isStunned) return;
             
             if (!isAttacking) {
-                // Start a brand new combo
                 executeAttack(1);
             } else {
-                // Player is already attacking, buffer the input!
                 inputBuffered = true;
-                
-                // If the cancel window is currently open, trigger instantly
                 if (canCancel && comboStep < 3) {
                     triggerNextHit();
                 }
             }
         });
 
-        // Modular Weapon Swap Button
         const btnSwap = this.add.circle(600, 210, 25, 0xaaaaaa).setAlpha(0.5).setInteractive();
         weaponButtonText = this.add.text(582, 202, 'GEAR', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' });
         btnSwap.on('pointerdown', () => {
-            if (isAttacking) return; // Don't swap weapons mid-swing
+            if (isAttacking) return; 
             currentWeaponIndex = (currentWeaponIndex + 1) % weaponKeys.length;
             activeWeapon = weaponArmory[weaponKeys[currentWeaponIndex]];
             actionText.setText('Equipped: ' + activeWeapon.name);
         });
 
-        // Ultimate Special Ability Input
         specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive();
         this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' });
         specialGraphics = this.add.graphics();
         
         specialButton.on('pointerdown', () => {
-            if (isAttacking) return; // Prevent ult mid-combo
+            if (isAttacking) return; 
 
             if (specialReady) {
                 actionText.setText('Action: SPECIAL UNLEASHED!');
@@ -246,25 +239,23 @@
         });
     }
 
-    // --- COMBO SYSTEM LOGIC ---
+    // --- DYNAMIC COMBO SYSTEM LOGIC ---
     function executeAttack(step) {
         isAttacking = true;
         comboStep = step;
         inputBuffered = false;
         canCancel = false;
 
-        // Clean up previous timers so they don't overlap
         if (attackRecoveryTimer) attackRecoveryTimer.remove();
         if (attackActiveTimer) attackActiveTimer.remove();
 
         player.fillColor = activeWeapon.color;
-
         let attackLabel = step === 3 ? "FINISHER!" : `Combo ${step}`;
         actionText.setText(`Action: ${activeWeapon.name} - ${attackLabel}`);
 
-        // 1. Spawning the Hitbox (Active Phase)
+        // 1. Spawning the Hitbox 
         let currentReach = step === 3 ? activeWeapon.reach * 1.5 : activeWeapon.reach;
-        let hitboxHeight = step === 3 ? 40 : 20; // Finisher gets a bigger hitbox
+        let hitboxHeight = step === 3 ? 40 : 20; 
         
         meleeHitbox.width = currentReach;
         meleeHitbox.height = hitboxHeight;
@@ -274,10 +265,9 @@
         meleeHitbox.setPosition(player.x + reachX, player.y);
         meleeHitbox.rotation = facingDirection;
 
-        // Collision Check (Immediate for prototype visual purposes)
         let hit = Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), dummy.getBounds());
         if (hit) {
-            let dmgMult = step === 3 ? 2 : 1; // Finisher does double damage
+            let dmgMult = step === 3 ? 2 : 1; 
             dealDamage(activeWeapon.damage * dmgMult, activeWeapon.pierce, activeWeapon.stun);
             
             dummy.fillColor = activeWeapon.color; 
@@ -285,28 +275,27 @@
                 if(!isStunned) dummy.fillColor = 0xff5555;
             });
 
-            // Micro-knockback on the dummy for juice on the final hit
             if(step === 3 && dummyHealth > 0) {
                  dummy.x += (facingDirection === 0 ? 10 : -10);
             }
         }
 
-        // 2. Close Hitbox and Open Cancel Window
-        attackActiveTimer = currentScene.time.delayedCall(120, () => {
+        // 2. Close Hitbox based on the Weapon's Custom Speed
+        attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
             meleeHitbox.setAlpha(0);
             meleeHitbox.setPosition(-100, -100); 
             
-            canCancel = true; // Open the buffer window for the next hit
+            canCancel = true; 
 
             if (inputBuffered && step < 3) {
-                // They mashed early! Trigger the next hit immediately.
                 triggerNextHit();
             } else {
                 // 3. Recovery Phase
-                let recoveryTime = step === 3 ? 400 : 200; // Finisher leaves you vulnerable longer
+                // The finisher leaves you vulnerable for double the normal recovery time.
+                let recoveryMultiplier = step === 3 ? 2.5 : 1.5; 
+                let recoveryTime = activeWeapon.speed * recoveryMultiplier; 
                 
                 attackRecoveryTimer = currentScene.time.delayedCall(recoveryTime, () => {
-                    // Animation finished. Reset to idle.
                     isAttacking = false;
                     comboStep = 0;
                     inputBuffered = false;
@@ -347,7 +336,6 @@
             dummy.fillColor = 0x00ffff;
             actionText.setText(`ZAPPED! Target frozen for ${stunDuration}s!`);
             
-            // Replaced setTimeout with Phaser's internal timer for safety
             currentScene.time.delayedCall(stunDuration * 1000, () => {
                 isStunned = false;
                 dummy.fillColor = 0xff5555;
@@ -384,7 +372,6 @@
 
         const speed = 250;
         
-        // Lock horizontal movement if the player is in the middle of a combo
         if (isAttacking) {
             player.body.setVelocityX(0);
         } else {
@@ -404,7 +391,6 @@
         }
 
         if (joyStickLeft.up) {
-            // Prevent joystick jump during combo
             if (joystickUpReleased && jumps < 3 && !isAttacking) {
                 player.body.setVelocityY(-450);
                 jumps++;
