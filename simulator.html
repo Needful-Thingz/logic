@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Weapon Loadout Simulator V7 (Melee & Ranged Armory)</title>
+<title>Weapon Loadout Simulator V8 (Ammo & Reloading)</title>
 <style>
   body { font-family: sans-serif; background: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
   .arena-box { background: #222; border-radius: 10px; margin-bottom: 20px; position: relative; height: 180px; overflow: hidden; }
@@ -30,9 +30,11 @@
   #armor-bar { background: #cccccc; width: 100%; }
   
   #status-log { margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #00ffff; height: 25px; }
+  #ammo-display { font-size: 22px; font-weight: bold; color: #00ffff; margin-bottom: 10px; }
 
   button { width: 100%; padding: 20px; margin-top: 10px; font-size: 20px; font-weight: bold; border: none; border-radius: 10px; text-transform: uppercase; cursor: pointer; }
   #strike-btn { background: #ffaa00; color: #000; }
+  #reload-btn { background: #4444ff; color: white; }
   #reset-btn { background: #555; color: white; }
   
   /* Utility Classes for Toggling */
@@ -41,7 +43,7 @@
 </head>
 <body>
 
-<h2>Weapon Loadout Simulator V7</h2>
+<h2>Weapon Loadout Simulator V8</h2>
 
 <div id="status-log">Target is ready.</div>
 
@@ -80,12 +82,12 @@
     <option value="whip" data-dmg="12" data-reach="190" data-pierce="90" data-stun="1.0" data-speed="250" data-color="rgba(50,255,255,0.8)">Energy Whip (1s Stun / Shock)</option>
   </select>
 
-  <!-- GUN DROPDOWN -->
+  <!-- GUN DROPDOWN (NOW WITH AMMO DATA) -->
   <select id="gun-select" class="hidden" onchange="loadWeapon()">
     <option value="custom">-- Custom Gun --</option>
-    <option value="blaster" data-dmg="15" data-firerate="250" data-projspeed="800" data-count="1" data-lifespan="1000" data-pierce="20" data-stun="0" data-color="rgba(255,255,0,0.8)" selected>Plasma Blaster (Standard)</option>
-    <option value="autorifle" data-dmg="6" data-firerate="80" data-projspeed="1200" data-count="1" data-lifespan="800" data-pierce="20" data-stun="0" data-color="rgba(0,255,0,0.8)">Auto-Rifle (Rapid Fire)</option>
-    <option value="shotgun" data-dmg="10" data-firerate="800" data-projspeed="600" data-count="5" data-lifespan="300" data-pierce="20" data-stun="0" data-color="rgba(255,170,0,0.8)">Scrap Shotgun (Spread)</option>
+    <option value="blaster" data-dmg="15" data-firerate="250" data-projspeed="800" data-count="1" data-lifespan="1000" data-clip="15" data-reload="1200" data-pierce="20" data-stun="0" data-color="rgba(255,255,0,0.8)" selected>Plasma Blaster (Standard)</option>
+    <option value="autorifle" data-dmg="6" data-firerate="80" data-projspeed="1200" data-count="1" data-lifespan="800" data-clip="40" data-reload="1800" data-pierce="20" data-stun="0" data-color="rgba(0,255,0,0.8)">Auto-Rifle (Rapid Fire)</option>
+    <option value="shotgun" data-dmg="10" data-firerate="800" data-projspeed="600" data-count="5" data-lifespan="300" data-clip="4" data-reload="2000" data-pierce="20" data-stun="0" data-color="rgba(255,170,0,0.8)">Scrap Shotgun (Spread)</option>
   </select>
 
   <!-- MELEE SPECIFIC CONTROLS -->
@@ -97,8 +99,14 @@
     <input type="range" id="reach" min="30" max="300" value="100" oninput="updateUI()">
   </div>
 
-  <!-- GUN SPECIFIC CONTROLS -->
+  <!-- GUN SPECIFIC CONTROLS (NOW WITH AMMO CONTROLS) -->
   <div id="gun-controls" class="hidden">
+    <label>Clip Size (Ammo): <span id="clip-val" style="color: #fff;">15</span></label>
+    <input type="range" id="clip" min="1" max="100" value="15" oninput="updateUI()">
+
+    <label>Reload Time (ms): <span id="reload-val" style="color: #fff;">1200</span>ms</label>
+    <input type="range" id="reload" min="100" max="5000" step="100" value="1200" oninput="updateUI()">
+
     <label>Fire Rate Cooldown (ms): <span id="firerate-val" style="color: #fff;">250</span>ms</label>
     <input type="range" id="firerate" min="50" max="1000" value="250" oninput="updateUI()">
 
@@ -126,7 +134,11 @@
 
 </div>
 
+<!-- AMMO DISPLAY (HIDDEN IN MELEE MODE) -->
+<div id="ammo-display" class="hidden">AMMO: 15 / 15</div>
+
 <button id="strike-btn" onclick="executeAction()">ATTACK</button>
+<button id="reload-btn" class="hidden" onclick="triggerManualReload()">RELOAD WEAPON</button>
 <button id="reset-btn" onclick="reset()">Reset Target</button>
 
 <script>
@@ -135,6 +147,10 @@
   let isStunned = false;
   let currentColor = "rgba(255, 170, 0, 0.7)";
   let isAttacking = false;
+  
+  // Ammo Variables
+  let currentAmmo = 15;
+  let isReloading = false;
 
   function getMode() {
     return document.querySelector('input[name="wtype"]:checked').value;
@@ -147,12 +163,17 @@
       document.getElementById('melee-controls').classList.remove('hidden');
       document.getElementById('gun-select').classList.add('hidden');
       document.getElementById('gun-controls').classList.add('hidden');
+      document.getElementById('ammo-display').classList.add('hidden');
+      document.getElementById('reload-btn').classList.add('hidden');
+      isReloading = false;
     } else {
       document.getElementById('melee-select').classList.add('hidden');
       document.getElementById('melee-controls').classList.add('hidden');
       document.getElementById('gun-select').classList.remove('hidden');
       document.getElementById('gun-controls').classList.remove('hidden');
-      document.getElementById('hitbox').style.opacity = "0"; // Hide melee box
+      document.getElementById('ammo-display').classList.remove('hidden');
+      document.getElementById('reload-btn').classList.remove('hidden');
+      document.getElementById('hitbox').style.opacity = "0"; 
     }
     loadWeapon();
   }
@@ -180,6 +201,15 @@
         document.getElementById('projspeed').value = opt.getAttribute('data-projspeed');
         document.getElementById('count').value = opt.getAttribute('data-count');
         document.getElementById('lifespan').value = opt.getAttribute('data-lifespan');
+        
+        let newClip = parseInt(opt.getAttribute('data-clip'));
+        document.getElementById('clip').value = newClip;
+        document.getElementById('reload').value = opt.getAttribute('data-reload');
+        
+        // Auto-fill ammo on swap
+        currentAmmo = newClip;
+        isReloading = false;
+        updateAmmoVisuals();
     }
     
     updateUI();
@@ -201,19 +231,67 @@
         document.getElementById('projspeed-val').innerText = document.getElementById('projspeed').value;
         document.getElementById('count-val').innerText = document.getElementById('count').value;
         document.getElementById('lifespan-val').innerText = document.getElementById('lifespan').value;
+        document.getElementById('clip-val').innerText = document.getElementById('clip').value;
+        document.getElementById('reload-val').innerText = document.getElementById('reload').value;
+        
+        // Ensure current ammo never exceeds the newly adjusted slider clip size
+        let maxClip = parseInt(document.getElementById('clip').value);
+        if (currentAmmo > maxClip) currentAmmo = maxClip;
+        updateAmmoVisuals();
     }
 
     // Player Movement
     let pos = document.getElementById('position').value;
     document.getElementById('player').style.left = pos + '%';
     
-    // Melee Box Visual Update
     if(mode === 'melee' && !isAttacking) {
         let hitboxElement = document.getElementById('hitbox');
         hitboxElement.style.width = document.getElementById('reach').value + 'px';
         hitboxElement.style.left = `calc(${pos}% + 30px)`;
         hitboxElement.style.backgroundColor = currentColor;
     }
+  }
+
+  function updateAmmoVisuals() {
+      if (getMode() !== 'gun') return;
+      let maxClip = parseInt(document.getElementById('clip').value);
+      let ammoDiv = document.getElementById('ammo-display');
+      
+      if (isReloading) {
+          ammoDiv.innerText = "RELOADING...";
+          ammoDiv.style.color = "#ff0000";
+      } else {
+          ammoDiv.innerText = `AMMO: ${currentAmmo} / ${maxClip}`;
+          if (currentAmmo === 0) {
+              ammoDiv.style.color = "#ff0000";
+          } else if (currentAmmo <= maxClip * 0.25) {
+              ammoDiv.style.color = "#ffaa00";
+          } else {
+              ammoDiv.style.color = "#00ffff";
+          }
+      }
+  }
+
+  function triggerManualReload() {
+      let maxClip = parseInt(document.getElementById('clip').value);
+      if (isReloading || currentAmmo === maxClip || getMode() !== 'gun') return;
+      processReload();
+  }
+
+  function processReload() {
+      isReloading = true;
+      let reloadTime = parseInt(document.getElementById('reload').value);
+      let maxClip = parseInt(document.getElementById('clip').value);
+      
+      document.getElementById('status-log').innerText = "Reloading...";
+      updateAmmoVisuals();
+
+      setTimeout(() => {
+          currentAmmo = maxClip;
+          isReloading = false;
+          document.getElementById('status-log').innerText = "Target is ready.";
+          updateAmmoVisuals();
+      }, reloadTime);
   }
 
   function executeAction() {
@@ -229,9 +307,84 @@
     let piercePercent = parseInt(document.getElementById('pierce').value) / 100;
     let stunDuration = parseFloat(document.getElementById('stun').value);
 
-    isAttacking = true;
+    // --- GUN EXECUTION ---
+    if (mode === 'gun') {
+        if (isReloading) {
+            document.getElementById('status-log').innerText = "Gun is currently reloading!";
+            return;
+        }
 
-    if (mode === 'melee') {
+        if (currentAmmo <= 0) {
+            processReload();
+            return;
+        }
+
+        isAttacking = true;
+        currentAmmo--;
+        updateAmmoVisuals();
+
+        let fireRate = parseInt(document.getElementById('firerate').value);
+        let projSpeed = parseInt(document.getElementById('projspeed').value);
+        let count = parseInt(document.getElementById('count').value);
+        let lifespan = parseInt(document.getElementById('lifespan').value);
+
+        setTimeout(() => {
+            isAttacking = false;
+            // Auto-reload if that shot emptied the clip
+            if (currentAmmo <= 0) processReload();
+        }, fireRate); 
+
+        let arena = document.getElementById('arena');
+        let pRect = document.getElementById('player').getBoundingClientRect();
+        let dRect = document.getElementById('dummy').getBoundingClientRect();
+        let arenaRect = arena.getBoundingClientRect();
+
+        let startX = pRect.right - arenaRect.left;
+        let startY = (pRect.top - arenaRect.top) + (pRect.height / 2); 
+
+        let distToDummy = dRect.left - pRect.right;
+        
+        let timeToHit = (distToDummy / projSpeed) * 1000; 
+        
+        let willHit = timeToHit <= lifespan && distToDummy > 0;
+        let actualTravelTime = willHit ? timeToHit : lifespan;
+        let travelDist = willHit ? distToDummy : (projSpeed * lifespan / 1000);
+
+        let totalDmg = 0;
+
+        for (let i = 0; i < count; i++) {
+            let bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            bullet.style.backgroundColor = currentColor;
+            bullet.style.left = startX + 'px';
+            bullet.style.top = startY + 'px';
+            arena.appendChild(bullet);
+
+            let spreadY = (i - Math.floor(count / 2)) * 15; 
+
+            setTimeout(() => {
+                bullet.style.transition = `left ${actualTravelTime}ms linear, top ${actualTravelTime}ms linear`;
+                bullet.style.left = (startX + travelDist) + 'px';
+                bullet.style.top = (startY + spreadY) + 'px';
+            }, 10);
+
+            setTimeout(() => {
+                bullet.remove();
+                if (willHit) totalDmg += dmg;
+            }, actualTravelTime + 10);
+        }
+
+        setTimeout(() => {
+            if (willHit && totalDmg > 0) {
+                applyDamage(totalDmg, piercePercent, stunDuration, `Ranged volley hit! Dealt ${totalDmg} damage.`);
+            } else if (!willHit) {
+                document.getElementById('status-log').innerText = "Bullets fizzled out before reaching target!";
+            }
+        }, actualTravelTime + 15);
+
+    // --- MELEE EXECUTION ---
+    } else {
+        isAttacking = true;
         let attackSpeed = parseInt(document.getElementById('speed').value);
         let hitboxElement = document.getElementById('hitbox');
         let dummyElement = document.getElementById('dummy');
@@ -255,70 +408,6 @@
             hitboxElement.style.background = "#ffffff";
             setTimeout(() => hitboxElement.style.background = currentColor, 100);
         }
-
-    } else {
-        // GUN LOGIC
-        let fireRate = parseInt(document.getElementById('firerate').value);
-        let projSpeed = parseInt(document.getElementById('projspeed').value);
-        let count = parseInt(document.getElementById('count').value);
-        let lifespan = parseInt(document.getElementById('lifespan').value);
-
-        // Cooldown based on Fire Rate
-        setTimeout(() => isAttacking = false, fireRate); 
-
-        let arena = document.getElementById('arena');
-        let pRect = document.getElementById('player').getBoundingClientRect();
-        let dRect = document.getElementById('dummy').getBoundingClientRect();
-        let arenaRect = arena.getBoundingClientRect();
-
-        let startX = pRect.right - arenaRect.left;
-        let startY = (pRect.top - arenaRect.top) + (pRect.height / 2); 
-
-        let distToDummy = dRect.left - pRect.right;
-        
-        // Time = Distance / Velocity
-        let timeToHit = (distToDummy / projSpeed) * 1000; 
-        
-        // Did it fizzle out before reaching?
-        let willHit = timeToHit <= lifespan && distToDummy > 0;
-        let actualTravelTime = willHit ? timeToHit : lifespan;
-        let travelDist = willHit ? distToDummy : (projSpeed * lifespan / 1000);
-
-        let totalDmg = 0;
-
-        for (let i = 0; i < count; i++) {
-            let bullet = document.createElement('div');
-            bullet.className = 'bullet';
-            bullet.style.backgroundColor = currentColor;
-            bullet.style.left = startX + 'px';
-            bullet.style.top = startY + 'px';
-            arena.appendChild(bullet);
-
-            // Fan out shotgun bullets
-            let spreadY = (i - Math.floor(count / 2)) * 15; 
-
-            // Animate using CSS transitions
-            setTimeout(() => {
-                bullet.style.transition = `left ${actualTravelTime}ms linear, top ${actualTravelTime}ms linear`;
-                bullet.style.left = (startX + travelDist) + 'px';
-                bullet.style.top = (startY + spreadY) + 'px';
-            }, 10);
-
-            // Impact
-            setTimeout(() => {
-                bullet.remove();
-                if (willHit) totalDmg += dmg;
-            }, actualTravelTime + 10);
-        }
-
-        // Apply bulk damage after bullets land
-        setTimeout(() => {
-            if (willHit && totalDmg > 0) {
-                applyDamage(totalDmg, piercePercent, stunDuration, `Ranged volley hit! Dealt ${totalDmg} total damage.`);
-            } else if (!willHit) {
-                document.getElementById('status-log').innerText = "Bullets fizzled out before reaching target!";
-            }
-        }, actualTravelTime + 15);
     }
   }
 
@@ -371,6 +460,14 @@
     isAttacking = false;
     document.getElementById('dummy').style.backgroundColor = "#ff5555";
     document.getElementById('status-log').innerText = "Target reset.";
+    
+    // Replenish ammo on reset if in gun mode
+    if (getMode() === 'gun') {
+        currentAmmo = parseInt(document.getElementById('clip').value);
+        isReloading = false;
+        updateAmmoVisuals();
+    }
+    
     updateBars();
   }
 
