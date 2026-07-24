@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Arena V6.2 (Dynamic Weapon Speeds)</title>
+    <title>Needful Thingz - Arena V7 (Gun Armory & Spread)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -40,7 +40,9 @@
     let dummy;
     let joyStickLeft;
     let joyStickRight;
-    let actionText; 
+    let meleeText;
+    let gunText; 
+    let actionText;
     let facingDirection = 0; 
     let currentScene; 
     
@@ -48,7 +50,7 @@
     let jumps = 0;
     let joystickUpReleased = true;
     
-    // Combat & Modular Armory System (NOW WITH SPEED STATS)
+    // --- MELEE ARMORY ---
     const weaponArmory = {
         'Knife': { name: 'Combat Knife', damage: 28, reach: 40, pierce: 0.15, stun: 0, speed: 80, color: 0xcccccc },
         'Sword': { name: 'Broadsword', damage: 35, reach: 75, pierce: 0.50, stun: 0, speed: 150, color: 0xff3333 },
@@ -57,6 +59,17 @@
     let weaponKeys = ['Knife', 'Sword', 'Whip'];
     let currentWeaponIndex = 0;
     let activeWeapon = weaponArmory['Knife'];
+
+    // --- NEW: GUN ARMORY ---
+    const gunArmory = {
+        'Blaster': { name: 'Plasma Blaster', damage: 15, fireRate: 250, speed: 800, count: 1, color: 0xffff00, lifespan: 1000 },
+        'AutoRifle': { name: 'Auto-Rifle', damage: 6, fireRate: 80, speed: 1200, count: 1, color: 0x00ff00, lifespan: 800 },
+        'Shotgun': { name: 'Scrap Shotgun', damage: 10, fireRate: 800, speed: 600, count: 5, color: 0xffaa00, lifespan: 300 } // Short range, 5 bullets
+    };
+    let gunKeys = ['Blaster', 'AutoRifle', 'Shotgun'];
+    let currentGunIndex = 0;
+    let activeGun = gunArmory['Blaster'];
+    let lastFiredTime = 0; // Tracks the cooldown
     
     let specialCharge = 0;
     const specialMax = 100;
@@ -79,11 +92,6 @@
     let dummyHealthBar;
     let dummyArmorBar;
     
-    // UI Elements
-    let specialButton;
-    let specialGraphics; 
-    let weaponButtonText;
-
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
     }
@@ -127,8 +135,10 @@
         this.physics.add.collider(player, islandMid);
         this.physics.add.collider(player, islandBot);
 
-        // UI Text
-        actionText = this.add.text(400, 30, 'Equipped: Combat Knife', { fontSize: '18px', fill: '#ffffff' }).setOrigin(0.5);
+        // UI Text Layout
+        meleeText = this.add.text(10, 10, 'Melee: Combat Knife', { fontSize: '14px', fill: '#ffffff' });
+        gunText = this.add.text(10, 30, 'Ranged: Plasma Blaster', { fontSize: '14px', fill: '#ffff00' });
+        actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
 
         // --- CONTROLS ---
 
@@ -149,31 +159,12 @@
             }
         });
 
+        // The Right joystick handles continuous shooting automatically in the update() loop now!
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, {
             x: 680, y: 300, radius: 50,
             base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3),
             thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5),
             dir: '8dir', forceMin: 16
-        });
-
-        const rightTapZone = this.add.circle(680, 300, 25, 0xffffff, 0).setInteractive();
-        rightTapZone.on('pointerdown', () => {
-            if (isAttacking) return; 
-            
-            let bullet = this.add.rectangle(player.x, player.y, 15, 5, 0xffff00);
-            this.physics.add.existing(bullet);
-            bullet.body.setAllowGravity(false); 
-            
-            let angle = joyStickRight.force > 0 ? joyStickRight.rotation : player.rotation;
-            this.physics.velocityFromRotation(angle, 800, bullet.body.velocity);
-            
-            this.physics.add.overlap(bullet, dummy, () => {
-                bullet.destroy();
-                dealDamage(10, 0.2, 0);
-            });
-
-            actionText.setText('PEW! PEW!');
-            this.time.delayedCall(1000, () => { if(bullet.active) bullet.destroy(); });
         });
 
         // --- ACTION BUTTONS ---
@@ -183,24 +174,32 @@
         
         btnMelee.on('pointerdown', () => {
             if (isStunned) return;
-            
             if (!isAttacking) {
                 executeAttack(1);
             } else {
                 inputBuffered = true;
-                if (canCancel && comboStep < 3) {
-                    triggerNextHit();
-                }
+                if (canCancel && comboStep < 3) triggerNextHit();
             }
         });
 
-        const btnSwap = this.add.circle(600, 210, 25, 0xaaaaaa).setAlpha(0.5).setInteractive();
-        weaponButtonText = this.add.text(582, 202, 'GEAR', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' });
-        btnSwap.on('pointerdown', () => {
+        // Swap Melee Button
+        const btnMeleeSwap = this.add.circle(600, 230, 20, 0xaaaaaa).setAlpha(0.5).setInteractive();
+        this.add.text(584, 222, 'M-GEAR', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
+        btnMeleeSwap.on('pointerdown', () => {
             if (isAttacking) return; 
             currentWeaponIndex = (currentWeaponIndex + 1) % weaponKeys.length;
             activeWeapon = weaponArmory[weaponKeys[currentWeaponIndex]];
-            actionText.setText('Equipped: ' + activeWeapon.name);
+            meleeText.setText('Melee: ' + activeWeapon.name);
+        });
+
+        // Swap Gun Button
+        const btnGunSwap = this.add.circle(540, 230, 20, 0xaaaaaa).setAlpha(0.5).setInteractive();
+        this.add.text(524, 222, 'G-GEAR', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
+        btnGunSwap.on('pointerdown', () => {
+            if (isAttacking) return; 
+            currentGunIndex = (currentGunIndex + 1) % gunKeys.length;
+            activeGun = gunArmory[gunKeys[currentGunIndex]];
+            gunText.setText('Ranged: ' + activeGun.name);
         });
 
         specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive();
@@ -211,7 +210,7 @@
             if (isAttacking) return; 
 
             if (specialReady) {
-                actionText.setText('Action: SPECIAL UNLEASHED!');
+                actionText.setText('SPECIAL UNLEASHED!');
                 player.scaleX = 1.5; 
                 player.scaleY = 1.5;
                 player.fillColor = 0x00ffff;
@@ -234,12 +233,50 @@
                 specialButton.setFillStyle(0x555555); 
                 specialGraphics.clear();
             } else {
-                actionText.setText('Special is still charging...');
+                actionText.setText('Special is charging...');
             }
         });
     }
 
-    // --- DYNAMIC COMBO SYSTEM LOGIC ---
+    // --- GUN SYSTEM LOGIC ---
+    function shootGun(baseAngle) {
+        actionText.setText(`Shooting: ${activeGun.name}`);
+        
+        let bulletCount = activeGun.count;
+        let spreadAngle = 0.15; // Radians (approx 8.5 degrees)
+
+        for (let i = 0; i < bulletCount; i++) {
+            // If shotgun is equipped, fan the bullets out. If Blaster, just shoot straight.
+            let offset = (i - Math.floor(bulletCount / 2)) * spreadAngle;
+            let currentAngle = baseAngle + offset;
+
+            let bullet = currentScene.add.rectangle(player.x, player.y, 12, 4, activeGun.color);
+            currentScene.physics.add.existing(bullet);
+            bullet.body.setAllowGravity(false); 
+            
+            // Fire the bullet in the specific spread direction
+            currentScene.physics.velocityFromRotation(currentAngle, activeGun.speed, bullet.body.velocity);
+            bullet.rotation = currentAngle;
+            
+            // Enemy collision
+            currentScene.physics.add.overlap(bullet, dummy, () => {
+                bullet.destroy();
+                // Guns deal standard damage for now (20% pierce)
+                dealDamage(activeGun.damage, 0.20, 0);
+                
+                // Micro hit-flash
+                dummy.fillColor = activeGun.color; 
+                currentScene.time.delayedCall(50, () => { if(!isStunned) dummy.fillColor = 0xff5555; });
+            });
+
+            // Destroy bullet when its lifespan expires (acts as range limit)
+            currentScene.time.delayedCall(activeGun.lifespan, () => { 
+                if(bullet.active) bullet.destroy(); 
+            });
+        }
+    }
+
+    // --- MELEE COMBO SYSTEM LOGIC ---
     function executeAttack(step) {
         isAttacking = true;
         comboStep = step;
@@ -251,9 +288,8 @@
 
         player.fillColor = activeWeapon.color;
         let attackLabel = step === 3 ? "FINISHER!" : `Combo ${step}`;
-        actionText.setText(`Action: ${activeWeapon.name} - ${attackLabel}`);
+        actionText.setText(`${activeWeapon.name} - ${attackLabel}`);
 
-        // 1. Spawning the Hitbox 
         let currentReach = step === 3 ? activeWeapon.reach * 1.5 : activeWeapon.reach;
         let hitboxHeight = step === 3 ? 40 : 20; 
         
@@ -271,27 +307,19 @@
             dealDamage(activeWeapon.damage * dmgMult, activeWeapon.pierce, activeWeapon.stun);
             
             dummy.fillColor = activeWeapon.color; 
-            currentScene.time.delayedCall(100, () => {
-                if(!isStunned) dummy.fillColor = 0xff5555;
-            });
+            currentScene.time.delayedCall(100, () => { if(!isStunned) dummy.fillColor = 0xff5555; });
 
-            if(step === 3 && dummyHealth > 0) {
-                 dummy.x += (facingDirection === 0 ? 10 : -10);
-            }
+            if(step === 3 && dummyHealth > 0) dummy.x += (facingDirection === 0 ? 10 : -10);
         }
 
-        // 2. Close Hitbox based on the Weapon's Custom Speed
         attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
             meleeHitbox.setAlpha(0);
             meleeHitbox.setPosition(-100, -100); 
-            
             canCancel = true; 
 
             if (inputBuffered && step < 3) {
                 triggerNextHit();
             } else {
-                // 3. Recovery Phase
-                // The finisher leaves you vulnerable for double the normal recovery time.
                 let recoveryMultiplier = step === 3 ? 2.5 : 1.5; 
                 let recoveryTime = activeWeapon.speed * recoveryMultiplier; 
                 
@@ -308,12 +336,10 @@
     }
 
     function triggerNextHit() {
-        if (comboStep < 3) {
-            executeAttack(comboStep + 1);
-        }
+        if (comboStep < 3) executeAttack(comboStep + 1);
     }
-    // --------------------------
 
+    // --- DAMAGE PROCESSING ---
     function dealDamage(dmg, piercePercent, stunDuration) {
         let piercingDmg = dmg * piercePercent;
         let standardDmg = dmg - piercingDmg;
@@ -334,8 +360,7 @@
         if (stunDuration > 0) {
             isStunned = true;
             dummy.fillColor = 0x00ffff;
-            actionText.setText(`ZAPPED! Target frozen for ${stunDuration}s!`);
-            
+            actionText.setText(`ZAPPED! Frozen for ${stunDuration}s!`);
             currentScene.time.delayedCall(stunDuration * 1000, () => {
                 isStunned = false;
                 dummy.fillColor = 0xff5555;
@@ -347,7 +372,6 @@
             dummyHealth = 100;
             dummyArmor = 100;
         }
-        
         updateDummyBars();
     }
 
@@ -367,28 +391,29 @@
         dummyArmorBar.fillRect(dummy.x - 25, dummy.y - 36, 50 * (dummyArmor / 100), 6);
     }
 
+    // --- MAIN GAME LOOP ---
     function update() {
         if (isStunned) return;
 
-        const speed = 250;
+        const moveSpeed = 250;
+        let currentTime = currentScene.time.now;
         
+        // 1. Movement Logic (Locked during melee swings)
         if (isAttacking) {
             player.body.setVelocityX(0);
         } else {
             if (joyStickLeft.left) {
-                player.body.setVelocityX(-speed);
+                player.body.setVelocityX(-moveSpeed);
                 facingDirection = Math.PI; 
             } else if (joyStickLeft.right) {
-                player.body.setVelocityX(speed);
+                player.body.setVelocityX(moveSpeed);
                 facingDirection = 0; 
             } else {
                 player.body.setVelocityX(0);
             }
         }
 
-        if (player.body.touching.down) {
-            jumps = 0;
-        }
+        if (player.body.touching.down) jumps = 0;
 
         if (joyStickLeft.up) {
             if (joystickUpReleased && jumps < 3 && !isAttacking) {
@@ -401,12 +426,22 @@
             joystickUpReleased = true;
         }
 
+        // 2. Ranged Combat Logic (Continuous Fire)
         if (joyStickRight.force > 0) {
+            // Update player rotation to face joystick aim
             player.rotation = joyStickRight.rotation; 
-        } else {
+            facingDirection = joyStickRight.rotation; // Sync melee facing with gun aim
+            
+            // Only fire if cooldown has passed AND we aren't mid-sword swing
+            if (currentTime > lastFiredTime + activeGun.fireRate && !isAttacking) {
+                shootGun(joyStickRight.rotation);
+                lastFiredTime = currentTime;
+            }
+        } else if (!isAttacking) {
             player.rotation = facingDirection; 
         }
 
+        // 3. Ultimate Charge Logic
         if (!specialReady) {
             specialCharge += 0.2; 
             let chargePercentage = specialCharge / specialMax;
@@ -420,7 +455,6 @@
             if (specialCharge >= specialMax) {
                 specialReady = true;
                 specialButton.setFillStyle(0x00ffff); 
-                actionText.setText('SPECIAL READY!');
             }
         }
     }
