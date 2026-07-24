@@ -2,19 +2,27 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Weapon Loadout Simulator V6 (Stun, Armor & Attack Speed)</title>
+<title>Weapon Loadout Simulator V7 (Melee & Ranged Armory)</title>
 <style>
   body { font-family: sans-serif; background: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
-  .arena-box { background: #222; padding: 20px; border-radius: 10px; margin-bottom: 20px; position: relative; height: 150px; overflow: hidden; }
-  .entity { position: absolute; bottom: 20px; }
+  .arena-box { background: #222; border-radius: 10px; margin-bottom: 20px; position: relative; height: 180px; overflow: hidden; }
+  
   #player { background: #00aaff; left: 10%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: left 0.1s;}
   #dummy { background: #ff5555; right: 10%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: background-color 0.1s;}
-  #hitbox { background: rgba(255, 170, 0, 0.7); height: 20px; position: absolute; bottom: 40px; left: calc(10% + 30px); width: 0px; transition: width 0.1s, background-color 0.1s, left 0.1s; opacity: 0; }
   
+  /* Melee Visual */
+  #hitbox { background: rgba(255, 170, 0, 0.7); height: 20px; position: absolute; bottom: 40px; left: calc(10% + 30px); width: 0px; opacity: 0; }
+  
+  /* Ranged Visual */
+  .bullet { position: absolute; width: 12px; height: 4px; border-radius: 2px; }
+
   .controls { text-align: left; background: #333; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-  label { display: block; margin-top: 15px; font-weight: bold; font-size: 16px; color: #aaa; }
-  select, input[type=range] { width: 100%; height: 40px; margin-top: 5px; font-size: 16px; } 
+  label { display: block; margin-top: 15px; font-weight: bold; font-size: 14px; color: #aaa; }
+  select, input[type=range] { width: 100%; height: 35px; margin-top: 5px; font-size: 16px; } 
   
+  .mode-toggle { display: flex; justify-content: space-around; background: #222; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+  .mode-toggle label { margin: 0; font-size: 16px; color: #fff; cursor: pointer; }
+
   .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 16px; font-weight: bold; }
   .bar-container { width: 100%; background: #444; height: 20px; margin-top: 5px; border-radius: 5px; overflow: hidden;}
   .bar { height: 100%; transition: width 0.3s; }
@@ -23,14 +31,17 @@
   
   #status-log { margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #00ffff; height: 25px; }
 
-  button { width: 100%; padding: 20px; margin-top: 10px; font-size: 20px; font-weight: bold; border: none; border-radius: 10px; text-transform: uppercase; }
+  button { width: 100%; padding: 20px; margin-top: 10px; font-size: 20px; font-weight: bold; border: none; border-radius: 10px; text-transform: uppercase; cursor: pointer; }
   #strike-btn { background: #ffaa00; color: #000; }
   #reset-btn { background: #555; color: white; }
+  
+  /* Utility Classes for Toggling */
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
 
-<h2>Weapon Loadout Simulator V6</h2>
+<h2>Weapon Loadout Simulator V7</h2>
 
 <div id="status-log">Target is ready.</div>
 
@@ -45,43 +56,77 @@
   </div>
 </div>
 
-<div class="arena-box">
+<div class="arena-box" id="arena">
   <div id="player"></div>
   <div id="hitbox"></div>
   <div id="dummy"></div>
 </div>
 
 <div class="controls">
+  <!-- MODE TOGGLE -->
+  <div class="mode-toggle">
+    <label><input type="radio" name="wtype" value="melee" checked onchange="switchMode()"> 🗡️ Melee Armory</label>
+    <label><input type="radio" name="wtype" value="gun" onchange="switchMode()"> 🔫 Gun Armory</label>
+  </div>
+
   <label style="color: #00aaff;">Player Position (Walk Forward/Back):</label>
   <input type="range" id="position" min="5" max="80" value="10" oninput="updateUI()">
 
-  <label>Equip Weapon (From Store):</label>
-  <select id="weapon-select" onchange="loadWeapon()">
-    <option value="custom">-- Custom Build --</option>
-    <!-- ADDED data-speed to match Arena V6.2 -->
+  <!-- MELEE DROPDOWN -->
+  <select id="melee-select" onchange="loadWeapon()">
+    <option value="custom">-- Custom Melee --</option>
     <option value="knife" data-dmg="28" data-reach="40" data-pierce="15" data-stun="0" data-speed="80" data-color="rgba(200,200,200,0.8)">Starter Combat Knife (Close Assassin)</option>
-    <option value="sword" data-dmg="35" data-reach="75" data-pierce="50" data-stun="0" data-speed="150" data-color="rgba(255,50,50,0.8)">Heavy Broadsword (Armor Breaker)</option>
+    <option value="sword" data-dmg="35" data-reach="75" data-pierce="50" data-stun="0" data-speed="150" data-color="rgba(255,50,50,0.8)" selected>Heavy Broadsword (Armor Breaker)</option>
     <option value="whip" data-dmg="12" data-reach="190" data-pierce="90" data-stun="1.0" data-speed="250" data-color="rgba(50,255,255,0.8)">Energy Whip (1s Stun / Shock)</option>
   </select>
 
-  <!-- NEW SPEED SLIDER -->
-  <label>Attack Speed (ms): <span id="speed-val" style="color: #fff;">150</span>ms</label>
-  <input type="range" id="speed" min="50" max="500" value="150" oninput="updateUI()">
+  <!-- GUN DROPDOWN -->
+  <select id="gun-select" class="hidden" onchange="loadWeapon()">
+    <option value="custom">-- Custom Gun --</option>
+    <option value="blaster" data-dmg="15" data-firerate="250" data-projspeed="800" data-count="1" data-lifespan="1000" data-pierce="20" data-stun="0" data-color="rgba(255,255,0,0.8)" selected>Plasma Blaster (Standard)</option>
+    <option value="autorifle" data-dmg="6" data-firerate="80" data-projspeed="1200" data-count="1" data-lifespan="800" data-pierce="20" data-stun="0" data-color="rgba(0,255,0,0.8)">Auto-Rifle (Rapid Fire)</option>
+    <option value="shotgun" data-dmg="10" data-firerate="800" data-projspeed="600" data-count="5" data-lifespan="300" data-pierce="20" data-stun="0" data-color="rgba(255,170,0,0.8)">Scrap Shotgun (Spread)</option>
+  </select>
 
-  <label>Damage Output: <span id="dmg-val" style="color: #fff;">20</span></label>
-  <input type="range" id="dmg" min="5" max="60" value="20" oninput="updateUI()">
+  <!-- MELEE SPECIFIC CONTROLS -->
+  <div id="melee-controls">
+    <label>Attack Speed (ms): <span id="speed-val" style="color: #fff;">150</span>ms</label>
+    <input type="range" id="speed" min="50" max="500" value="150" oninput="updateUI()">
 
-  <label>Physical Reach (Pixels): <span id="reach-val" style="color: #fff;">100</span></label>
-  <input type="range" id="reach" min="30" max="300" value="100" oninput="updateUI()">
+    <label>Physical Reach (Pixels): <span id="reach-val" style="color: #fff;">100</span></label>
+    <input type="range" id="reach" min="30" max="300" value="100" oninput="updateUI()">
+  </div>
 
-  <label>Armor Piercing (%): <span id="pierce-val" style="color: #fff;">20</span>%</label>
-  <input type="range" id="pierce" min="0" max="100" value="20" oninput="updateUI()">
+  <!-- GUN SPECIFIC CONTROLS -->
+  <div id="gun-controls" class="hidden">
+    <label>Fire Rate Cooldown (ms): <span id="firerate-val" style="color: #fff;">250</span>ms</label>
+    <input type="range" id="firerate" min="50" max="1000" value="250" oninput="updateUI()">
 
-  <label>Stun Duration (Seconds): <span id="stun-val" style="color: #fff;">0</span>s</label>
-  <input type="range" id="stun" min="0" max="3" step="0.5" value="0" oninput="updateUI()">
+    <label>Projectile Speed (px/s): <span id="projspeed-val" style="color: #fff;">800</span></label>
+    <input type="range" id="projspeed" min="200" max="2000" value="800" step="50" oninput="updateUI()">
+
+    <label>Bullet Count (Spread): <span id="count-val" style="color: #fff;">1</span></label>
+    <input type="range" id="count" min="1" max="10" value="1" oninput="updateUI()">
+
+    <label>Lifespan/Range (ms): <span id="lifespan-val" style="color: #fff;">1000</span>ms</label>
+    <input type="range" id="lifespan" min="100" max="2000" value="1000" step="50" oninput="updateUI()">
+  </div>
+
+  <!-- SHARED CONTROLS -->
+  <div id="shared-controls">
+    <label>Damage Output: <span id="dmg-val" style="color: #fff;">20</span></label>
+    <input type="range" id="dmg" min="1" max="100" value="20" oninput="updateUI()">
+
+    <label>Armor Piercing (%): <span id="pierce-val" style="color: #fff;">20</span>%</label>
+    <input type="range" id="pierce" min="0" max="100" value="20" oninput="updateUI()">
+
+    <label>Stun Duration (Seconds): <span id="stun-val" style="color: #fff;">0</span>s</label>
+    <input type="range" id="stun" min="0" max="3" step="0.5" value="0" oninput="updateUI()">
+  </div>
+
 </div>
 
-<button id="strike-btn" onclick="strike()">Execute Strike</button>
+<button id="strike-btn" onclick="executeAction()">ATTACK</button>
 <button id="reset-btn" onclick="reset()">Reset Target</button>
 
 <script>
@@ -91,47 +136,79 @@
   let currentColor = "rgba(255, 170, 0, 0.7)";
   let isAttacking = false;
 
+  function getMode() {
+    return document.querySelector('input[name="wtype"]:checked').value;
+  }
+
+  function switchMode() {
+    let mode = getMode();
+    if (mode === 'melee') {
+      document.getElementById('melee-select').classList.remove('hidden');
+      document.getElementById('melee-controls').classList.remove('hidden');
+      document.getElementById('gun-select').classList.add('hidden');
+      document.getElementById('gun-controls').classList.add('hidden');
+    } else {
+      document.getElementById('melee-select').classList.add('hidden');
+      document.getElementById('melee-controls').classList.add('hidden');
+      document.getElementById('gun-select').classList.remove('hidden');
+      document.getElementById('gun-controls').classList.remove('hidden');
+      document.getElementById('hitbox').style.opacity = "0"; // Hide melee box
+    }
+    loadWeapon();
+  }
+
   function loadWeapon() {
-    const select = document.getElementById('weapon-select');
+    let mode = getMode();
+    let select = mode === 'melee' ? document.getElementById('melee-select') : document.getElementById('gun-select');
+    
     if (select.value === 'custom') return;
     
-    const selectedOption = select.options[select.selectedIndex];
-    document.getElementById('dmg').value = selectedOption.getAttribute('data-dmg');
-    document.getElementById('reach').value = selectedOption.getAttribute('data-reach');
-    document.getElementById('pierce').value = selectedOption.getAttribute('data-pierce');
-    document.getElementById('stun').value = selectedOption.getAttribute('data-stun');
-    document.getElementById('speed').value = selectedOption.getAttribute('data-speed'); // LOAD NEW SPEED
-    currentColor = selectedOption.getAttribute('data-color');
+    const opt = select.options[select.selectedIndex];
+    
+    // Shared Stats
+    document.getElementById('dmg').value = opt.getAttribute('data-dmg');
+    document.getElementById('pierce').value = opt.getAttribute('data-pierce');
+    document.getElementById('stun').value = opt.getAttribute('data-stun');
+    currentColor = opt.getAttribute('data-color');
+
+    // Specific Stats
+    if (mode === 'melee') {
+        document.getElementById('reach').value = opt.getAttribute('data-reach');
+        document.getElementById('speed').value = opt.getAttribute('data-speed');
+    } else {
+        document.getElementById('firerate').value = opt.getAttribute('data-firerate');
+        document.getElementById('projspeed').value = opt.getAttribute('data-projspeed');
+        document.getElementById('count').value = opt.getAttribute('data-count');
+        document.getElementById('lifespan').value = opt.getAttribute('data-lifespan');
+    }
     
     updateUI();
   }
 
   function updateUI() {
-    const select = document.getElementById('weapon-select');
-    const selectedOption = select.options[select.selectedIndex];
+    let mode = getMode();
     
-    if (select.value !== 'custom') {
-        if (document.getElementById('dmg').value != selectedOption.getAttribute('data-dmg') || 
-            document.getElementById('reach').value != selectedOption.getAttribute('data-reach') ||
-            document.getElementById('pierce').value != selectedOption.getAttribute('data-pierce') ||
-            document.getElementById('stun').value != selectedOption.getAttribute('data-stun') ||
-            document.getElementById('speed').value != selectedOption.getAttribute('data-speed')) { // CHECK SPEED
-            select.value = 'custom';
-            currentColor = "rgba(255, 170, 0, 0.7)";
-        }
-    }
-
+    // Shared
     document.getElementById('dmg-val').innerText = document.getElementById('dmg').value;
-    document.getElementById('reach-val').innerText = document.getElementById('reach').value;
     document.getElementById('pierce-val').innerText = document.getElementById('pierce').value;
     document.getElementById('stun-val').innerText = document.getElementById('stun').value;
-    document.getElementById('speed-val').innerText = document.getElementById('speed').value; // UPDATE SPEED TEXT
     
+    if (mode === 'melee') {
+        document.getElementById('reach-val').innerText = document.getElementById('reach').value;
+        document.getElementById('speed-val').innerText = document.getElementById('speed').value;
+    } else {
+        document.getElementById('firerate-val').innerText = document.getElementById('firerate').value;
+        document.getElementById('projspeed-val').innerText = document.getElementById('projspeed').value;
+        document.getElementById('count-val').innerText = document.getElementById('count').value;
+        document.getElementById('lifespan-val').innerText = document.getElementById('lifespan').value;
+    }
+
+    // Player Movement
     let pos = document.getElementById('position').value;
     document.getElementById('player').style.left = pos + '%';
     
-    // Only update visual reach when not attacking
-    if(!isAttacking) {
+    // Melee Box Visual Update
+    if(mode === 'melee' && !isAttacking) {
         let hitboxElement = document.getElementById('hitbox');
         hitboxElement.style.width = document.getElementById('reach').value + 'px';
         hitboxElement.style.left = `calc(${pos}% + 30px)`;
@@ -139,42 +216,114 @@
     }
   }
 
-  function strike() {
-    if (isAttacking) return; // Prevent spam clicking
+  function executeAction() {
+    if (isAttacking) return; 
     
     if (isStunned) {
         document.getElementById('status-log').innerText = "Target is STUNNED and cannot move!";
         return;
     }
 
-    isAttacking = true;
+    let mode = getMode();
     let dmg = parseInt(document.getElementById('dmg').value);
     let piercePercent = parseInt(document.getElementById('pierce').value) / 100;
     let stunDuration = parseFloat(document.getElementById('stun').value);
-    let attackSpeed = parseInt(document.getElementById('speed').value); // GET SPEED
 
-    let hitboxElement = document.getElementById('hitbox');
-    let dummyElement = document.getElementById('dummy');
-    
-    // Animate the strike based on the weapon speed
-    hitboxElement.style.opacity = "1";
-    hitboxElement.style.transition = `opacity 0.05s`; // Snap appear
-    
-    setTimeout(() => {
-        hitboxElement.style.transition = `opacity ${attackSpeed / 1000}s ease-in`; // Fade out based on speed
-        hitboxElement.style.opacity = "0";
-        setTimeout(() => isAttacking = false, attackSpeed); // Unlock button after speed duration
-    }, 50); // Short delay so the user actually sees the flash
+    isAttacking = true;
 
-    let hitRect = hitboxElement.getBoundingClientRect();
-    let dumRect = dummyElement.getBoundingClientRect();
+    if (mode === 'melee') {
+        let attackSpeed = parseInt(document.getElementById('speed').value);
+        let hitboxElement = document.getElementById('hitbox');
+        let dummyElement = document.getElementById('dummy');
+        
+        hitboxElement.style.opacity = "1";
+        hitboxElement.style.transition = `opacity 0.05s`; 
+        
+        setTimeout(() => {
+            hitboxElement.style.transition = `opacity ${attackSpeed / 1000}s ease-in`; 
+            hitboxElement.style.opacity = "0";
+            setTimeout(() => isAttacking = false, attackSpeed); 
+        }, 50);
 
-    if (hitRect.right < dumRect.left) {
-        document.getElementById('status-log').innerText = "Swing and a miss! Walk closer.";
-        return;
+        let hitRect = hitboxElement.getBoundingClientRect();
+        let dumRect = dummyElement.getBoundingClientRect();
+
+        if (hitRect.right < dumRect.left) {
+            document.getElementById('status-log').innerText = "Swing and a miss! Walk closer.";
+        } else {
+            applyDamage(dmg, piercePercent, stunDuration, "Melee hit landed!");
+            hitboxElement.style.background = "#ffffff";
+            setTimeout(() => hitboxElement.style.background = currentColor, 100);
+        }
+
+    } else {
+        // GUN LOGIC
+        let fireRate = parseInt(document.getElementById('firerate').value);
+        let projSpeed = parseInt(document.getElementById('projspeed').value);
+        let count = parseInt(document.getElementById('count').value);
+        let lifespan = parseInt(document.getElementById('lifespan').value);
+
+        // Cooldown based on Fire Rate
+        setTimeout(() => isAttacking = false, fireRate); 
+
+        let arena = document.getElementById('arena');
+        let pRect = document.getElementById('player').getBoundingClientRect();
+        let dRect = document.getElementById('dummy').getBoundingClientRect();
+        let arenaRect = arena.getBoundingClientRect();
+
+        let startX = pRect.right - arenaRect.left;
+        let startY = (pRect.top - arenaRect.top) + (pRect.height / 2); 
+
+        let distToDummy = dRect.left - pRect.right;
+        
+        // Time = Distance / Velocity
+        let timeToHit = (distToDummy / projSpeed) * 1000; 
+        
+        // Did it fizzle out before reaching?
+        let willHit = timeToHit <= lifespan && distToDummy > 0;
+        let actualTravelTime = willHit ? timeToHit : lifespan;
+        let travelDist = willHit ? distToDummy : (projSpeed * lifespan / 1000);
+
+        let totalDmg = 0;
+
+        for (let i = 0; i < count; i++) {
+            let bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            bullet.style.backgroundColor = currentColor;
+            bullet.style.left = startX + 'px';
+            bullet.style.top = startY + 'px';
+            arena.appendChild(bullet);
+
+            // Fan out shotgun bullets
+            let spreadY = (i - Math.floor(count / 2)) * 15; 
+
+            // Animate using CSS transitions
+            setTimeout(() => {
+                bullet.style.transition = `left ${actualTravelTime}ms linear, top ${actualTravelTime}ms linear`;
+                bullet.style.left = (startX + travelDist) + 'px';
+                bullet.style.top = (startY + spreadY) + 'px';
+            }, 10);
+
+            // Impact
+            setTimeout(() => {
+                bullet.remove();
+                if (willHit) totalDmg += dmg;
+            }, actualTravelTime + 10);
+        }
+
+        // Apply bulk damage after bullets land
+        setTimeout(() => {
+            if (willHit && totalDmg > 0) {
+                applyDamage(totalDmg, piercePercent, stunDuration, `Ranged volley hit! Dealt ${totalDmg} total damage.`);
+            } else if (!willHit) {
+                document.getElementById('status-log').innerText = "Bullets fizzled out before reaching target!";
+            }
+        }, actualTravelTime + 15);
     }
+  }
 
-    // Damage calculations (Armor vs Health)
+  function applyDamage(dmg, piercePercent, stunDuration, logMessage) {
+    let dummyElement = document.getElementById('dummy');
     let piercingDmg = dmg * piercePercent;
     let standardDmg = dmg - piercingDmg;
 
@@ -191,13 +340,6 @@
     health -= piercingDmg;
     if (health < 0) health = 0;
 
-    // Visual strike feedback
-    hitboxElement.style.background = "#ffffff";
-    setTimeout(() => hitboxElement.style.background = currentColor, 100);
-
-    let logMessage = `Hit landed! Dealt ${dmg} damage.`;
-
-    // Handle Stun Effect
     if (stunDuration > 0) {
         isStunned = true;
         dummyElement.style.backgroundColor = "#00ffff"; 
@@ -218,7 +360,6 @@
   function updateBars() {
     document.getElementById('health-val').innerText = Math.round(health);
     document.getElementById('health-bar').style.width = health + '%';
-    
     document.getElementById('armor-val').innerText = Math.round(armor);
     document.getElementById('armor-bar').style.width = armor + '%';
   }
@@ -233,6 +374,7 @@
     updateBars();
   }
 
+  // Initialize
   updateUI();
 </script>
 
