@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Arena V7 (Gun Armory & Spread)</title>
+    <title>Needful Thingz - Arena V8 (Ammo & Reloading)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -42,6 +42,7 @@
     let joyStickRight;
     let meleeText;
     let gunText; 
+    let ammoText;
     let actionText;
     let facingDirection = 0; 
     let currentScene; 
@@ -60,16 +61,21 @@
     let currentWeaponIndex = 0;
     let activeWeapon = weaponArmory['Knife'];
 
-    // --- NEW: GUN ARMORY ---
+    // --- GUN ARMORY (NOW WITH AMMO STATS) ---
     const gunArmory = {
-        'Blaster': { name: 'Plasma Blaster', damage: 15, fireRate: 250, speed: 800, count: 1, color: 0xffff00, lifespan: 1000 },
-        'AutoRifle': { name: 'Auto-Rifle', damage: 6, fireRate: 80, speed: 1200, count: 1, color: 0x00ff00, lifespan: 800 },
-        'Shotgun': { name: 'Scrap Shotgun', damage: 10, fireRate: 800, speed: 600, count: 5, color: 0xffaa00, lifespan: 300 } // Short range, 5 bullets
+        'Blaster': { name: 'Plasma Blaster', damage: 15, fireRate: 250, speed: 800, count: 1, color: 0xffff00, lifespan: 1000, clipSize: 15, reloadTime: 1200 },
+        'AutoRifle': { name: 'Auto-Rifle', damage: 6, fireRate: 80, speed: 1200, count: 1, color: 0x00ff00, lifespan: 800, clipSize: 40, reloadTime: 1800 },
+        'Shotgun': { name: 'Scrap Shotgun', damage: 10, fireRate: 800, speed: 600, count: 5, color: 0xffaa00, lifespan: 300, clipSize: 4, reloadTime: 2000 } 
     };
     let gunKeys = ['Blaster', 'AutoRifle', 'Shotgun'];
     let currentGunIndex = 0;
     let activeGun = gunArmory['Blaster'];
-    let lastFiredTime = 0; // Tracks the cooldown
+    
+    // Gun State Tracking
+    let lastFiredTime = 0;
+    let currentAmmo = activeGun.clipSize;
+    let isReloading = false;
+    let reloadTimer;
     
     let specialCharge = 0;
     const specialMax = 100;
@@ -138,6 +144,8 @@
         // UI Text Layout
         meleeText = this.add.text(10, 10, 'Melee: Combat Knife', { fontSize: '14px', fill: '#ffffff' });
         gunText = this.add.text(10, 30, 'Ranged: Plasma Blaster', { fontSize: '14px', fill: '#ffff00' });
+        ammoText = this.add.text(10, 50, `Ammo: ${currentAmmo} / ${activeGun.clipSize}`, { fontSize: '16px', fill: '#00ffff', fontStyle: 'bold' });
+        
         actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
 
         // --- CONTROLS ---
@@ -159,7 +167,6 @@
             }
         });
 
-        // The Right joystick handles continuous shooting automatically in the update() loop now!
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, {
             x: 680, y: 300, radius: 50,
             base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3),
@@ -196,10 +203,23 @@
         const btnGunSwap = this.add.circle(540, 230, 20, 0xaaaaaa).setAlpha(0.5).setInteractive();
         this.add.text(524, 222, 'G-GEAR', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
         btnGunSwap.on('pointerdown', () => {
-            if (isAttacking) return; 
+            if (isAttacking || isReloading) return; // Prevent swapping mid-reload
             currentGunIndex = (currentGunIndex + 1) % gunKeys.length;
             activeGun = gunArmory[gunKeys[currentGunIndex]];
             gunText.setText('Ranged: ' + activeGun.name);
+            
+            // Auto-fill ammo when testing new guns
+            currentAmmo = activeGun.clipSize;
+            updateAmmoDisplay();
+        });
+
+        // NEW: Reload Button
+        const btnReload = this.add.circle(480, 230, 20, 0x4444ff).setAlpha(0.7).setInteractive();
+        this.add.text(462, 222, 'RELOAD', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
+        btnReload.on('pointerdown', () => {
+            if (!isReloading && !isAttacking && currentAmmo < activeGun.clipSize) {
+                reloadGun();
+            }
         });
 
         specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive();
@@ -238,15 +258,43 @@
         });
     }
 
+    // --- RELOAD LOGIC ---
+    function reloadGun() {
+        isReloading = true;
+        actionText.setText(`Reloading ${activeGun.name}...`);
+        ammoText.setText('RELOADING...');
+        ammoText.setFill('#ff0000'); // Turn text red to warn player
+
+        // Wait for the gun's specific reload time
+        reloadTimer = currentScene.time.delayedCall(activeGun.reloadTime, () => {
+            currentAmmo = activeGun.clipSize;
+            isReloading = false;
+            updateAmmoDisplay();
+            actionText.setText('Ready');
+        });
+    }
+
+    function updateAmmoDisplay() {
+        ammoText.setText(`Ammo: ${currentAmmo} / ${activeGun.clipSize}`);
+        
+        // Color coding for visual feedback
+        if (currentAmmo === 0) {
+            ammoText.setFill('#ff0000'); // Empty = Red
+        } else if (currentAmmo <= activeGun.clipSize * 0.25) {
+            ammoText.setFill('#ffaa00'); // Low = Orange
+        } else {
+            ammoText.setFill('#00ffff'); // Good = Cyan
+        }
+    }
+
     // --- GUN SYSTEM LOGIC ---
     function shootGun(baseAngle) {
         actionText.setText(`Shooting: ${activeGun.name}`);
         
         let bulletCount = activeGun.count;
-        let spreadAngle = 0.15; // Radians (approx 8.5 degrees)
+        let spreadAngle = 0.15; 
 
         for (let i = 0; i < bulletCount; i++) {
-            // If shotgun is equipped, fan the bullets out. If Blaster, just shoot straight.
             let offset = (i - Math.floor(bulletCount / 2)) * spreadAngle;
             let currentAngle = baseAngle + offset;
 
@@ -254,22 +302,16 @@
             currentScene.physics.add.existing(bullet);
             bullet.body.setAllowGravity(false); 
             
-            // Fire the bullet in the specific spread direction
             currentScene.physics.velocityFromRotation(currentAngle, activeGun.speed, bullet.body.velocity);
             bullet.rotation = currentAngle;
             
-            // Enemy collision
             currentScene.physics.add.overlap(bullet, dummy, () => {
                 bullet.destroy();
-                // Guns deal standard damage for now (20% pierce)
                 dealDamage(activeGun.damage, 0.20, 0);
-                
-                // Micro hit-flash
                 dummy.fillColor = activeGun.color; 
                 currentScene.time.delayedCall(50, () => { if(!isStunned) dummy.fillColor = 0xff5555; });
             });
 
-            // Destroy bullet when its lifespan expires (acts as range limit)
             currentScene.time.delayedCall(activeGun.lifespan, () => { 
                 if(bullet.active) bullet.destroy(); 
             });
@@ -278,6 +320,7 @@
 
     // --- MELEE COMBO SYSTEM LOGIC ---
     function executeAttack(step) {
+        // ... (Melee logic remains exactly the same) ...
         isAttacking = true;
         comboStep = step;
         inputBuffered = false;
@@ -426,16 +469,23 @@
             joystickUpReleased = true;
         }
 
-        // 2. Ranged Combat Logic (Continuous Fire)
+        // 2. Ranged Combat Logic (Fire & Reload)
         if (joyStickRight.force > 0) {
-            // Update player rotation to face joystick aim
             player.rotation = joyStickRight.rotation; 
-            facingDirection = joyStickRight.rotation; // Sync melee facing with gun aim
+            facingDirection = joyStickRight.rotation; 
             
-            // Only fire if cooldown has passed AND we aren't mid-sword swing
-            if (currentTime > lastFiredTime + activeGun.fireRate && !isAttacking) {
-                shootGun(joyStickRight.rotation);
-                lastFiredTime = currentTime;
+            // Only fire if not melee attacking, not reloading, and cooldown has passed
+            if (currentTime > lastFiredTime + activeGun.fireRate && !isAttacking && !isReloading) {
+                
+                if (currentAmmo > 0) {
+                    shootGun(joyStickRight.rotation);
+                    currentAmmo--;
+                    updateAmmoDisplay();
+                    lastFiredTime = currentTime;
+                } else {
+                    // Out of ammo! Trigger auto-reload
+                    reloadGun();
+                }
             }
         } else if (!isAttacking) {
             player.rotation = facingDirection; 
