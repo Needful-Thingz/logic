@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Arena V6 (Modular Armory)</title>
+    <title>Needful Thingz - Arena V6.1 (Combo State Machine)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -42,6 +42,7 @@
     let joyStickRight;
     let actionText; 
     let facingDirection = 0; 
+    let currentScene; // Used to access timers in global functions
     
     // Movement Variables
     let jumps = 0;
@@ -62,6 +63,15 @@
     let specialReady = false;
     let meleeHitbox;
     let isStunned = false;
+
+    // --- COMBO SYSTEM VARIABLES ---
+    let comboStep = 0;
+    let isAttacking = false;
+    let inputBuffered = false;
+    let canCancel = false;
+    let attackActiveTimer;
+    let attackRecoveryTimer;
+    // ------------------------------
     
     // Target Stats & UI
     let dummyHealth = 100;
@@ -79,6 +89,8 @@
     }
 
     function create() {
+        currentScene = this; // Store scene reference for global functions
+
         // 1. The Arena Floor
         const floor = this.add.rectangle(400, 380, 800, 40, 0x444444);
         this.physics.add.existing(floor, true); 
@@ -129,6 +141,7 @@
 
         const leftTapZone = this.add.circle(120, 300, 25, 0xffffff, 0).setInteractive();
         leftTapZone.on('pointerdown', () => {
+            if (isAttacking) return; // Prevent jump during combo
             if (jumps < 3) {
                 player.body.setVelocityY(-450);
                 jumps++;
@@ -145,6 +158,8 @@
 
         const rightTapZone = this.add.circle(680, 300, 25, 0xffffff, 0).setInteractive();
         rightTapZone.on('pointerdown', () => {
+            if (isAttacking) return; // Prevent shooting during combo
+            
             let bullet = this.add.rectangle(player.x, player.y, 15, 5, 0xffff00);
             this.physics.add.existing(bullet);
             bullet.body.setAllowGravity(false); 
@@ -163,39 +178,32 @@
 
         // --- ACTION BUTTONS ---
 
-        // Melee Attack Input
+        // Melee Attack Input (REWIRED FOR COMBO SYSTEM)
         const btnMelee = this.add.circle(570, 300, 25, 0xffaa00).setAlpha(0.5).setInteractive();
         this.add.text(552, 292, 'HIT', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
+        
         btnMelee.on('pointerdown', () => {
             if (isStunned) return;
             
-            actionText.setText(`Action: ${activeWeapon.name} Strike!`);
-            player.fillColor = activeWeapon.color; 
-            meleeHitbox.setAlpha(1);
-            meleeHitbox.width = activeWeapon.reach;
-            
-            let reachX = facingDirection === 0 ? (activeWeapon.reach / 2 + 15) : -(activeWeapon.reach / 2 + 15); 
-            meleeHitbox.setPosition(player.x + reachX, player.y);
-            meleeHitbox.rotation = facingDirection;
-
-            let hit = Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), dummy.getBounds());
-            if (hit) {
-                dealDamage(activeWeapon.damage, activeWeapon.pierce, activeWeapon.stun);
-                dummy.fillColor = activeWeapon.color; 
-                this.time.delayedCall(100, () => dummy.fillColor = 0xff5555);
+            if (!isAttacking) {
+                // Start a brand new combo
+                executeAttack(1);
+            } else {
+                // Player is already attacking, buffer the input!
+                inputBuffered = true;
+                
+                // If the cancel window is currently open, trigger instantly
+                if (canCancel && comboStep < 3) {
+                    triggerNextHit();
+                }
             }
-
-            this.time.delayedCall(150, () => { 
-                player.fillColor = 0x00aaff;
-                meleeHitbox.setAlpha(0);
-                meleeHitbox.setPosition(-100, -100); 
-            });
         });
 
         // Modular Weapon Swap Button
         const btnSwap = this.add.circle(600, 210, 25, 0xaaaaaa).setAlpha(0.5).setInteractive();
         weaponButtonText = this.add.text(582, 202, 'GEAR', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' });
         btnSwap.on('pointerdown', () => {
+            if (isAttacking) return; // Don't swap weapons mid-swing
             currentWeaponIndex = (currentWeaponIndex + 1) % weaponKeys.length;
             activeWeapon = weaponArmory[weaponKeys[currentWeaponIndex]];
             actionText.setText('Equipped: ' + activeWeapon.name);
@@ -207,6 +215,8 @@
         specialGraphics = this.add.graphics();
         
         specialButton.on('pointerdown', () => {
+            if (isAttacking) return; // Prevent ult mid-combo
+
             if (specialReady) {
                 actionText.setText('Action: SPECIAL UNLEASHED!');
                 player.scaleX = 1.5; 
@@ -236,6 +246,85 @@
         });
     }
 
+    // --- COMBO SYSTEM LOGIC ---
+    function executeAttack(step) {
+        isAttacking = true;
+        comboStep = step;
+        inputBuffered = false;
+        canCancel = false;
+
+        // Clean up previous timers so they don't overlap
+        if (attackRecoveryTimer) attackRecoveryTimer.remove();
+        if (attackActiveTimer) attackActiveTimer.remove();
+
+        player.fillColor = activeWeapon.color;
+
+        let attackLabel = step === 3 ? "FINISHER!" : `Combo ${step}`;
+        actionText.setText(`Action: ${activeWeapon.name} - ${attackLabel}`);
+
+        // 1. Spawning the Hitbox (Active Phase)
+        let currentReach = step === 3 ? activeWeapon.reach * 1.5 : activeWeapon.reach;
+        let hitboxHeight = step === 3 ? 40 : 20; // Finisher gets a bigger hitbox
+        
+        meleeHitbox.width = currentReach;
+        meleeHitbox.height = hitboxHeight;
+        meleeHitbox.setAlpha(1);
+
+        let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
+        meleeHitbox.setPosition(player.x + reachX, player.y);
+        meleeHitbox.rotation = facingDirection;
+
+        // Collision Check (Immediate for prototype visual purposes)
+        let hit = Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), dummy.getBounds());
+        if (hit) {
+            let dmgMult = step === 3 ? 2 : 1; // Finisher does double damage
+            dealDamage(activeWeapon.damage * dmgMult, activeWeapon.pierce, activeWeapon.stun);
+            
+            dummy.fillColor = activeWeapon.color; 
+            currentScene.time.delayedCall(100, () => {
+                if(!isStunned) dummy.fillColor = 0xff5555;
+            });
+
+            // Micro-knockback on the dummy for juice on the final hit
+            if(step === 3 && dummyHealth > 0) {
+                 dummy.x += (facingDirection === 0 ? 10 : -10);
+            }
+        }
+
+        // 2. Close Hitbox and Open Cancel Window
+        attackActiveTimer = currentScene.time.delayedCall(120, () => {
+            meleeHitbox.setAlpha(0);
+            meleeHitbox.setPosition(-100, -100); 
+            
+            canCancel = true; // Open the buffer window for the next hit
+
+            if (inputBuffered && step < 3) {
+                // They mashed early! Trigger the next hit immediately.
+                triggerNextHit();
+            } else {
+                // 3. Recovery Phase
+                let recoveryTime = step === 3 ? 400 : 200; // Finisher leaves you vulnerable longer
+                
+                attackRecoveryTimer = currentScene.time.delayedCall(recoveryTime, () => {
+                    // Animation finished. Reset to idle.
+                    isAttacking = false;
+                    comboStep = 0;
+                    inputBuffered = false;
+                    canCancel = false;
+                    player.fillColor = 0x00aaff;
+                    actionText.setText('Ready');
+                });
+            }
+        });
+    }
+
+    function triggerNextHit() {
+        if (comboStep < 3) {
+            executeAttack(comboStep + 1);
+        }
+    }
+    // --------------------------
+
     function dealDamage(dmg, piercePercent, stunDuration) {
         let piercingDmg = dmg * piercePercent;
         let standardDmg = dmg - piercingDmg;
@@ -258,11 +347,11 @@
             dummy.fillColor = 0x00ffff;
             actionText.setText(`ZAPPED! Target frozen for ${stunDuration}s!`);
             
-            sceneRef = this;
-            setTimeout(() => {
+            // Replaced setTimeout with Phaser's internal timer for safety
+            currentScene.time.delayedCall(stunDuration * 1000, () => {
                 isStunned = false;
                 dummy.fillColor = 0xff5555;
-            }, stunDuration * 1000);
+            });
         }
 
         if (dummyHealth <= 0) {
@@ -295,14 +384,19 @@
 
         const speed = 250;
         
-        if (joyStickLeft.left) {
-            player.body.setVelocityX(-speed);
-            facingDirection = Math.PI; 
-        } else if (joyStickLeft.right) {
-            player.body.setVelocityX(speed);
-            facingDirection = 0; 
-        } else {
+        // Lock horizontal movement if the player is in the middle of a combo
+        if (isAttacking) {
             player.body.setVelocityX(0);
+        } else {
+            if (joyStickLeft.left) {
+                player.body.setVelocityX(-speed);
+                facingDirection = Math.PI; 
+            } else if (joyStickLeft.right) {
+                player.body.setVelocityX(speed);
+                facingDirection = 0; 
+            } else {
+                player.body.setVelocityX(0);
+            }
         }
 
         if (player.body.touching.down) {
@@ -310,7 +404,8 @@
         }
 
         if (joyStickLeft.up) {
-            if (joystickUpReleased && jumps < 3) {
+            // Prevent joystick jump during combo
+            if (joystickUpReleased && jumps < 3 && !isAttacking) {
                 player.body.setVelocityY(-450);
                 jumps++;
                 joystickUpReleased = false;
