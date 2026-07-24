@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Weapon Loadout Simulator V5 (Stun & Armor Integration)</title>
+<title>Weapon Loadout Simulator V6 (Stun, Armor & Attack Speed)</title>
 <style>
   body { font-family: sans-serif; background: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
   .arena-box { background: #222; padding: 20px; border-radius: 10px; margin-bottom: 20px; position: relative; height: 150px; overflow: hidden; }
   .entity { position: absolute; bottom: 20px; }
   #player { background: #00aaff; left: 10%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: left 0.1s;}
   #dummy { background: #ff5555; right: 10%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: background-color 0.1s;}
-  #hitbox { background: rgba(255, 170, 0, 0.7); height: 20px; position: absolute; bottom: 40px; left: calc(10% + 30px); width: 0px; transition: width 0.1s, background-color 0.1s, left 0.1s; }
+  #hitbox { background: rgba(255, 170, 0, 0.7); height: 20px; position: absolute; bottom: 40px; left: calc(10% + 30px); width: 0px; transition: width 0.1s, background-color 0.1s, left 0.1s; opacity: 0; }
   
   .controls { text-align: left; background: #333; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
   label { display: block; margin-top: 15px; font-weight: bold; font-size: 16px; color: #aaa; }
@@ -30,7 +30,7 @@
 </head>
 <body>
 
-<h2>Weapon Loadout Simulator V5</h2>
+<h2>Weapon Loadout Simulator V6</h2>
 
 <div id="status-log">Target is ready.</div>
 
@@ -58,10 +58,15 @@
   <label>Equip Weapon (From Store):</label>
   <select id="weapon-select" onchange="loadWeapon()">
     <option value="custom">-- Custom Build --</option>
-    <option value="knife" data-dmg="28" data-reach="40" data-pierce="15" data-stun="0" data-color="rgba(200,200,200,0.8)">Starter Combat Knife (Close Assassin)</option>
-    <option value="sword" data-dmg="35" data-reach="75" data-pierce="50" data-stun="0" data-color="rgba(255,50,50,0.8)">Heavy Broadsword (Armor Breaker)</option>
-    <option value="whip" data-dmg="12" data-reach="190" data-pierce="90" data-stun="1.0" data-color="rgba(50,255,255,0.8)">Energy Whip (1s Stun / Shock)</option>
+    <!-- ADDED data-speed to match Arena V6.2 -->
+    <option value="knife" data-dmg="28" data-reach="40" data-pierce="15" data-stun="0" data-speed="80" data-color="rgba(200,200,200,0.8)">Starter Combat Knife (Close Assassin)</option>
+    <option value="sword" data-dmg="35" data-reach="75" data-pierce="50" data-stun="0" data-speed="150" data-color="rgba(255,50,50,0.8)">Heavy Broadsword (Armor Breaker)</option>
+    <option value="whip" data-dmg="12" data-reach="190" data-pierce="90" data-stun="1.0" data-speed="250" data-color="rgba(50,255,255,0.8)">Energy Whip (1s Stun / Shock)</option>
   </select>
+
+  <!-- NEW SPEED SLIDER -->
+  <label>Attack Speed (ms): <span id="speed-val" style="color: #fff;">150</span>ms</label>
+  <input type="range" id="speed" min="50" max="500" value="150" oninput="updateUI()">
 
   <label>Damage Output: <span id="dmg-val" style="color: #fff;">20</span></label>
   <input type="range" id="dmg" min="5" max="60" value="20" oninput="updateUI()">
@@ -84,6 +89,7 @@
   let armor = 100;
   let isStunned = false;
   let currentColor = "rgba(255, 170, 0, 0.7)";
+  let isAttacking = false;
 
   function loadWeapon() {
     const select = document.getElementById('weapon-select');
@@ -94,6 +100,7 @@
     document.getElementById('reach').value = selectedOption.getAttribute('data-reach');
     document.getElementById('pierce').value = selectedOption.getAttribute('data-pierce');
     document.getElementById('stun').value = selectedOption.getAttribute('data-stun');
+    document.getElementById('speed').value = selectedOption.getAttribute('data-speed'); // LOAD NEW SPEED
     currentColor = selectedOption.getAttribute('data-color');
     
     updateUI();
@@ -102,11 +109,13 @@
   function updateUI() {
     const select = document.getElementById('weapon-select');
     const selectedOption = select.options[select.selectedIndex];
+    
     if (select.value !== 'custom') {
         if (document.getElementById('dmg').value != selectedOption.getAttribute('data-dmg') || 
             document.getElementById('reach').value != selectedOption.getAttribute('data-reach') ||
             document.getElementById('pierce').value != selectedOption.getAttribute('data-pierce') ||
-            document.getElementById('stun').value != selectedOption.getAttribute('data-stun')) {
+            document.getElementById('stun').value != selectedOption.getAttribute('data-stun') ||
+            document.getElementById('speed').value != selectedOption.getAttribute('data-speed')) { // CHECK SPEED
             select.value = 'custom';
             currentColor = "rgba(255, 170, 0, 0.7)";
         }
@@ -116,29 +125,47 @@
     document.getElementById('reach-val').innerText = document.getElementById('reach').value;
     document.getElementById('pierce-val').innerText = document.getElementById('pierce').value;
     document.getElementById('stun-val').innerText = document.getElementById('stun').value;
+    document.getElementById('speed-val').innerText = document.getElementById('speed').value; // UPDATE SPEED TEXT
     
     let pos = document.getElementById('position').value;
     document.getElementById('player').style.left = pos + '%';
     
-    let hitboxElement = document.getElementById('hitbox');
-    hitboxElement.style.width = document.getElementById('reach').value + 'px';
-    hitboxElement.style.left = `calc(${pos}% + 30px)`;
-    hitboxElement.style.backgroundColor = currentColor;
+    // Only update visual reach when not attacking
+    if(!isAttacking) {
+        let hitboxElement = document.getElementById('hitbox');
+        hitboxElement.style.width = document.getElementById('reach').value + 'px';
+        hitboxElement.style.left = `calc(${pos}% + 30px)`;
+        hitboxElement.style.backgroundColor = currentColor;
+    }
   }
 
   function strike() {
+    if (isAttacking) return; // Prevent spam clicking
+    
     if (isStunned) {
         document.getElementById('status-log').innerText = "Target is STUNNED and cannot move!";
         return;
     }
 
+    isAttacking = true;
     let dmg = parseInt(document.getElementById('dmg').value);
     let piercePercent = parseInt(document.getElementById('pierce').value) / 100;
     let stunDuration = parseFloat(document.getElementById('stun').value);
+    let attackSpeed = parseInt(document.getElementById('speed').value); // GET SPEED
 
     let hitboxElement = document.getElementById('hitbox');
     let dummyElement = document.getElementById('dummy');
     
+    // Animate the strike based on the weapon speed
+    hitboxElement.style.opacity = "1";
+    hitboxElement.style.transition = `opacity 0.05s`; // Snap appear
+    
+    setTimeout(() => {
+        hitboxElement.style.transition = `opacity ${attackSpeed / 1000}s ease-in`; // Fade out based on speed
+        hitboxElement.style.opacity = "0";
+        setTimeout(() => isAttacking = false, attackSpeed); // Unlock button after speed duration
+    }, 50); // Short delay so the user actually sees the flash
+
     let hitRect = hitboxElement.getBoundingClientRect();
     let dumRect = dummyElement.getBoundingClientRect();
 
@@ -173,7 +200,7 @@
     // Handle Stun Effect
     if (stunDuration > 0) {
         isStunned = true;
-        dummyElement.style.backgroundColor = "#00ffff"; // Turn cyan when shocked/frozen
+        dummyElement.style.backgroundColor = "#00ffff"; 
         document.getElementById('status-log').innerText = `ZAPPED! Target frozen for ${stunDuration}s!`;
         
         setTimeout(() => {
@@ -200,6 +227,7 @@
     health = 100;
     armor = 100;
     isStunned = false;
+    isAttacking = false;
     document.getElementById('dummy').style.backgroundColor = "#ff5555";
     document.getElementById('status-log').innerText = "Target reset.";
     updateBars();
