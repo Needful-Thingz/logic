@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Arena V10 (Dash & Directional Block)</title>
+    <title>Needful Thingz - Arena V11 (Heavy Melee Attacks)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -36,18 +36,12 @@
     const game = new Phaser.Game(config);
     
     // Core Entities
-    let player;
-    let dummy;
-    let joyStickLeft, joyStickRight;
+    let player, dummy, joyStickLeft, joyStickRight;
     let meleeText, gunText, ammoText, grenadeText, actionText;
-    let facingDirection = 0; 
-    let currentScene; 
-    let grenadesGroup; 
+    let facingDirection = 0, currentScene, grenadesGroup; 
     
     // Player Stats
-    let playerHealth = 100;
-    let jumps = 0;
-    let joystickUpReleased = true;
+    let playerHealth = 100, jumps = 0, joystickUpReleased = true;
     
     // --- ARMORY DATA ---
     const weaponArmory = {
@@ -56,8 +50,7 @@
         'Whip':  { name: 'Energy Whip',  damage: 12, reach: 170, pierce: 0.90, stun: 1.0, speed: 250, color: 0x00ffff }
     };
     let weaponKeys = ['Knife', 'Sword', 'Whip'];
-    let currentWeaponIndex = 0;
-    let activeWeapon = weaponArmory['Knife'];
+    let currentWeaponIndex = 0, activeWeapon = weaponArmory['Knife'];
 
     const gunArmory = {
         'Pistol':   { name: 'Service Pistol', damage: 15, fireRate: 300, speed: 900, count: 1, color: 0xcccccc, lifespan: 1000, clipSize: 12, reloadTime: 1000 },
@@ -68,8 +61,7 @@
         'Rocket':   { name: 'RPG Launcher',   damage: 90, fireRate: 1000,speed: 900, count: 1, color: 0xff0000, lifespan: 2000, clipSize: 1,  reloadTime: 3000 }
     };
     let gunKeys = ['Pistol', 'Shotgun', 'Rifle', 'Sniper', 'GrenadeL', 'Rocket'];
-    let currentGunIndex = 1; 
-    let activeGun = gunArmory['Shotgun'];
+    let currentGunIndex = 1, activeGun = gunArmory['Shotgun'];
     let lastFiredTime = 0, currentAmmo = activeGun.clipSize, isReloading = false, reloadTimer;
 
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
@@ -80,14 +72,8 @@
     let specialCharge = 0, specialReady = false, meleeHitbox, isStunned = false;
     let comboStep = 0, isAttacking = false, inputBuffered = false, canCancel = false;
     let attackActiveTimer, attackRecoveryTimer;
-
-    // NEW DEFENSIVE FLAGS
-    let isBlocking = false;
-    let isDashing = false;
-    let canDash = true;
-    let isInvincible = false;
+    let isBlocking = false, isDashing = false, canDash = true, isInvincible = false;
     
-    // Target Stats
     let dummyHealth = 100, dummyArmor = 100, dummyHealthBar, dummyArmorBar;
     
     function preload() {
@@ -95,30 +81,24 @@
     }
 
     function create() {
-        currentScene = this; 
-        grenadesGroup = this.physics.add.group(); 
+        currentScene = this; grenadesGroup = this.physics.add.group(); 
 
         const floor = this.add.rectangle(400, 380, 800, 40, 0x444444);
         const islandTop = this.add.rectangle(400, 180, 250, 20, 0x666666);
         const islandMid = this.add.rectangle(400, 220, 80, 60, 0x555555);
         const islandBot = this.add.rectangle(400, 260, 250, 20, 0x666666);
-        
         [floor, islandTop, islandMid, islandBot].forEach(obj => this.physics.add.existing(obj, true));
 
         player = this.add.rectangle(200, 300, 30, 50, 0x00aaff);
-        this.physics.add.existing(player);
-        player.body.setCollideWorldBounds(true);
+        this.physics.add.existing(player); player.body.setCollideWorldBounds(true);
         
         dummy = this.add.rectangle(600, 335, 30, 50, 0xff5555);
         this.physics.add.existing(dummy, true);
 
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, activeWeapon.color).setAlpha(0);
-        this.physics.add.existing(meleeHitbox);
-        meleeHitbox.body.setAllowGravity(false);
+        this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
         
-        dummyHealthBar = this.add.graphics();
-        dummyArmorBar = this.add.graphics();
-        updateDummyBars();
+        dummyHealthBar = this.add.graphics(); dummyArmorBar = this.add.graphics(); updateDummyBars();
 
         this.physics.add.collider(player, [floor, islandTop, islandMid, islandBot]);
         this.physics.add.collider(grenadesGroup, [floor, islandTop, islandMid, islandBot]);
@@ -143,57 +123,55 @@
             x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16
         });
 
-        // --- ACTION BUTTONS ---
+        // --- NEW ACTION GRID LAYOUT ---
+        
+        // HIT (Light Attack)
         const btnMelee = this.add.circle(570, 310, 25, 0xffaa00).setAlpha(0.6).setInteractive();
-        this.add.text(552, 302, 'HIT', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
+        this.add.text(554, 302, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' });
         btnMelee.on('pointerdown', () => {
             if (isStunned || isBlocking || isDashing) return;
             if (!isAttacking) executeAttack(1);
             else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); }
         });
 
-        const btnToss = this.add.circle(570, 240, 25, 0x00cc00).setAlpha(0.6).setInteractive();
-        this.add.text(550, 232, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
+        // NEW: HEAVY ATTACK BUTTON
+        const btnHeavy = this.add.circle(570, 250, 25, 0xff3300).setAlpha(0.7).setInteractive();
+        this.add.text(554, 242, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
+        btnHeavy.on('pointerdown', () => {
+            if (isStunned || isBlocking || isDashing || isAttacking) return;
+            executeHeavyAttack();
+        });
+
+        // TOSS (Grenade)
+        const btnToss = this.add.circle(510, 250, 25, 0x00cc00).setAlpha(0.6).setInteractive();
+        this.add.text(492, 242, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnToss.on('pointerdown', tossGrenade);
 
-        // NEW: DEFEND BUTTON (Context Sensitive)
-        const btnDefend = this.add.circle(490, 240, 25, 0x888888).setAlpha(0.8).setInteractive();
-        this.add.text(465, 232, 'DEFEND', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' });
-        
+        // DEFEND (Block/Dash)
+        const btnDefend = this.add.circle(510, 310, 25, 0x888888).setAlpha(0.8).setInteractive();
+        this.add.text(495, 302, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnDefend.on('pointerdown', () => {
             if (isAttacking || isDashing || isStunned) return;
-
-            // Context Check: Is the player moving the joystick?
-            if (joyStickLeft.left || joyStickLeft.right) {
-                if (canDash) executeDash();
-            } else {
-                // Standing still -> Enter Block Stance
-                isBlocking = true;
-                player.fillColor = 0xcccccc; // Player turns shield-grey
-                actionText.setText('BLOCKING');
-            }
+            if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } 
+            else { isBlocking = true; player.fillColor = 0xcccccc; actionText.setText('BLOCKING'); }
         });
-        
-        // Release the block when lifting finger off the button
         btnDefend.on('pointerup', releaseBlock);
         btnDefend.on('pointerout', releaseBlock);
 
         function releaseBlock() {
-            if (isBlocking) {
-                isBlocking = false;
-                player.fillColor = 0x00aaff;
-                actionText.setText('Ready');
-            }
+            if (isBlocking) { isBlocking = false; player.fillColor = 0x00aaff; actionText.setText('Ready'); }
         }
 
-        const btnReload = this.add.circle(490, 310, 20, 0x4444ff).setAlpha(0.7).setInteractive();
-        this.add.text(472, 302, 'RELOAD', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
+        // RELOAD
+        const btnReload = this.add.circle(450, 310, 25, 0x4444ff).setAlpha(0.7).setInteractive();
+        this.add.text(435, 302, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnReload.on('pointerdown', () => {
             if (!isReloading && !isAttacking && !isBlocking && !isDashing && currentAmmo < activeGun.clipSize) reloadGun();
         });
 
-        const btnMeleeSwap = this.add.circle(490, 180, 20, 0xaaaaaa).setAlpha(0.5).setInteractive();
-        this.add.text(472, 172, 'M-GEAR', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
+        // Swaps (Moved left to fit grid)
+        const btnMeleeSwap = this.add.circle(450, 180, 20, 0xaaaaaa).setAlpha(0.5).setInteractive();
+        this.add.text(432, 172, 'M-GEAR', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
         btnMeleeSwap.on('pointerdown', () => {
             if (isAttacking || isBlocking) return; 
             currentWeaponIndex = (currentWeaponIndex + 1) % weaponKeys.length;
@@ -201,23 +179,22 @@
             meleeText.setText('Melee: ' + activeWeapon.name);
         });
 
-        const btnGunSwap = this.add.circle(540, 180, 20, 0xaaaaaa).setAlpha(0.5).setInteractive();
-        this.add.text(524, 172, 'G-GEAR', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
+        const btnGunSwap = this.add.circle(500, 180, 20, 0xaaaaaa).setAlpha(0.5).setInteractive();
+        this.add.text(484, 172, 'G-GEAR', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
         btnGunSwap.on('pointerdown', () => {
             if (isAttacking || isReloading || isBlocking) return; 
             currentGunIndex = (currentGunIndex + 1) % gunKeys.length;
             activeGun = gunArmory[gunKeys[currentGunIndex]];
             gunText.setText('Gun: ' + activeGun.name);
-            currentAmmo = activeGun.clipSize;
-            updateUI();
+            currentAmmo = activeGun.clipSize; updateUI();
         });
 
+        // Ultimate
         specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive();
         this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' });
         specialGraphics = this.add.graphics();
         specialButton.on('pointerdown', () => {
             if (specialReady && !isAttacking && !isBlocking) {
-                // (Ultimate Logic remains same)
                 player.fillColor = 0x00ffff;
                 let dist = Phaser.Math.Distance.Between(player.x, player.y, dummy.x, dummy.y);
                 if (dist < 180) { dealDamage(50, 0.8, 0); dummy.fillColor = 0x00ffff; this.time.delayedCall(200, () => dummy.fillColor = 0xff5555); }
@@ -227,64 +204,115 @@
         });
     }
 
-    // --- NEW: DEFENSIVE LOGIC ---
-    function executeDash() {
-        isDashing = true;
-        canDash = false;
-        isInvincible = true;
-        actionText.setText('DODGE!');
+    // --- NEW: HEAVY ATTACK LOGIC ---
+    function executeHeavyAttack() {
+        isAttacking = true;
+        inputBuffered = false;
+        canCancel = false; // Heavy attacks cannot be canceled, high commitment!
+        if (attackRecoveryTimer) attackRecoveryTimer.remove();
+        if (attackActiveTimer) attackActiveTimer.remove();
+
+        // 1. WINDUP PHASE (Telegraphing the attack)
+        player.fillColor = 0xff5500; // Orange warning color
+        actionText.setText(`WINDUP: ${activeWeapon.name}!`);
         
-        // Visual invincibility cues
-        player.setAlpha(0.5); 
-        player.fillColor = 0x00ffff; 
+        // Windup duration based on weapon speed
+        currentScene.time.delayedCall(activeWeapon.speed * 1.5, () => {
+            
+            // 2. ACTIVE PHASE (The Strike)
+            player.fillColor = activeWeapon.color;
+            actionText.setText(`HEAVY STRIKE!`);
+            
+            let currentReach = activeWeapon.reach * 1.8; // 80% longer reach
+            meleeHitbox.width = currentReach; 
+            meleeHitbox.height = 40; // Taller hitbox to catch jumping enemies
+            meleeHitbox.setAlpha(1);
 
-        // Apply massive burst velocity based on facing direction
-        let dashSpeed = (facingDirection === 0) ? 700 : -700;
-        player.body.setVelocityX(dashSpeed);
+            let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
+            meleeHitbox.setPosition(player.x + reachX, player.y); 
+            meleeHitbox.rotation = facingDirection;
 
-        // I-Frames & Dash Duration (0.25 seconds)
-        currentScene.time.delayedCall(250, () => {
-            isDashing = false;
-            isInvincible = false;
-            player.setAlpha(1);
-            player.fillColor = 0x00aaff;
-            actionText.setText('Ready');
-        });
+            let hit = Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), dummy.getBounds());
+            if (hit) {
+                // 2.5x Damage, guaranteed 0.5s stun minimum
+                let heavyDmg = activeWeapon.damage * 2.5;
+                let heavyStun = activeWeapon.stun > 0 ? activeWeapon.stun * 2 : 0.5;
+                dealDamage(heavyDmg, activeWeapon.pierce, heavyStun);
+                
+                dummy.fillColor = activeWeapon.color; 
+                currentScene.time.delayedCall(100, () => { if(!isStunned) dummy.fillColor = 0xff5555; });
+                
+                // Massive Knockback
+                if(dummyHealth > 0) dummy.x += (facingDirection === 0 ? 40 : -40); 
+            }
 
-        // Cooldown before you can dash again (1.2 seconds)
-        currentScene.time.delayedCall(1200, () => {
-            canDash = true;
+            // 3. RECOVERY PHASE (Vulnerable)
+            attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
+                meleeHitbox.setAlpha(0); 
+                meleeHitbox.setPosition(-100, -100); 
+                
+                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => {
+                    isAttacking = false; 
+                    player.fillColor = 0x00aaff;
+                    actionText.setText('Ready');
+                });
+            });
         });
     }
 
-    // Future-proofing: This function proves the math for when the Dummy fights back
-    function playerTakeDamage(incomingDmg, attackXLocation) {
-        if (isInvincible) {
-            actionText.setText('EVADED!'); // Dash completely ignores damage
-            return;
+    // --- STANDARD LIGHT COMBO LOGIC ---
+    function executeAttack(step) {
+        isAttacking = true; comboStep = step; inputBuffered = false; canCancel = false;
+        if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove();
+        player.fillColor = activeWeapon.color;
+        let currentReach = step === 3 ? activeWeapon.reach * 1.5 : activeWeapon.reach;
+        meleeHitbox.width = currentReach; meleeHitbox.height = step === 3 ? 40 : 20; meleeHitbox.setAlpha(1);
+        let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
+        meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
+
+        if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), dummy.getBounds())) {
+            dealDamage(activeWeapon.damage * (step === 3 ? 2 : 1), activeWeapon.pierce, activeWeapon.stun);
+            dummy.fillColor = activeWeapon.color; 
+            currentScene.time.delayedCall(100, () => { if(!isStunned) dummy.fillColor = 0xff5555; });
+            if(step === 3 && dummyHealth > 0) dummy.x += (facingDirection === 0 ? 10 : -10);
         }
 
+        attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
+            meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); canCancel = true; 
+            if (inputBuffered && step < 3) triggerNextHit();
+            else {
+                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => {
+                    isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; player.fillColor = 0x00aaff;
+                });
+            }
+        });
+    }
+    function triggerNextHit() { if (comboStep < 3) executeAttack(comboStep + 1); }
+
+    // --- DEFENSIVE LOGIC ---
+    function executeDash() {
+        isDashing = true; canDash = false; isInvincible = true; actionText.setText('DODGE!');
+        player.setAlpha(0.5); player.fillColor = 0x00ffff; 
+        player.body.setVelocityX((facingDirection === 0) ? 700 : -700);
+
+        currentScene.time.delayedCall(250, () => {
+            isDashing = false; isInvincible = false; player.setAlpha(1); player.fillColor = 0x00aaff; actionText.setText('Ready');
+        });
+        currentScene.time.delayedCall(1200, () => { canDash = true; });
+    }
+
+    function playerTakeDamage(incomingDmg, attackXLocation) {
+        if (isInvincible) return; // Evaded!
         let playerFacingRight = (facingDirection === 0);
         let attackFromRight = (attackXLocation > player.x);
-
         if (isBlocking) {
-            // Did the player face the attack?
-            if ((playerFacingRight && attackFromRight) || (!playerFacingRight && !attackFromRight)) {
-                incomingDmg *= 0.2; // 80% Damage Reduction!
-                actionText.setText('BLOCKED!');
-            } else {
-                actionText.setText('BACKSTABBED!'); // Blocked the wrong direction
-            }
+            if ((playerFacingRight && attackFromRight) || (!playerFacingRight && !attackFromRight)) incomingDmg *= 0.2; 
         }
-
         playerHealth -= incomingDmg;
-        if (playerHealth <= 0) {
-            actionText.setText('PLAYER DEFEATED');
-            playerHealth = 100; // Reset for prototyping
-        }
+        if (playerHealth <= 0) playerHealth = 100; 
     }
 
-    // --- GRENADE, GUN, AND MELEE SYSTEMS (SAME AS V9) ---
+    // --- ORDNANCE & GUN LOGIC ---
     function tossGrenade() {
         let currentTime = currentScene.time.now;
         if (currentOrdnanceAmmo <= 0 || isAttacking || isBlocking || isDashing || currentTime < lastTossedTime + activeOrdnance.cooldown) return;
@@ -338,35 +366,6 @@
         }
     }
 
-    function executeAttack(step) {
-        isAttacking = true; comboStep = step; inputBuffered = false; canCancel = false;
-        if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove();
-        player.fillColor = activeWeapon.color;
-        let currentReach = step === 3 ? activeWeapon.reach * 1.5 : activeWeapon.reach;
-        meleeHitbox.width = currentReach; meleeHitbox.height = step === 3 ? 40 : 20; meleeHitbox.setAlpha(1);
-        let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
-        meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
-
-        if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), dummy.getBounds())) {
-            dealDamage(activeWeapon.damage * (step === 3 ? 2 : 1), activeWeapon.pierce, activeWeapon.stun);
-            dummy.fillColor = activeWeapon.color; 
-            currentScene.time.delayedCall(100, () => { if(!isStunned) dummy.fillColor = 0xff5555; });
-            if(step === 3 && dummyHealth > 0) dummy.x += (facingDirection === 0 ? 10 : -10);
-        }
-
-        attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
-            meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); canCancel = true; 
-            if (inputBuffered && step < 3) triggerNextHit();
-            else {
-                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => {
-                    isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; player.fillColor = 0x00aaff;
-                });
-            }
-        });
-    }
-
-    function triggerNextHit() { if (comboStep < 3) executeAttack(comboStep + 1); }
-
     function dealDamage(dmg, piercePercent, stunDuration) {
         let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg;
         if (dummyArmor > 0) { dummyArmor -= standardDmg; if (dummyArmor < 0) { dummyHealth += dummyArmor; dummyArmor = 0; }
@@ -394,18 +393,14 @@
     // --- MAIN GAME LOOP ---
     function update() {
         if (isStunned) return;
-
         const moveSpeed = 250;
         let currentTime = currentScene.time.now;
         
-        // MOVEMENT LOGIC
         if (isDashing) {
-            // Let the dash velocity carry the player, ignore joystick
+            // Dash locks out joystick
         } else if (isAttacking || isBlocking) {
-            // Feet planted
-            player.body.setVelocityX(0);
+            player.body.setVelocityX(0); // Rooted
         } else {
-            // Normal movement
             if (joyStickLeft.left) { player.body.setVelocityX(-moveSpeed); facingDirection = Math.PI; }
             else if (joyStickLeft.right) { player.body.setVelocityX(moveSpeed); facingDirection = 0; }
             else player.body.setVelocityX(0);
@@ -413,27 +408,22 @@
 
         if (player.body.touching.down) jumps = 0;
 
-        // Jump Logic (Locked if blocking/dashing)
         if (joyStickLeft.up) {
             if (joystickUpReleased && jumps < 3 && !isAttacking && !isBlocking && !isDashing) {
                 player.body.setVelocityY(-450); jumps++; joystickUpReleased = false;
             }
         } else joystickUpReleased = true;
 
-        // Ranged Combat Logic (Locked if blocking/dashing)
         if (joyStickRight.force > 0) {
-            player.rotation = joyStickRight.rotation; 
-            facingDirection = joyStickRight.rotation; 
+            player.rotation = joyStickRight.rotation; facingDirection = joyStickRight.rotation; 
             if (currentTime > lastFiredTime + activeGun.fireRate && !isAttacking && !isReloading && !isBlocking && !isDashing) {
                 if (currentAmmo > 0) { shootGun(joyStickRight.rotation); currentAmmo--; updateUI(); lastFiredTime = currentTime;
                 } else reloadGun();
             }
         } else if (!isAttacking && !isDashing) player.rotation = facingDirection; 
 
-        // Ultimate Charge
         if (!specialReady) {
-            specialCharge += 0.2; 
-            specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
+            specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
             specialGraphics.arc(680, 180, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false);
             specialGraphics.strokePath();
             if (specialCharge >= specialMax) { specialReady = true; specialButton.setFillStyle(0x00ffff); }
