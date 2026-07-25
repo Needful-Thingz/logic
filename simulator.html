@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Weapon Loadout Simulator V10 (Defense & Evasion)</title>
+<title>Weapon Loadout Simulator V11 (Heavy Attacks & Defense)</title>
 <style>
   body { font-family: sans-serif; background: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
   .arena-box { background: #222; border-radius: 10px; margin-bottom: 20px; position: relative; height: 200px; overflow: hidden; }
@@ -36,6 +36,7 @@
 
   button { width: 100%; padding: 15px; margin-top: 10px; font-size: 18px; font-weight: bold; border: none; border-radius: 10px; text-transform: uppercase; cursor: pointer; }
   #strike-btn { background: #ffaa00; color: #000; }
+  #heavy-btn { background: #ff3300; color: #fff; }
   #reload-btn { background: #4444ff; color: white; }
   #block-btn { background: #888888; color: white; }
   #dash-btn { background: #00ffff; color: black; }
@@ -46,10 +47,9 @@
 </head>
 <body>
 
-<h2>Weapon Loadout Simulator V10</h2>
+<h2>Weapon Loadout Simulator V11</h2>
 <div id="status-log">Target is ready.</div>
 
-<!-- UPDATED STATS BOARD (NOW INCLUDES PLAYER HEALTH) -->
 <div class="stats">
   <div style="width: 30%;">
     PLAYER HP: <span id="p-health-val">100</span>
@@ -72,7 +72,6 @@
 </div>
 
 <div class="controls">
-  <!-- 4-WAY MODE TOGGLE -->
   <div class="mode-toggle">
     <label><input type="radio" name="wtype" value="melee" checked onchange="switchMode()"> <span>🗡️ Melee</span></label>
     <label><input type="radio" name="wtype" value="gun" onchange="switchMode()"> <span>🔫 Guns</span></label>
@@ -108,13 +107,12 @@
     <option value="frag" data-dmg="50" data-radius="110" data-fuse="1500" data-clip="3" data-reload="1000" data-pierce="50" data-stun="0" data-color="rgba(0,255,0,1)" selected>Standard Frag Grenade</option>
   </select>
   
-  <!-- 4. DEFENSE DROPDOWN (NEW) -->
+  <!-- 4. DEFENSE DROPDOWN -->
   <select id="defense-select" class="hidden" onchange="loadWeapon()">
     <option value="standard" data-incdmg="40" data-mit="80" data-iframe="250" selected>Standard Enemy Strike</option>
     <option value="heavy" data-incdmg="90" data-mit="80" data-iframe="250">Heavy Boss Attack</option>
   </select>
 
-  <!-- MELEE SPECIFIC CONTROLS -->
   <div id="melee-controls">
     <label>Attack Speed (ms): <span id="speed-val">150</span></label>
     <input type="range" id="speed" min="50" max="500" value="150" oninput="updateUI()">
@@ -122,7 +120,6 @@
     <input type="range" id="reach" min="30" max="300" value="100" oninput="updateUI()">
   </div>
 
-  <!-- GUN SPECIFIC CONTROLS -->
   <div id="gun-controls" class="hidden">
     <label>Clip Size (Ammo): <span id="clip-val">15</span></label>
     <input type="range" id="clip" min="1" max="100" value="15" oninput="updateUI()">
@@ -138,7 +135,6 @@
     <input type="range" id="lifespan" min="100" max="3000" value="1000" step="50" oninput="updateUI()">
   </div>
 
-  <!-- ORDNANCE SPECIFIC CONTROLS -->
   <div id="ordnance-controls" class="hidden">
     <label>Max Carry Capacity: <span id="ord-clip-val">3</span></label>
     <input type="range" id="ord-clip" min="1" max="10" value="3" oninput="updateUI()">
@@ -150,7 +146,6 @@
     <input type="range" id="fuse" min="500" max="4000" step="100" value="1500" oninput="updateUI()">
   </div>
 
-  <!-- DEFENSE SPECIFIC CONTROLS (NEW) -->
   <div id="defense-controls" class="hidden">
     <label style="color: #ff5555;">Incoming Enemy Damage: <span id="incdmg-val">40</span></label>
     <input type="range" id="incdmg" min="10" max="150" value="40" oninput="updateUI()">
@@ -160,57 +155,47 @@
     <input type="range" id="iframe" min="50" max="1000" step="50" value="250" oninput="updateUI()">
   </div>
 
-  <!-- SHARED DAMAGE CONTROLS -->
   <div id="shared-controls">
-    <label>Damage Output: <span id="dmg-val" style="color: #fff;">20</span></label>
+    <label>Base Damage Output: <span id="dmg-val" style="color: #fff;">20</span></label>
     <input type="range" id="dmg" min="1" max="200" value="20" oninput="updateUI()">
     <label>Armor Piercing (%): <span id="pierce-val" style="color: #fff;">20</span></label>
     <input type="range" id="pierce" min="0" max="100" value="20" oninput="updateUI()">
-    <label>Stun Duration (s): <span id="stun-val" style="color: #fff;">0</span></label>
+    <label>Base Stun Duration (s): <span id="stun-val" style="color: #fff;">0</span></label>
     <input type="range" id="stun" min="0" max="3" step="0.5" value="0" oninput="updateUI()">
   </div>
 </div>
 
 <div id="ammo-display" class="hidden">AMMO: 15 / 15</div>
 
-<button id="strike-btn" onclick="executeAction()">ATTACK / TOSS</button>
-
-<!-- NEW DEFENSE BUTTONS -->
+<!-- DUAL ATTACK BUTTONS -->
 <div style="display:flex; gap:10px;">
-    <button id="block-btn" class="hidden" onclick="toggleBlock()">TOGGLE BLOCK: OFF</button>
-    <button id="dash-btn" class="hidden" onclick="triggerDash()">DASH (I-FRAMES)</button>
+    <button id="strike-btn" style="flex:1;" onclick="executeAction()">LIGHT STRIKE</button>
+    <button id="heavy-btn" style="flex:1;" onclick="executeHeavyAction()">HEAVY STRIKE</button>
+</div>
+
+<div style="display:flex; gap:10px; margin-top: 10px;">
+    <button id="block-btn" class="hidden" style="flex:1;" onclick="toggleBlock()">TOGGLE BLOCK: OFF</button>
+    <button id="dash-btn" class="hidden" style="flex:1;" onclick="triggerDash()">DASH (I-FRAMES)</button>
 </div>
 
 <button id="reload-btn" class="hidden" onclick="triggerManualReload()">RELOAD WEAPON</button>
 <button id="reset-btn" onclick="reset()">Reset Combat</button>
 
 <script>
-  let playerHP = 100; // NEW PLAYER HEALTH
-  let health = 100;
-  let armor = 100;
-  let isStunned = false;
-  let currentColor = "rgba(255, 170, 0, 0.7)";
-  let isAttacking = false;
-  
-  let currentAmmo = 15;
-  let isReloading = false;
-
-  // Defensive Flags
-  let isBlocking = false;
-  let isDashing = false;
+  let playerHP = 100, health = 100, armor = 100;
+  let isStunned = false, currentColor = "rgba(255, 170, 0, 0.7)", isAttacking = false;
+  let currentAmmo = 15, isReloading = false, isBlocking = false, isDashing = false;
 
   function getMode() { return document.querySelector('input[name="wtype"]:checked').value; }
 
   function switchMode() {
     let mode = getMode();
-    // Hide all
     ['melee', 'gun', 'ordnance', 'defense'].forEach(t => {
       document.getElementById(`${t}-select`).classList.add('hidden');
       document.getElementById(`${t}-controls`).classList.add('hidden');
     });
     document.getElementById('shared-controls').classList.add('hidden');
 
-    // Show selected
     document.getElementById(`${mode}-select`).classList.remove('hidden');
     document.getElementById(`${mode}-controls`).classList.remove('hidden');
 
@@ -220,13 +205,15 @@
       document.getElementById('reload-btn').classList.add('hidden');
       document.getElementById('block-btn').classList.add('hidden');
       document.getElementById('dash-btn').classList.add('hidden');
-      document.getElementById('strike-btn').innerText = "EXECUTE STRIKE";
+      document.getElementById('heavy-btn').classList.remove('hidden');
+      document.getElementById('strike-btn').innerText = "LIGHT STRIKE";
     } else if (mode === 'gun') {
       document.getElementById('shared-controls').classList.remove('hidden');
       document.getElementById('ammo-display').classList.remove('hidden');
       document.getElementById('reload-btn').classList.remove('hidden');
       document.getElementById('block-btn').classList.add('hidden');
       document.getElementById('dash-btn').classList.add('hidden');
+      document.getElementById('heavy-btn').classList.add('hidden');
       document.getElementById('strike-btn').innerText = "FIRE WEAPON";
     } else if (mode === 'ordnance') {
       document.getElementById('shared-controls').classList.remove('hidden');
@@ -234,16 +221,19 @@
       document.getElementById('reload-btn').classList.add('hidden'); 
       document.getElementById('block-btn').classList.add('hidden');
       document.getElementById('dash-btn').classList.add('hidden');
+      document.getElementById('heavy-btn').classList.add('hidden');
       document.getElementById('strike-btn').innerText = "TOSS GRENADE";
     } else if (mode === 'defense') {
       document.getElementById('ammo-display').classList.add('hidden');
       document.getElementById('reload-btn').classList.add('hidden'); 
+      document.getElementById('heavy-btn').classList.add('hidden');
       document.getElementById('block-btn').classList.remove('hidden');
       document.getElementById('dash-btn').classList.remove('hidden');
       document.getElementById('strike-btn').innerText = "SIMULATE ENEMY STRIKE";
     }
     
     document.getElementById('hitbox').style.opacity = "0"; 
+    document.getElementById('hitbox').style.height = "20px";
     loadWeapon();
   }
 
@@ -251,7 +241,6 @@
     let mode = getMode();
     let select = document.getElementById(`${mode}-select`);
     if (select.value === 'custom' || select.value === 'standard' || select.value === 'heavy') {
-        // Just pull data if standard/heavy defense preset
         if (mode === 'defense') {
             const opt = select.options[select.selectedIndex];
             document.getElementById('incdmg').value = opt.getAttribute('data-incdmg');
@@ -322,7 +311,6 @@
     }
 
     updateAmmoVisuals();
-
     let pos = document.getElementById('position').value;
     document.getElementById('player').style.left = pos + '%';
     
@@ -331,6 +319,7 @@
         hitboxElement.style.width = document.getElementById('reach').value + 'px';
         hitboxElement.style.left = `calc(${pos}% + 30px)`;
         hitboxElement.style.backgroundColor = currentColor;
+        hitboxElement.style.height = "20px";
     }
   }
 
@@ -364,31 +353,20 @@
       let maxClip = parseInt(document.getElementById('clip').value);
       document.getElementById('status-log').innerText = "Reloading...";
       updateAmmoVisuals();
-
       setTimeout(() => {
-          currentAmmo = maxClip;
-          isReloading = false;
-          document.getElementById('status-log').innerText = "Target is ready.";
-          updateAmmoVisuals();
+          currentAmmo = maxClip; isReloading = false; document.getElementById('status-log').innerText = "Target is ready."; updateAmmoVisuals();
       }, reloadTime);
   }
 
-  // --- NEW DEFENSE MODULE ---
   function toggleBlock() {
-      if (isDashing) return; // Can't block while dodging
+      if (isDashing) return;
       isBlocking = !isBlocking;
-      let pEl = document.getElementById('player');
-      let btn = document.getElementById('block-btn');
-      
+      let pEl = document.getElementById('player'), btn = document.getElementById('block-btn');
       if(isBlocking) {
-          pEl.style.backgroundColor = "#cccccc"; // Grey shield color
-          btn.innerText = "TOGGLE BLOCK: ON";
-          btn.style.backgroundColor = "#aaaaaa";
+          pEl.style.backgroundColor = "#cccccc"; btn.innerText = "TOGGLE BLOCK: ON"; btn.style.backgroundColor = "#aaaaaa";
           document.getElementById('status-log').innerText = "BLOCKING... Frontal damage reduced.";
       } else {
-          pEl.style.backgroundColor = "#00aaff";
-          btn.innerText = "TOGGLE BLOCK: OFF";
-          btn.style.backgroundColor = "#888888";
+          pEl.style.backgroundColor = "#00aaff"; btn.innerText = "TOGGLE BLOCK: OFF"; btn.style.backgroundColor = "#888888";
           document.getElementById('status-log').innerText = "Block released.";
       }
   }
@@ -398,269 +376,218 @@
       isDashing = true;
       let iframeDuration = parseInt(document.getElementById('iframe').value);
       let pEl = document.getElementById('player');
-      
-      pEl.style.backgroundColor = "#00ffff"; // Dodge color
-      pEl.style.opacity = "0.5"; // Ghosting effect
+      pEl.style.backgroundColor = "#00ffff"; pEl.style.opacity = "0.5"; 
       document.getElementById('status-log').innerText = "DASHING! (Invincible)";
-      
       setTimeout(() => {
-          isDashing = false;
-          pEl.style.opacity = "1";
-          pEl.style.backgroundColor = isBlocking ? "#cccccc" : "#00aaff"; // Return to block if holding it
+          isDashing = false; pEl.style.opacity = "1"; pEl.style.backgroundColor = isBlocking ? "#cccccc" : "#00aaff";
           document.getElementById('status-log').innerText = "Dash complete. Target ready.";
       }, iframeDuration);
   }
 
+  // --- NEW: HEAVY ATTACK MATH ---
+  function executeHeavyAction() {
+      if (isAttacking || isStunned || getMode() !== 'melee') return;
+      isAttacking = true;
+
+      let baseDmg = parseInt(document.getElementById('dmg').value);
+      let dmg = baseDmg * 2.5; // Massive Damage
+      
+      let piercePercent = parseInt(document.getElementById('pierce').value) / 100;
+      
+      let baseStun = parseFloat(document.getElementById('stun').value);
+      let stunDuration = baseStun > 0 ? baseStun * 2 : 0.5; // Guaranteed Stun
+
+      let attackSpeed = parseInt(document.getElementById('speed').value);
+      let baseReach = parseInt(document.getElementById('reach').value);
+      
+      let pEl = document.getElementById('player');
+      let hitboxElement = document.getElementById('hitbox');
+      let dummyElement = document.getElementById('dummy');
+      
+      // Windup Phase
+      pEl.style.backgroundColor = "#ff5500";
+      document.getElementById('status-log').innerText = "WINDUP...";
+
+      setTimeout(() => {
+          pEl.style.backgroundColor = "#00aaff";
+          
+          hitboxElement.style.height = "40px"; // Taller hitbox
+          hitboxElement.style.width = (baseReach * 1.8) + 'px'; // 80% longer
+          hitboxElement.style.opacity = "1";
+          hitboxElement.style.transition = `opacity 0.05s`; 
+          
+          setTimeout(() => {
+              hitboxElement.style.transition = `opacity ${attackSpeed / 1000}s ease-in`; 
+              hitboxElement.style.opacity = "0";
+              setTimeout(() => {
+                  isAttacking = false;
+                  hitboxElement.style.height = "20px"; // Reset
+                  updateUI(); 
+              }, attackSpeed * 2.5); // Punishing Recovery Time
+          }, 50);
+
+          let hitRect = hitboxElement.getBoundingClientRect();
+          let dumRect = dummyElement.getBoundingClientRect();
+
+          if (hitRect.right < dumRect.left) {
+              document.getElementById('status-log').innerText = "Heavy swing and a miss! (Vulnerable)";
+          } else {
+              applyDamage(dmg, piercePercent, stunDuration, `CRITICAL! Dealt ${dmg} dmg. Target knocked back!`);
+              hitboxElement.style.background = "#ffffff";
+              setTimeout(() => hitboxElement.style.background = currentColor, 100);
+              
+              // Knockback Math
+              dummyElement.style.transition = "left 0.15s ease-out";
+              let currentLeft = parseFloat(dummyElement.style.left || '80');
+              dummyElement.style.left = (currentLeft + 10) + '%';
+              
+              // Walk back for ease of simulator testing
+              setTimeout(() => {
+                  dummyElement.style.transition = "left 1s ease-in-out";
+                  dummyElement.style.left = '80%';
+              }, 600);
+          }
+      }, attackSpeed * 1.5); // Windup Time
+  }
+
   function executeAction() {
     if (isAttacking || isStunned) return; 
-
     let mode = getMode();
     let dmg = parseInt(document.getElementById('dmg').value);
     let piercePercent = parseInt(document.getElementById('pierce').value) / 100;
     let stunDuration = parseFloat(document.getElementById('stun').value);
 
-    // --- DEFENSE EXECUTION (Dummy attacks player) ---
     if (mode === 'defense') {
         let incDmg = parseInt(document.getElementById('incdmg').value);
         let mitPercent = parseInt(document.getElementById('mit').value) / 100;
-        
-        // Visual dummy lunge
         let dummyEl = document.getElementById('dummy');
         let pPos = parseInt(document.getElementById('position').value);
+        dummyEl.style.transition = "left 0.15s ease-out";
         dummyEl.style.left = (pPos + 10) + '%';
         
         setTimeout(() => {
-            dummyEl.style.left = '80%'; // Retreat
+            dummyEl.style.transition = "left 0.4s ease-in-out";
+            dummyEl.style.left = '80%'; 
             
-            if (isDashing) {
-                document.getElementById('status-log').innerText = "EVADED! I-frames completely absorbed the attack.";
-            } else if (isBlocking) {
+            if (isDashing) document.getElementById('status-log').innerText = "EVADED! I-frames absorbed the attack.";
+            else if (isBlocking) {
                 let finalDmg = Math.round(incDmg * (1 - mitPercent));
                 playerHP -= finalDmg;
-                document.getElementById('status-log').innerText = `BLOCKED! Damage mitigated by ${mitPercent*100}%. Took ${finalDmg} dmg.`;
+                document.getElementById('status-log').innerText = `BLOCKED! Mitigated ${mitPercent*100}%. Took ${finalDmg} dmg.`;
             } else {
-                playerHP -= incDmg;
-                document.getElementById('status-log').innerText = `DIRECT HIT! You took ${incDmg} damage.`;
+                playerHP -= incDmg; document.getElementById('status-log').innerText = `DIRECT HIT! Took ${incDmg} dmg.`;
             }
-
-            if (playerHP < 0) playerHP = 0;
-            updateBars();
+            if (playerHP < 0) playerHP = 0; updateBars();
         }, 150);
         return;
     }
 
-    // --- GUN EXECUTION ---
     if (mode === 'gun') {
         if (isReloading) return;
         if (currentAmmo <= 0) { processReload(); return; }
+        isAttacking = true; currentAmmo--; updateAmmoVisuals();
+        let fireRate = parseInt(document.getElementById('firerate').value), projSpeed = parseInt(document.getElementById('projspeed').value);
+        let count = parseInt(document.getElementById('count').value), lifespan = parseInt(document.getElementById('lifespan').value);
 
-        isAttacking = true;
-        currentAmmo--;
-        updateAmmoVisuals();
-
-        let fireRate = parseInt(document.getElementById('firerate').value);
-        let projSpeed = parseInt(document.getElementById('projspeed').value);
-        let count = parseInt(document.getElementById('count').value);
-        let lifespan = parseInt(document.getElementById('lifespan').value);
-
-        setTimeout(() => {
-            isAttacking = false;
-            if (currentAmmo <= 0) processReload();
-        }, fireRate); 
-
-        let arena = document.getElementById('arena');
-        let pRect = document.getElementById('player').getBoundingClientRect();
-        let dRect = document.getElementById('dummy').getBoundingClientRect();
-        let arenaRect = arena.getBoundingClientRect();
-        let startX = pRect.right - arenaRect.left;
-        let startY = (pRect.top - arenaRect.top) + (pRect.height / 2); 
-        let distToDummy = dRect.left - pRect.right;
-        
-        let timeToHit = (distToDummy / projSpeed) * 1000; 
+        setTimeout(() => { isAttacking = false; if (currentAmmo <= 0) processReload(); }, fireRate); 
+        let arena = document.getElementById('arena'), pRect = document.getElementById('player').getBoundingClientRect();
+        let dRect = document.getElementById('dummy').getBoundingClientRect(), arenaRect = arena.getBoundingClientRect();
+        let startX = pRect.right - arenaRect.left, startY = (pRect.top - arenaRect.top) + (pRect.height / 2); 
+        let distToDummy = dRect.left - pRect.right, timeToHit = (distToDummy / projSpeed) * 1000; 
         let willHit = timeToHit <= lifespan && distToDummy > 0;
-        let actualTravelTime = willHit ? timeToHit : lifespan;
-        let travelDist = willHit ? distToDummy : (projSpeed * lifespan / 1000);
+        let actualTravelTime = willHit ? timeToHit : lifespan, travelDist = willHit ? distToDummy : (projSpeed * lifespan / 1000);
         let totalDmg = 0;
 
         for (let i = 0; i < count; i++) {
-            let bullet = document.createElement('div');
-            bullet.className = 'bullet';
-            bullet.style.backgroundColor = currentColor;
-            bullet.style.left = startX + 'px';
-            bullet.style.top = startY + 'px';
-            arena.appendChild(bullet);
+            let bullet = document.createElement('div'); bullet.className = 'bullet'; bullet.style.backgroundColor = currentColor;
+            bullet.style.left = startX + 'px'; bullet.style.top = startY + 'px'; arena.appendChild(bullet);
             let spreadY = (i - Math.floor(count / 2)) * 15; 
             setTimeout(() => {
                 bullet.style.transition = `left ${actualTravelTime}ms linear, top ${actualTravelTime}ms linear`;
-                bullet.style.left = (startX + travelDist) + 'px';
-                bullet.style.top = (startY + spreadY) + 'px';
+                bullet.style.left = (startX + travelDist) + 'px'; bullet.style.top = (startY + spreadY) + 'px';
             }, 10);
-            setTimeout(() => {
-                bullet.remove();
-                if (willHit) totalDmg += dmg;
-            }, actualTravelTime + 10);
+            setTimeout(() => { bullet.remove(); if (willHit) totalDmg += dmg; }, actualTravelTime + 10);
         }
-
         setTimeout(() => {
             if (willHit && totalDmg > 0) applyDamage(totalDmg, piercePercent, stunDuration, `Ranged hit! Dealt ${totalDmg} dmg.`);
             else if (!willHit) document.getElementById('status-log').innerText = "Bullets fizzled out!";
         }, actualTravelTime + 15);
 
-    // --- ORDNANCE EXECUTION ---
     } else if (mode === 'ordnance') {
-        if (currentAmmo <= 0) {
-            document.getElementById('status-log').innerText = "Out of Grenades! (Reset combat to restock)";
-            return;
-        }
-
-        isAttacking = true;
-        currentAmmo--;
-        updateAmmoVisuals();
-
-        let cooldown = parseInt(document.getElementById('ord-cooldown').value);
-        let radius = parseInt(document.getElementById('radius').value);
-        let fuse = parseInt(document.getElementById('fuse').value);
-
+        if (currentAmmo <= 0) { document.getElementById('status-log').innerText = "Out of Grenades! (Reset to restock)"; return; }
+        isAttacking = true; currentAmmo--; updateAmmoVisuals();
+        let cooldown = parseInt(document.getElementById('ord-cooldown').value), radius = parseInt(document.getElementById('radius').value), fuse = parseInt(document.getElementById('fuse').value);
         setTimeout(() => { isAttacking = false; }, cooldown); 
-
-        let arena = document.getElementById('arena');
-        let pRect = document.getElementById('player').getBoundingClientRect();
-        let dRect = document.getElementById('dummy').getBoundingClientRect();
-        let arenaRect = arena.getBoundingClientRect();
         
-        let nade = document.createElement('div');
-        nade.className = 'grenade';
-        nade.style.backgroundColor = currentColor;
-        nade.style.left = (pRect.right - arenaRect.left) + 'px';
-        nade.style.top = (pRect.top - arenaRect.top) + 'px';
-        arena.appendChild(nade);
+        let arena = document.getElementById('arena'), pRect = document.getElementById('player').getBoundingClientRect();
+        let dRect = document.getElementById('dummy').getBoundingClientRect(), arenaRect = arena.getBoundingClientRect();
+        let nade = document.createElement('div'); nade.className = 'grenade'; nade.style.backgroundColor = currentColor;
+        nade.style.left = (pRect.right - arenaRect.left) + 'px'; nade.style.top = (pRect.top - arenaRect.top) + 'px'; arena.appendChild(nade);
 
         let tossDist = (dRect.left - pRect.right) * 0.8; 
-        
         setTimeout(() => {
             nade.style.transition = `left ${fuse * 0.6}ms ease-out, top ${fuse * 0.6}ms cubic-bezier(0.2, 0.8, 0.4, 1)`;
-            nade.style.left = ((pRect.right - arenaRect.left) + tossDist) + 'px';
-            nade.style.top = (arenaRect.height - 30) + 'px'; 
+            nade.style.left = ((pRect.right - arenaRect.left) + tossDist) + 'px'; nade.style.top = (arenaRect.height - 30) + 'px'; 
         }, 20);
 
         setTimeout(() => {
-            let exX = parseFloat(nade.style.left);
-            let exY = parseFloat(nade.style.top);
-            nade.remove();
-
-            let blast = document.createElement('div');
-            blast.className = 'explosion';
-            blast.style.width = (radius * 2) + 'px';
-            blast.style.height = (radius * 2) + 'px';
-            blast.style.left = exX + 'px';
-            blast.style.top = exY + 'px';
-            arena.appendChild(blast);
-
-            setTimeout(() => {
-                blast.style.transition = "opacity 0.2s";
-                blast.style.opacity = "0";
-                setTimeout(() => blast.remove(), 200);
-            }, 100);
+            let exX = parseFloat(nade.style.left), exY = parseFloat(nade.style.top); nade.remove();
+            let blast = document.createElement('div'); blast.className = 'explosion'; blast.style.width = (radius * 2) + 'px';
+            blast.style.height = (radius * 2) + 'px'; blast.style.left = exX + 'px'; blast.style.top = exY + 'px'; arena.appendChild(blast);
+            setTimeout(() => { blast.style.transition = "opacity 0.2s"; blast.style.opacity = "0"; setTimeout(() => blast.remove(), 200); }, 100);
 
             let dummyCenter = (dRect.left - arenaRect.left) + (dRect.width / 2);
-            let distanceToBlast = Math.abs(dummyCenter - exX);
-
-            if (distanceToBlast <= radius) {
-                applyDamage(dmg, piercePercent, stunDuration, `BOOM! Caught in blast for ${dmg} dmg!`);
-            } else {
-                document.getElementById('status-log').innerText = "BOOM! ...but target was outside the blast radius.";
-            }
+            if (Math.abs(dummyCenter - exX) <= radius) applyDamage(dmg, piercePercent, stunDuration, `BOOM! Caught in blast for ${dmg} dmg!`);
+            else document.getElementById('status-log').innerText = "BOOM! ...but target was outside blast radius.";
         }, fuse);
 
-    // --- MELEE EXECUTION ---
     } else {
         isAttacking = true;
-        let attackSpeed = parseInt(document.getElementById('speed').value);
-        let hitboxElement = document.getElementById('hitbox');
-        let dummyElement = document.getElementById('dummy');
-        
-        hitboxElement.style.opacity = "1";
-        hitboxElement.style.transition = `opacity 0.05s`; 
-        
+        let attackSpeed = parseInt(document.getElementById('speed').value), hitboxElement = document.getElementById('hitbox'), dummyElement = document.getElementById('dummy');
+        hitboxElement.style.opacity = "1"; hitboxElement.style.transition = `opacity 0.05s`; 
         setTimeout(() => {
-            hitboxElement.style.transition = `opacity ${attackSpeed / 1000}s ease-in`; 
-            hitboxElement.style.opacity = "0";
+            hitboxElement.style.transition = `opacity ${attackSpeed / 1000}s ease-in`; hitboxElement.style.opacity = "0";
             setTimeout(() => isAttacking = false, attackSpeed); 
         }, 50);
 
-        let hitRect = hitboxElement.getBoundingClientRect();
-        let dumRect = dummyElement.getBoundingClientRect();
-
-        if (hitRect.right < dumRect.left) document.getElementById('status-log').innerText = "Swing and a miss! Walk closer.";
-        else applyDamage(dmg, piercePercent, stunDuration, "Melee hit landed!");
+        if (hitboxElement.getBoundingClientRect().right < dummyElement.getBoundingClientRect().left) document.getElementById('status-log').innerText = "Swing and a miss! Walk closer.";
+        else applyDamage(dmg, piercePercent, stunDuration, "Light Melee hit landed!");
     }
   }
 
   function applyDamage(dmg, piercePercent, stunDuration, logMessage) {
     let dummyElement = document.getElementById('dummy');
-    let piercingDmg = dmg * piercePercent;
-    let standardDmg = dmg - piercingDmg;
-
-    if (armor > 0) {
-        armor -= standardDmg;
-        if (armor < 0) { health += armor; armor = 0; }
+    let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg;
+    if (armor > 0) { armor -= standardDmg; if (armor < 0) { health += armor; armor = 0; }
     } else health -= standardDmg;
-
-    health -= piercingDmg;
-    if (health < 0) health = 0;
+    health -= piercingDmg; if (health < 0) health = 0;
 
     if (stunDuration > 0) {
-        isStunned = true;
-        dummyElement.style.backgroundColor = "#00ffff"; 
+        isStunned = true; dummyElement.style.backgroundColor = "#00ffff"; 
         document.getElementById('status-log').innerText = `ZAPPED! Target frozen for ${stunDuration}s!`;
-        setTimeout(() => {
-            isStunned = false;
-            dummyElement.style.backgroundColor = "#ff5555";
-            document.getElementById('status-log').innerText = "Target recovered from stun.";
-        }, stunDuration * 1000);
+        setTimeout(() => { isStunned = false; dummyElement.style.backgroundColor = "#ff5555"; document.getElementById('status-log').innerText = "Target recovered."; }, stunDuration * 1000);
     } else document.getElementById('status-log').innerText = logMessage;
-
     updateBars();
   }
 
   function updateBars() {
-    document.getElementById('p-health-val').innerText = Math.round(playerHP);
-    document.getElementById('p-health-bar').style.width = playerHP + '%';
-
-    document.getElementById('health-val').innerText = Math.round(health);
-    document.getElementById('health-bar').style.width = health + '%';
-    
-    document.getElementById('armor-val').innerText = Math.round(armor);
-    document.getElementById('armor-bar').style.width = armor + '%';
+    document.getElementById('p-health-val').innerText = Math.round(playerHP); document.getElementById('p-health-bar').style.width = playerHP + '%';
+    document.getElementById('health-val').innerText = Math.round(health); document.getElementById('health-bar').style.width = health + '%';
+    document.getElementById('armor-val').innerText = Math.round(armor); document.getElementById('armor-bar').style.width = armor + '%';
   }
 
   function reset() {
-    playerHP = 100; // Reset player
-    health = 100;
-    armor = 100;
-    isStunned = false;
-    isAttacking = false;
-    isBlocking = false;
-    isDashing = false;
-    
-    document.getElementById('dummy').style.backgroundColor = "#ff5555";
-    document.getElementById('player').style.backgroundColor = "#00aaff";
-    document.getElementById('player').style.opacity = "1";
-    document.getElementById('block-btn').innerText = "TOGGLE BLOCK: OFF";
-    document.getElementById('block-btn').style.backgroundColor = "#888888";
+    playerHP = 100; health = 100; armor = 100; isStunned = false; isAttacking = false; isBlocking = false; isDashing = false;
+    document.getElementById('dummy').style.backgroundColor = "#ff5555"; document.getElementById('dummy').style.left = '80%';
+    document.getElementById('player').style.backgroundColor = "#00aaff"; document.getElementById('player').style.opacity = "1";
+    document.getElementById('block-btn').innerText = "TOGGLE BLOCK: OFF"; document.getElementById('block-btn').style.backgroundColor = "#888888";
     document.getElementById('status-log').innerText = "Combat reset.";
     
     let mode = getMode();
-    if (mode === 'gun') {
-        currentAmmo = parseInt(document.getElementById('clip').value);
-        isReloading = false;
-    } else if (mode === 'ordnance') {
-        currentAmmo = parseInt(document.getElementById('ord-clip').value);
-    }
-    updateAmmoVisuals();
-    updateBars();
+    if (mode === 'gun') { currentAmmo = parseInt(document.getElementById('clip').value); isReloading = false; } 
+    else if (mode === 'ordnance') { currentAmmo = parseInt(document.getElementById('ord-clip').value); }
+    updateAmmoVisuals(); updateBars();
   }
-
   updateUI();
 </script>
 
