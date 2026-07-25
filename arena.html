@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Arena V11 (Heavy Melee Attacks)</title>
+    <title>Needful Thingz - Arena V12 (Floating Health Tracking)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -42,6 +42,7 @@
     
     // Player Stats
     let playerHealth = 100, jumps = 0, joystickUpReleased = true;
+    let playerHealthBar; // NEW: Player Health UI
     
     // --- ARMORY DATA ---
     const weaponArmory = {
@@ -98,7 +99,10 @@
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, activeWeapon.color).setAlpha(0);
         this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
         
-        dummyHealthBar = this.add.graphics(); dummyArmorBar = this.add.graphics(); updateDummyBars();
+        // Initialize Graphics objects for the continuous update loop
+        playerHealthBar = this.add.graphics();
+        dummyHealthBar = this.add.graphics(); 
+        dummyArmorBar = this.add.graphics(); 
 
         this.physics.add.collider(player, [floor, islandTop, islandMid, islandBot]);
         this.physics.add.collider(grenadesGroup, [floor, islandTop, islandMid, islandBot]);
@@ -123,9 +127,8 @@
             x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16
         });
 
-        // --- NEW ACTION GRID LAYOUT ---
+        // --- ACTION GRID LAYOUT ---
         
-        // HIT (Light Attack)
         const btnMelee = this.add.circle(570, 310, 25, 0xffaa00).setAlpha(0.6).setInteractive();
         this.add.text(554, 302, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' });
         btnMelee.on('pointerdown', () => {
@@ -134,7 +137,6 @@
             else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); }
         });
 
-        // NEW: HEAVY ATTACK BUTTON
         const btnHeavy = this.add.circle(570, 250, 25, 0xff3300).setAlpha(0.7).setInteractive();
         this.add.text(554, 242, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnHeavy.on('pointerdown', () => {
@@ -142,12 +144,10 @@
             executeHeavyAttack();
         });
 
-        // TOSS (Grenade)
         const btnToss = this.add.circle(510, 250, 25, 0x00cc00).setAlpha(0.6).setInteractive();
         this.add.text(492, 242, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnToss.on('pointerdown', tossGrenade);
 
-        // DEFEND (Block/Dash)
         const btnDefend = this.add.circle(510, 310, 25, 0x888888).setAlpha(0.8).setInteractive();
         this.add.text(495, 302, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnDefend.on('pointerdown', () => {
@@ -162,14 +162,12 @@
             if (isBlocking) { isBlocking = false; player.fillColor = 0x00aaff; actionText.setText('Ready'); }
         }
 
-        // RELOAD
         const btnReload = this.add.circle(450, 310, 25, 0x4444ff).setAlpha(0.7).setInteractive();
         this.add.text(435, 302, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnReload.on('pointerdown', () => {
             if (!isReloading && !isAttacking && !isBlocking && !isDashing && currentAmmo < activeGun.clipSize) reloadGun();
         });
 
-        // Swaps (Moved left to fit grid)
         const btnMeleeSwap = this.add.circle(450, 180, 20, 0xaaaaaa).setAlpha(0.5).setInteractive();
         this.add.text(432, 172, 'M-GEAR', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
         btnMeleeSwap.on('pointerdown', () => {
@@ -189,7 +187,6 @@
             currentAmmo = activeGun.clipSize; updateUI();
         });
 
-        // Ultimate
         specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive();
         this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' });
         specialGraphics = this.add.graphics();
@@ -204,28 +201,21 @@
         });
     }
 
-    // --- NEW: HEAVY ATTACK LOGIC ---
+    // --- HEAVY ATTACK LOGIC ---
     function executeHeavyAttack() {
-        isAttacking = true;
-        inputBuffered = false;
-        canCancel = false; // Heavy attacks cannot be canceled, high commitment!
-        if (attackRecoveryTimer) attackRecoveryTimer.remove();
-        if (attackActiveTimer) attackActiveTimer.remove();
+        isAttacking = true; inputBuffered = false; canCancel = false; 
+        if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove();
 
-        // 1. WINDUP PHASE (Telegraphing the attack)
-        player.fillColor = 0xff5500; // Orange warning color
+        player.fillColor = 0xff5500; 
         actionText.setText(`WINDUP: ${activeWeapon.name}!`);
         
-        // Windup duration based on weapon speed
         currentScene.time.delayedCall(activeWeapon.speed * 1.5, () => {
-            
-            // 2. ACTIVE PHASE (The Strike)
             player.fillColor = activeWeapon.color;
             actionText.setText(`HEAVY STRIKE!`);
             
-            let currentReach = activeWeapon.reach * 1.8; // 80% longer reach
+            let currentReach = activeWeapon.reach * 1.8; 
             meleeHitbox.width = currentReach; 
-            meleeHitbox.height = 40; // Taller hitbox to catch jumping enemies
+            meleeHitbox.height = 40; 
             meleeHitbox.setAlpha(1);
 
             let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
@@ -234,27 +224,19 @@
 
             let hit = Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), dummy.getBounds());
             if (hit) {
-                // 2.5x Damage, guaranteed 0.5s stun minimum
                 let heavyDmg = activeWeapon.damage * 2.5;
                 let heavyStun = activeWeapon.stun > 0 ? activeWeapon.stun * 2 : 0.5;
                 dealDamage(heavyDmg, activeWeapon.pierce, heavyStun);
                 
                 dummy.fillColor = activeWeapon.color; 
                 currentScene.time.delayedCall(100, () => { if(!isStunned) dummy.fillColor = 0xff5555; });
-                
-                // Massive Knockback
                 if(dummyHealth > 0) dummy.x += (facingDirection === 0 ? 40 : -40); 
             }
 
-            // 3. RECOVERY PHASE (Vulnerable)
             attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
-                meleeHitbox.setAlpha(0); 
-                meleeHitbox.setPosition(-100, -100); 
-                
+                meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); 
                 attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => {
-                    isAttacking = false; 
-                    player.fillColor = 0x00aaff;
-                    actionText.setText('Ready');
+                    isAttacking = false; player.fillColor = 0x00aaff; actionText.setText('Ready');
                 });
             });
         });
@@ -302,7 +284,7 @@
     }
 
     function playerTakeDamage(incomingDmg, attackXLocation) {
-        if (isInvincible) return; // Evaded!
+        if (isInvincible) return; 
         let playerFacingRight = (facingDirection === 0);
         let attackFromRight = (attackXLocation > player.x);
         if (isBlocking) {
@@ -379,19 +361,33 @@
         }
 
         if (dummyHealth <= 0) { dummyHealth = 100; dummyArmor = 100; currentOrdnanceAmmo = activeOrdnance.maxAmmo; updateUI(); }
-        updateDummyBars();
     }
 
-    function updateDummyBars() {
-        dummyHealthBar.clear(); dummyArmorBar.clear();
+    // --- NEW: DYNAMIC FLOATING HEALTH BARS ---
+    function drawFloatingBars() {
+        // Player Health Bar (Green, Floating above player)
+        playerHealthBar.clear();
+        playerHealthBar.fillStyle(0x333333, 1).fillRect(player.x - 20, player.y - 40, 40, 5); // Background
+        playerHealthBar.fillStyle(0x00ff00, 1).fillRect(player.x - 20, player.y - 40, 40 * (playerHealth / 100), 5); // Fill
+
+        // Dummy Health & Armor Bars (Floating above dummy)
+        dummyHealthBar.clear(); 
+        dummyArmorBar.clear();
+        
+        // Backgrounds
         dummyHealthBar.fillStyle(0x333333, 1).fillRect(dummy.x - 25, dummy.y - 45, 50, 6);
         dummyArmorBar.fillStyle(0x333333, 1).fillRect(dummy.x - 25, dummy.y - 36, 50, 6);
+        
+        // Dynamic Fills
         dummyHealthBar.fillStyle(0x00ff00, 1).fillRect(dummy.x - 25, dummy.y - 45, 50 * (dummyHealth / 100), 6);
         dummyArmorBar.fillStyle(0xcccccc, 1).fillRect(dummy.x - 25, dummy.y - 36, 50 * (dummyArmor / 100), 6);
     }
 
     // --- MAIN GAME LOOP ---
     function update() {
+        // CONTINUOUSLY DRAW BARS SO THEY TRACK MOVEMENT
+        drawFloatingBars();
+
         if (isStunned) return;
         const moveSpeed = 250;
         let currentTime = currentScene.time.now;
