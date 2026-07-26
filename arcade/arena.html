@@ -51,17 +51,19 @@
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
     let activeOrdnance = ordnanceArmory['Frag'];
 
-    // --- ROSTER MANAGER ---
-    const playerRoster = [
+    // --- ROSTER MANAGER (Linked to Hangar) ---
+    let savedRoster = localStorage.getItem('nt_roster');
+    const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
         { name: "Vanguard", color: 0x00aaff, melee: 'Sword', gun: 'Shotgun' },
         { name: "Recon",    color: 0xaaaa00, melee: 'Knife', gun: 'Rifle' },
         { name: "Heavy",    color: 0xaa00ff, melee: 'Whip',  gun: 'Rocket' }
     ];
+
     let currentRosterIndex = 0, activeCharDef = playerRoster[currentRosterIndex];
     let playerHealth = 100, jumps = 0, joystickUpReleased = true, playerHealthBar; 
-    let currentWeaponIndex = 0, activeWeapon = weaponArmory['Knife'];
-    let currentGunIndex = 1, activeGun = gunArmory['Shotgun'];
-    let lastFiredTime = 0, currentAmmo = 6, isReloading = false, reloadTimer;
+    let currentWeaponIndex = 0, activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
+    let currentGunIndex = 1, activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
+    let lastFiredTime = 0, currentAmmo = activeGun.clipSize, isReloading = false, reloadTimer;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
     // --- COMBAT & DEFENSE FLAGS ---
@@ -193,8 +195,8 @@
 
     function applyCharacterLoadout() {
         activeCharDef = playerRoster[currentRosterIndex]; player.fillColor = activeCharDef.color;
-        currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee];
-        currentGunIndex = gunKeys.indexOf(activeCharDef.gun); activeGun = gunArmory[activeCharDef.gun];
+        currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
+        currentGunIndex = gunKeys.indexOf(activeCharDef.gun); activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
         playerHealth = 100; currentAmmo = activeGun.clipSize; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
         isReloading = false; isSpawning = false;
         meleeText.setText('Melee: ' + activeWeapon.name); gunText.setText('Gun: ' + activeGun.name);
