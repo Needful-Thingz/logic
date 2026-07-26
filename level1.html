@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Level 1: Overgrown Facility</title>
+    <title>Needful Thingz - Level 1: Overgrown Facility (Boss Fight)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -26,8 +26,8 @@
     
     // Core Entities
     let player, joyStickLeft, joyStickRight, platforms;
-    let uiElements = []; // Store UI to pin to camera
-    let meleeText, gunText, ammoText, grenadeText, actionText, rosterText, scoreText;
+    let uiElements = []; 
+    let meleeText, gunText, ammoText, grenadeText, actionText, rosterText, scoreText, centerMsgText;
     let facingDirection = 0, currentScene, grenadesGroup; 
     let score = 0;
     
@@ -65,7 +65,7 @@
     let lastFiredTime = 0, currentAmmo = 6, isReloading = false, reloadTimer;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
-    // --- COMBAT & DEFENSE FLAGS ---
+    // --- COMBAT FLAGS ---
     let specialCharge = 0, specialReady = false, meleeHitbox;
     const specialMax = 100;
     let specialButton, specialGraphics;
@@ -73,8 +73,14 @@
     let attackActiveTimer, attackRecoveryTimer;
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
     
+    // --- LEVEL & BOSS VARS ---
     let enemiesGroup;
-    const WORLD_WIDTH = 3200; // HUGE scrolling world
+    let enemyProjectiles;
+    const WORLD_WIDTH = 3200; 
+    
+    let boss, bossActive = false, bossDefeated = false;
+    let bossHpBar, bossWall;
+    let bossAIEvent;
     
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
@@ -83,60 +89,76 @@
     function create() {
         currentScene = this; 
         
-        // --- 1. WORLD & CAMERA SETUP ---
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
 
         grenadesGroup = this.physics.add.group(); 
         enemiesGroup = this.physics.add.group();
+        enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup();
 
-        // --- 2. THE LEVEL DESIGN (Scrolling Obstacle Course) ---
-        // Section 1: The Drop Zone
-        platforms.add(this.add.rectangle(400, 390, 800, 20, 0x2d382d)); // Ground
-        platforms.add(this.add.rectangle(600, 300, 150, 15, 0x4a544a)); // First jump
-        
-        // Section 2: The Pit & The High Road
-        platforms.add(this.add.rectangle(1050, 250, 200, 15, 0x4a544a)); // Bridge over pit
-        platforms.add(this.add.rectangle(1350, 390, 400, 20, 0x2d382d)); // Ground returns
-        platforms.add(this.add.rectangle(1350, 180, 200, 15, 0x4a544a)); // Sniper nest
-        
-        // Section 3: The Gauntlet
+        // --- LEVEL DESIGN ---
+        platforms.add(this.add.rectangle(400, 390, 800, 20, 0x2d382d)); 
+        platforms.add(this.add.rectangle(600, 300, 150, 15, 0x4a544a)); 
+        platforms.add(this.add.rectangle(1050, 250, 200, 15, 0x4a544a)); 
+        platforms.add(this.add.rectangle(1350, 390, 400, 20, 0x2d382d)); 
+        platforms.add(this.add.rectangle(1350, 180, 200, 15, 0x4a544a)); 
         platforms.add(this.add.rectangle(1900, 390, 500, 20, 0x2d382d)); 
         platforms.add(this.add.rectangle(1800, 280, 150, 15, 0x4a544a));
         platforms.add(this.add.rectangle(2000, 220, 150, 15, 0x4a544a));
         
-        // Section 4: The Boss Arena (End of level)
+        // Boss Arena (Final 800 pixels)
         platforms.add(this.add.rectangle(2800, 390, 800, 20, 0x2d382d)); 
+        platforms.add(this.add.rectangle(2650, 260, 150, 15, 0x4a544a));
+        platforms.add(this.add.rectangle(2950, 260, 150, 15, 0x4a544a));
+
+        // Invisible wall for the boss trap (starts disabled)
+        bossWall = this.add.rectangle(2400, 200, 20, 400, 0x00ffff, 0.4);
+        this.physics.add.existing(bossWall, true);
+        bossWall.body.checkCollision.none = true; // disabled until triggered
+
+        // Pre-Spawn Level Enemies
+        spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
+        spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
+
+        // --- GOLIATH BOSS SETUP ---
+        boss = this.add.rectangle(3100, 300, 80, 150, 0x444444); // Big rusted mech
+        this.physics.add.existing(boss);
+        boss.body.setCollideWorldBounds(true);
+        boss.body.setImmovable(true);
+        boss.body.setAllowGravity(false); // Hovering slightly
+        boss.setDepth(5);
         
-        // Spawn Enemies across the level
-        spawnEnemyAt(700, 200);
-        spawnEnemyAt(1050, 150);
-        spawnEnemyAt(1350, 100);
-        spawnEnemyAt(1450, 300);
-        spawnEnemyAt(1800, 200);
-        spawnEnemyAt(2000, 100);
-        spawnEnemyAt(2100, 300);
+        boss.enemyData = {
+            isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200,
+            state: 'sleep', isStunned: false
+        };
+        enemiesGroup.add(boss);
 
         // Player Setup
         player = this.add.rectangle(100, 200, 30, 50, activeCharDef.color);
         this.physics.add.existing(player); 
         player.body.setCollideWorldBounds(true);
-        
-        // Lock Camera to Player!
         this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, 0xffffff).setAlpha(0);
         this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
 
-        playerHealthBar = this.add.graphics();
-        playerHealthBar.setDepth(10); // keep bars above world
+        playerHealthBar = this.add.graphics().setDepth(10);
+        bossHpBar = this.add.graphics().setScrollFactor(0).setDepth(20);
 
         this.physics.add.collider(player, platforms);
+        this.physics.add.collider(player, bossWall); // Traps player in boss arena
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
+        
+        // Enemy Projectile Collision
+        this.physics.add.overlap(player, enemyProjectiles, (p, proj) => {
+            proj.destroy();
+            playerTakeDamage(proj.dmg, proj.x);
+        });
 
-        // --- 3. UI SETUP (Pinned to screen) ---
+        // --- UI SETUP ---
         meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff' }); uiElements.push(meleeText);
         gunText = this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00' }); uiElements.push(gunText);
         ammoText = this.add.text(10, 40, `Ammo: `, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' }); uiElements.push(ammoText);
@@ -144,15 +166,14 @@
         actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(actionText);
         rosterText = this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(rosterText);
         scoreText = this.add.text(400, 65, 'SCORE: 0', { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(scoreText);
+        
+        centerMsgText = this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0);
+        uiElements.push(centerMsgText);
 
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
-        joyStickLeft.base.setScrollFactor(0); joyStickLeft.thumb.setScrollFactor(0);
-        
         const leftTapZone = this.add.circle(120, 300, 25, 0xffffff, 0).setInteractive(); uiElements.push(leftTapZone);
         leftTapZone.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Triple Jump: ' + jumps + '/3'); } });
-        
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16 });
-        joyStickRight.base.setScrollFactor(0); joyStickRight.thumb.setScrollFactor(0);
 
         const btnMelee = this.add.circle(570, 310, 25, 0xffaa00).setAlpha(0.6).setInteractive(); uiElements.push(btnMelee);
         const btnMeleeT = this.add.text(554, 302, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }); uiElements.push(btnMeleeT);
@@ -189,7 +210,7 @@
                 player.fillColor = 0x00ffff;
                 enemiesGroup.getChildren().forEach(enemy => {
                     if (Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y) < 250) { 
-                        dealDamageToEnemy(enemy, 50, 0.8, 0); enemy.fillColor = 0x00ffff; this.time.delayedCall(200, () => { if(enemy.active) enemy.fillColor = 0xff5555; }); 
+                        dealDamageToEnemy(enemy, 50, 0.8, 0); enemy.fillColor = 0x00ffff; this.time.delayedCall(200, () => { if(enemy.active) enemy.fillColor = enemy.enemyData.isBoss ? 0x444444 : 0xff5555; }); 
                     }
                 });
                 this.time.delayedCall(500, () => player.fillColor = activeCharDef.color);
@@ -197,27 +218,99 @@
             }
         });
 
-        // PIN ALL UI TO CAMERA SO IT DOESN'T SCROLL AWAY!
-        uiElements.forEach(el => el.setScrollFactor(0));
+        uiElements.forEach(el => {
+            if (el.setScrollFactor) el.setScrollFactor(0);
+        });
+        joyStickLeft.base.setScrollFactor(0); joyStickLeft.thumb.setScrollFactor(0);
+        joyStickRight.base.setScrollFactor(0); joyStickRight.thumb.setScrollFactor(0);
         
         applyCharacterLoadout();
     }
 
-    // --- ENEMY PLACEMENT ---
+    // --- BOSS AI LOGIC ---
+    function triggerBoss() {
+        bossActive = true;
+        boss.enemyData.state = 'active';
+        
+        // Trap Player
+        currentScene.cameras.main.stopFollow();
+        currentScene.cameras.main.pan(2800, 200, 1000, 'Sine.easeInOut');
+        
+        currentScene.time.delayedCall(1000, () => {
+            currentScene.cameras.main.setBounds(2400, 0, 800, 400);
+            bossWall.body.checkCollision.none = false; // Wall is solid
+            
+            showCenterMessage("WARNING: GOLIATH MECH", '#ff0000');
+            
+            bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runBossPattern, loop: true });
+        });
+    }
+
+    function runBossPattern() {
+        if (!boss.active || bossDefeated || playerHealth <= 0) return;
+        
+        let attackType = Phaser.Math.Between(1, 2);
+        
+        if (attackType === 1) {
+            // THE SWEEP
+            boss.fillColor = 0xffff00; // Glow yellow
+            currentScene.time.delayedCall(500, () => {
+                if(!boss.active) return;
+                boss.fillColor = 0x444444;
+                for (let i = 0; i < 5; i++) {
+                    currentScene.time.delayedCall(i * 150, () => {
+                        let bullet = currentScene.add.rectangle(boss.x - 50, 360, 16, 6, 0xffff00);
+                        currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false);
+                        bullet.body.setVelocityX(-500);
+                        bullet.dmg = 15;
+                        enemyProjectiles.add(bullet);
+                        currentScene.time.delayedCall(2000, () => { if(bullet.active) bullet.destroy(); });
+                    });
+                }
+            });
+        } else {
+            // THE MORTAR
+            boss.fillColor = 0xffffff; // Glow white
+            let targetX = player.x;
+            
+            // Draw warning reticle
+            let reticle = currentScene.add.circle(targetX, 380, 60, 0xff0000, 0.4);
+            currentScene.tweens.add({ targets: reticle, alpha: 0.8, duration: 800, yoyo: true, repeat: 0 });
+            
+            currentScene.time.delayedCall(1000, () => {
+                if(!boss.active) return;
+                boss.fillColor = 0x444444;
+                reticle.destroy();
+                
+                let explosion = currentScene.add.circle(targetX, 380, 70, 0xff7700, 0.8);
+                currentScene.physics.add.existing(explosion); explosion.body.setAllowGravity(false);
+                
+                if (Phaser.Geom.Intersects.RectangleToRectangle(explosion.getBounds(), player.getBounds())) {
+                    playerTakeDamage(40, boss.x);
+                }
+                
+                currentScene.tweens.add({ targets: explosion, alpha: 0, duration: 300, onComplete: () => explosion.destroy() });
+            });
+        }
+    }
+
+    function showCenterMessage(text, color) {
+        centerMsgText.setText(text);
+        centerMsgText.setFill(color);
+        centerMsgText.setAlpha(1);
+        currentScene.tweens.add({ targets: centerMsgText, alpha: 0, delay: 2000, duration: 1000 });
+    }
+
+    // --- STANDARD LOGIC ---
     function spawnEnemyAt(x, y) {
         let enemy = currentScene.add.rectangle(x, y, 30, 50, 0xff5555);
-        currentScene.physics.add.existing(enemy);
-        enemy.body.setCollideWorldBounds(true);
-        
+        currentScene.physics.add.existing(enemy); enemy.body.setCollideWorldBounds(true);
         let hitbox = currentScene.add.rectangle(-100, -100, 30, 30, 0xffffff).setAlpha(0);
-        currentScene.physics.add.existing(hitbox);
-        hitbox.body.setAllowGravity(false);
-        
-        let barGraphics = currentScene.add.graphics();
-        barGraphics.setDepth(10);
+        currentScene.physics.add.existing(hitbox); hitbox.body.setAllowGravity(false);
+        let barGraphics = currentScene.add.graphics().setDepth(10);
         
         enemy.enemyData = {
-            hp: 60, maxHp: 60, armor: 20, maxArmor: 20, state: 'idle', canAttack: true, isStunned: false,
+            isBoss: false, hp: 60, maxHp: 60, armor: 20, maxArmor: 20, state: 'idle', canAttack: true, isStunned: false,
             hitbox: hitbox, bars: barGraphics
         };
         enemiesGroup.add(enemy);
@@ -236,7 +329,6 @@
     function spawnNextCharacter() {
         if (currentRosterIndex >= 3) return; 
         isSpawning = true; isInvincible = true;
-        // Drop them exactly where the camera is!
         player.x = currentScene.cameras.main.scrollX + 100; 
         player.y = -50; player.body.setVelocityY(800); 
         applyCharacterLoadout();
@@ -245,9 +337,8 @@
     }
 
     function resetEntireMatch() {
-        currentRosterIndex = 0; score = 0; scoreText.setText('SCORE: 0');
-        enemiesGroup.getChildren().forEach(enemy => destroyEnemy(enemy));
-        currentScene.scene.restart(); // Fully reset the level
+        currentRosterIndex = 0; score = 0; bossActive = false; bossDefeated = false;
+        currentScene.scene.restart(); 
     }
 
     function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) {
@@ -270,8 +361,8 @@
                 if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds())) {
                     let heavyStun = activeWeapon.stun > 0 ? activeWeapon.stun * 2 : 0.5;
                     dealDamageToEnemy(enemy, activeWeapon.damage * 2.5, activeWeapon.pierce, heavyStun);
-                    enemy.fillColor = activeWeapon.color; currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.fillColor = 0xff5555; });
-                    if(enemy.active) enemy.body.setVelocityX(facingDirection === 0 ? 300 : -300);
+                    enemy.fillColor = activeWeapon.color; currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.fillColor = enemy.enemyData.isBoss ? 0x444444 : 0xff5555; });
+                    if(enemy.active && !enemy.enemyData.isBoss) enemy.body.setVelocityX(facingDirection === 0 ? 300 : -300);
                 }
             });
 
@@ -294,8 +385,8 @@
         enemiesGroup.getChildren().forEach(enemy => {
             if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds())) {
                 dealDamageToEnemy(enemy, activeWeapon.damage * (step === 3 ? 2 : 1), activeWeapon.pierce, activeWeapon.stun);
-                enemy.fillColor = activeWeapon.color; currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.fillColor = 0xff5555; });
-                if(step === 3 && enemy.active) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150);
+                enemy.fillColor = activeWeapon.color; currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.fillColor = enemy.enemyData.isBoss ? 0x444444 : 0xff5555; });
+                if(step === 3 && enemy.active && !enemy.enemyData.isBoss) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150);
             }
         });
 
@@ -328,6 +419,7 @@
             if (currentRosterIndex < playerRoster.length) spawnNextCharacter();
             else {
                 player.setAlpha(0); actionText.setText('TEAM WIPED! Resetting...'); rosterText.setText('TEAM: 0 LIVES');
+                if(bossAIEvent) bossAIEvent.remove();
                 currentScene.time.delayedCall(3000, resetEntireMatch);
             }
         } 
@@ -348,7 +440,7 @@
         enemiesGroup.getChildren().forEach(enemy => {
             if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius) {
                 dealDamageToEnemy(enemy, activeOrdnance.damage, 0.5, 0); enemy.fillColor = 0xff7700;
-                currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.fillColor = 0xff5555; });
+                currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.fillColor = enemy.enemyData.isBoss ? 0x444444 : 0xff5555; });
             }
         });
         currentScene.tweens.add({ targets: blastVisual, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
@@ -375,7 +467,7 @@
             
             currentScene.physics.add.overlap(bullet, enemiesGroup, (b, enemy) => {
                 b.destroy(); dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); enemy.fillColor = activeGun.color; 
-                currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.fillColor = 0xff5555; });
+                currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.fillColor = enemy.enemyData.isBoss ? 0x444444 : 0xff5555; });
             });
             currentScene.time.delayedCall(activeGun.lifespan, () => { if(bullet.active) bullet.destroy(); });
         }
@@ -383,8 +475,18 @@
 
     function destroyEnemy(enemy) {
         if (!enemy.active) return;
-        enemy.enemyData.bars.destroy();
-        enemy.enemyData.hitbox.destroy();
+        if (enemy.enemyData.bars) enemy.enemyData.bars.destroy();
+        if (enemy.enemyData.hitbox) enemy.enemyData.hitbox.destroy();
+        
+        if (enemy.enemyData.isBoss) {
+            bossDefeated = true;
+            bossHpBar.clear();
+            if(bossAIEvent) bossAIEvent.remove();
+            showCenterMessage("SECTOR CLEARED!", '#00ff00');
+            bossWall.body.checkCollision.none = true;
+            bossWall.setAlpha(0);
+        }
+        
         enemy.destroy();
     }
 
@@ -399,13 +501,13 @@
         data.hp -= piercingDmg; 
         spawnDamageText(enemy.x + Phaser.Math.Between(-10, 10), enemy.y - 30, Math.round(dmg), dmg >= 40, false);
         
-        if (stunDuration > 0) {
+        if (stunDuration > 0 && !data.isBoss) {
             data.isStunned = true; data.state = 'stunned'; enemy.fillColor = 0x00ffff;
             currentScene.time.delayedCall(stunDuration * 1000, () => { if(enemy.active) { data.isStunned = false; data.state = 'idle'; enemy.fillColor = 0xff5555; } });
         }
 
         if (data.hp <= 0) { 
-            score += 10; scoreText.setText('SCORE: ' + score);
+            score += data.isBoss ? 1000 : 10; scoreText.setText('SCORE: ' + score);
             destroyEnemy(enemy); 
         }
     }
@@ -418,20 +520,42 @@
         }
         
         enemiesGroup.getChildren().forEach(enemy => {
-            let data = enemy.enemyData; let bars = data.bars; bars.clear();
-            bars.fillStyle(0x333333, 1).fillRect(enemy.x - 25, enemy.y - 45, 50, 6); bars.fillStyle(0x333333, 1).fillRect(enemy.x - 25, enemy.y - 36, 50, 6);
-            bars.fillStyle(0x00ff00, 1).fillRect(enemy.x - 25, enemy.y - 45, 50 * (data.hp / data.maxHp), 6); 
-            bars.fillStyle(0xcccccc, 1).fillRect(enemy.x - 25, enemy.y - 36, 50 * (data.armor / data.maxArmor), 6);
+            let data = enemy.enemyData; 
+            if (!data.isBoss && data.bars) {
+                let bars = data.bars; bars.clear();
+                bars.fillStyle(0x333333, 1).fillRect(enemy.x - 25, enemy.y - 45, 50, 6); bars.fillStyle(0x333333, 1).fillRect(enemy.x - 25, enemy.y - 36, 50, 6);
+                bars.fillStyle(0x00ff00, 1).fillRect(enemy.x - 25, enemy.y - 45, 50 * (data.hp / data.maxHp), 6); 
+                bars.fillStyle(0xcccccc, 1).fillRect(enemy.x - 25, enemy.y - 36, 50 * (data.armor / data.maxArmor), 6);
+            }
         });
+        
+        // Draw massive Boss UI if active
+        if (bossActive && !bossDefeated && boss.active) {
+            bossHpBar.clear();
+            let data = boss.enemyData;
+            
+            bossHpBar.fillStyle(0x333333, 1).fillRect(200, 30, 400, 12);
+            bossHpBar.fillStyle(0x333333, 1).fillRect(200, 45, 400, 12);
+            
+            // Health
+            bossHpBar.fillStyle(0xff0000, 1).fillRect(200, 30, 400 * (data.hp / data.maxHp), 12);
+            // Armor
+            bossHpBar.fillStyle(0xcccccc, 1).fillRect(200, 45, 400 * (data.armor / data.maxArmor), 12);
+        }
     }
 
     function update() {
         drawFloatingBars();
         let currentTime = currentScene.time.now;
         
+        // --- TRIGGER BOSS EVENT ---
+        if (!bossActive && player.x > 2600) {
+            triggerBoss();
+        }
+
         // --- PITFALL LOGIC ---
         if (player.y > 395 && playerHealth > 0 && !isSpawning) {
-            playerTakeDamage(1000, player.x); // Insta-kill if you fall down a pit
+            playerTakeDamage(1000, player.x); 
         }
 
         // Player Logic
@@ -455,13 +579,12 @@
         // Enemies Loop
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData;
+            if (data.isBoss) return; // Handled by separate AI timer
             
-            // Enemy Pitfall Logic
             if (enemy.y > 395) { destroyEnemy(enemy); return; }
 
-            // Only wake enemies up when the player gets somewhat close to them
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
-            if (distToPlayer > 800) return; // Enemy sleeps if off screen
+            if (distToPlayer > 800) return; 
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 if (distToPlayer < 65 && data.canAttack) {
@@ -488,7 +611,7 @@
             } else { if (data.state !== 'attack') enemy.body.setVelocityX(0); }
         });
 
-        // Special Attack Charge (UI is pinned to camera now, so we draw it dynamically based on scroll)
+        // Special Attack Charge
         if (!specialReady) {
             specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
             specialGraphics.arc(680, 180, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false);
