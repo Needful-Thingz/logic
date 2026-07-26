@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Level 1: Overgrown Facility (Boss Fight)</title>
+    <title>Needful Thingz - Level 1: Overgrown Facility</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -331,11 +331,6 @@
         currentScene.time.delayedCall(1500, () => { isInvincible = false; player.setAlpha(1); actionText.setText('Ready'); });
     }
 
-    function resetEntireMatch() {
-        currentRosterIndex = 0; score = 0; bossActive = false; bossDefeated = false;
-        currentScene.scene.restart(); 
-    }
-
     function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) {
         let fontSize = isCritical ? '26px' : '16px'; let color = isPlayerHit ? '#ff3333' : '#ffdd00'; 
         let floatText = currentScene.add.text(x, y, Math.round(amount).toString(), { fontSize: fontSize, fill: color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5);
@@ -413,9 +408,12 @@
             playerHealth = 0; currentRosterIndex++;
             if (currentRosterIndex < playerRoster.length) spawnNextCharacter();
             else {
-                player.setAlpha(0); actionText.setText('TEAM WIPED! Resetting...'); rosterText.setText('TEAM: 0 LIVES');
+                // REDIRECT TO MARKETING FUNNEL (LOSE)
+                player.setAlpha(0); actionText.setText('TEAM WIPED! Redirecting...'); rosterText.setText('TEAM: 0 LIVES');
                 if(bossAIEvent) bossAIEvent.remove();
-                currentScene.time.delayedCall(3000, resetEntireMatch);
+                currentScene.time.delayedCall(3000, () => {
+                    window.location.href = 'debrief.html?status=lose';
+                });
             }
         } 
     }
@@ -480,6 +478,11 @@
             showCenterMessage("SECTOR CLEARED!", '#00ff00');
             bossWall.body.checkCollision.none = true;
             bossWall.setAlpha(0);
+            
+            // REDIRECT TO MARKETING FUNNEL (WIN)
+            currentScene.time.delayedCall(4000, () => {
+                window.location.href = 'debrief.html?status=win';
+            });
         }
         
         enemy.destroy();
