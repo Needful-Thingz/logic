@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Weapon Loadout Simulator V14 (AI & Floating UI)</title>
+<title>Weapon Loadout Simulator V15 (3-Character Roster)</title>
 <style>
   body { font-family: sans-serif; background: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
   .arena-box { background: #222; border-radius: 10px; margin-bottom: 20px; position: relative; height: 220px; overflow: hidden; }
@@ -44,7 +44,8 @@
   #health-bar { background: #00ff00; width: 100%; }
   #armor-bar { background: #cccccc; width: 100%; }
   
-  #status-log { margin-bottom: 10px; font-size: 16px; font-weight: bold; color: #00ffff; height: 25px; }
+  #status-log { margin-bottom: 5px; font-size: 16px; font-weight: bold; color: #00ffff; height: 25px; }
+  #roster-display { font-size: 14px; font-weight: bold; color: #ffaa00; margin-bottom: 10px; }
   #ammo-display { font-size: 20px; font-weight: bold; color: #00ffff; margin-bottom: 10px; }
 
   button { width: 100%; padding: 15px; margin-top: 10px; font-size: 18px; font-weight: bold; border: none; border-radius: 10px; text-transform: uppercase; cursor: pointer; }
@@ -60,8 +61,9 @@
 </head>
 <body>
 
-<h2>Weapon Loadout Simulator V14</h2>
+<h2>Weapon Loadout Simulator V15</h2>
 <div id="status-log">Target is ready.</div>
+<div id="roster-display">TEAM LIVES: 3 (VANGUARD)</div>
 
 <div class="stats">
   <div style="width: 30%;">
@@ -127,8 +129,8 @@
   
   <!-- 4. DEFENSE DROPDOWN -->
   <select id="defense-select" class="hidden" onchange="loadWeapon()">
-    <option value="standard" data-incdmg="25" data-mit="80" data-iframe="250" selected>Standard Enemy Strike</option>
-    <option value="heavy" data-incdmg="60" data-mit="80" data-iframe="250">Heavy Boss Attack</option>
+    <option value="standard" data-incdmg="40" data-mit="80" data-iframe="250" selected>Standard Enemy Strike</option>
+    <option value="heavy" data-incdmg="80" data-mit="80" data-iframe="250">Heavy Boss Attack</option>
   </select>
 
   <div id="melee-controls">
@@ -165,8 +167,8 @@
   </div>
 
   <div id="defense-controls" class="hidden">
-    <label style="color: #ff5555;">Incoming Enemy Damage: <span id="incdmg-val">25</span></label>
-    <input type="range" id="incdmg" min="10" max="150" value="25" oninput="updateUI()">
+    <label style="color: #ff5555;">Incoming Enemy Damage: <span id="incdmg-val">40</span></label>
+    <input type="range" id="incdmg" min="10" max="150" value="40" oninput="updateUI()">
     <label style="color: #00ffff;">Block Mitigation (%): <span id="mit-val">80</span>%</label>
     <input type="range" id="mit" min="10" max="100" value="80" oninput="updateUI()">
     <label style="color: #00ffff;">Dash I-Frames Duration (ms): <span id="iframe-val">250</span>ms</label>
@@ -199,6 +201,14 @@
 <button id="reset-btn" onclick="reset()">Reset Combat</button>
 
 <script>
+  // --- V15: ROSTER LOGIC ---
+  const playerRoster = [
+      { name: "VANGUARD", color: "#00aaff", melee: "sword", gun: "shotgun" },
+      { name: "RECON", color: "#aaaa00", melee: "knife", gun: "rifle" },
+      { name: "HEAVY", color: "#aa00ff", melee: "whip", gun: "rocket" }
+  ];
+  let currentRosterIndex = 0;
+  
   let playerHP = 100, health = 100, armor = 100;
   let isStunned = false, currentColor = "rgba(255, 170, 0, 0.7)", isAttacking = false;
   let currentAmmo = 15, isReloading = false, isBlocking = false, isDashing = false;
@@ -212,7 +222,6 @@
       document.getElementById(`${t}-controls`).classList.add('hidden');
     });
     document.getElementById('shared-controls').classList.add('hidden');
-
     document.getElementById(`${mode}-select`).classList.remove('hidden');
     document.getElementById(`${mode}-controls`).classList.remove('hidden');
 
@@ -379,11 +388,12 @@
       if (isDashing) return;
       isBlocking = !isBlocking;
       let pEl = document.getElementById('player'), btn = document.getElementById('block-btn');
+      let activeColor = playerRoster[currentRosterIndex].color;
       if(isBlocking) {
           pEl.style.backgroundColor = "#cccccc"; btn.innerText = "TOGGLE BLOCK: ON"; btn.style.backgroundColor = "#aaaaaa";
           document.getElementById('status-log').innerText = "BLOCKING... Frontal damage reduced.";
       } else {
-          pEl.style.backgroundColor = "#00aaff"; btn.innerText = "TOGGLE BLOCK: OFF"; btn.style.backgroundColor = "#888888";
+          pEl.style.backgroundColor = activeColor; btn.innerText = "TOGGLE BLOCK: OFF"; btn.style.backgroundColor = "#888888";
           document.getElementById('status-log').innerText = "Block released.";
       }
   }
@@ -393,10 +403,11 @@
       isDashing = true;
       let iframeDuration = parseInt(document.getElementById('iframe').value);
       let pEl = document.getElementById('player');
+      let activeColor = playerRoster[currentRosterIndex].color;
       pEl.style.backgroundColor = "#00ffff"; pEl.style.opacity = "0.5"; 
       document.getElementById('status-log').innerText = "DASHING! (Invincible)";
       setTimeout(() => {
-          isDashing = false; pEl.style.opacity = "1"; pEl.style.backgroundColor = isBlocking ? "#cccccc" : "#00aaff";
+          isDashing = false; pEl.style.opacity = "1"; pEl.style.backgroundColor = isBlocking ? "#cccccc" : activeColor;
           document.getElementById('status-log').innerText = "Dash complete. Target ready.";
       }, iframeDuration);
   }
@@ -435,12 +446,13 @@
       let baseReach = parseInt(document.getElementById('reach').value);
       
       let pEl = document.getElementById('player'), hitboxElement = document.getElementById('hitbox'), dummyElement = document.getElementById('dummy');
+      let activeColor = playerRoster[currentRosterIndex].color;
       
       pEl.style.backgroundColor = "#ff5500";
       document.getElementById('status-log').innerText = "WINDUP...";
 
       setTimeout(() => {
-          pEl.style.backgroundColor = "#00aaff";
+          pEl.style.backgroundColor = activeColor;
           hitboxElement.style.height = "40px"; 
           hitboxElement.style.width = (baseReach * 1.8) + 'px'; 
           hitboxElement.style.opacity = "1";
@@ -475,6 +487,7 @@
     let piercePercent = parseInt(document.getElementById('pierce').value) / 100;
     let stunDuration = parseFloat(document.getElementById('stun').value);
 
+    // AI DEFENSE TESTING
     if (mode === 'defense') {
         if (isAttacking) return;
         isAttacking = true; 
@@ -500,23 +513,20 @@
                     document.getElementById('status-log').innerText = "EVADED! I-frames absorbed the attack.";
                 } else if (isBlocking) {
                     let finalDmg = Math.round(incDmg * (1 - mitPercent));
-                    playerHP -= finalDmg;
-                    spawnDamageText(document.getElementById('player'), finalDmg, false, true);
+                    processPlayerDamage(finalDmg);
                     document.getElementById('status-log').innerText = `BLOCKED! Mitigated ${mitPercent*100}%. Took ${finalDmg} dmg.`;
                 } else {
-                    playerHP -= incDmg;
-                    spawnDamageText(document.getElementById('player'), incDmg, incDmg >= 40, true);
+                    processPlayerDamage(incDmg);
                     document.getElementById('status-log').innerText = `DIRECT HIT! Took ${incDmg} dmg.`;
                 }
                 
-                if (playerHP < 0) playerHP = 0; 
-                updateBars();
                 setTimeout(() => isAttacking = false, 500);
             }, 400); 
         }, 300); 
         return;
     }
 
+    // (Gun and Ordnance execution logic remains unchanged)
     if (mode === 'gun') {
         if (isReloading) return;
         if (currentAmmo <= 0) { processReload(); return; }
@@ -590,6 +600,47 @@
     }
   }
 
+  // --- V15: DROP-IN ROSTER SYSTEM ---
+  function processPlayerDamage(amount) {
+      playerHP -= amount;
+      spawnDamageText(document.getElementById('player'), amount, amount >= 40, true);
+      
+      if (playerHP <= 0) {
+          currentRosterIndex++;
+          if (currentRosterIndex < playerRoster.length) {
+              // DROP IN NEXT FIGHTER
+              let newChar = playerRoster[currentRosterIndex];
+              playerHP = 100;
+              
+              // Update Loadout UI
+              document.getElementById('melee-select').value = newChar.melee;
+              document.getElementById('gun-select').value = newChar.gun;
+              loadWeapon(); 
+              
+              let pEl = document.getElementById('player');
+              pEl.style.backgroundColor = newChar.color;
+              
+              // Drop animation
+              pEl.style.transition = "none";
+              pEl.style.bottom = "250px";
+              setTimeout(() => { 
+                  pEl.style.transition = "bottom 0.3s ease-in"; 
+                  pEl.style.bottom = "20px"; 
+              }, 50);
+
+              document.getElementById('roster-display').innerText = `TEAM LIVES: ${3 - currentRosterIndex} (${newChar.name})`;
+          } else {
+              // WIPED
+              playerHP = 0;
+              document.getElementById('player').style.opacity = "0";
+              document.getElementById('roster-display').innerText = `TEAM LIVES: 0`;
+              document.getElementById('status-log').innerText = "TEAM WIPED! Resetting...";
+              setTimeout(reset, 2500);
+          }
+      }
+      updateBars();
+  }
+
   function applyDamage(dmg, piercePercent, stunDuration, logMessage) {
     let dummyElement = document.getElementById('dummy');
     let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg;
@@ -629,18 +680,34 @@
   }
 
   function reset() {
+    currentRosterIndex = 0;
     playerHP = 100; health = 100; armor = 100; isStunned = false; isAttacking = false; isBlocking = false; isDashing = false;
+    
+    let pEl = document.getElementById('player');
+    pEl.style.opacity = "1";
+    pEl.style.bottom = "20px";
+    pEl.style.backgroundColor = playerRoster[0].color; // Reset to Blue Vanguard
+    
+    document.getElementById('roster-display').innerText = `TEAM LIVES: 3 (${playerRoster[0].name})`;
+    document.getElementById('melee-select').value = playerRoster[0].melee;
+    document.getElementById('gun-select').value = playerRoster[0].gun;
+    
     document.getElementById('dummy').style.backgroundColor = "#ff5555"; document.getElementById('dummy').style.left = '80%';
-    document.getElementById('player').style.backgroundColor = "#00aaff"; document.getElementById('player').style.opacity = "1";
     document.getElementById('block-btn').innerText = "TOGGLE BLOCK: OFF"; document.getElementById('block-btn').style.backgroundColor = "#888888";
     document.getElementById('status-log').innerText = "Combat reset.";
     
+    loadWeapon();
     let mode = getMode();
     if (mode === 'gun') { currentAmmo = parseInt(document.getElementById('clip').value); isReloading = false; } 
     else if (mode === 'ordnance') { currentAmmo = parseInt(document.getElementById('ord-clip').value); }
     updateAmmoVisuals(); updateBars();
   }
+  
+  // Initialize with Vanguard
+  document.getElementById('melee-select').value = playerRoster[0].melee;
+  document.getElementById('gun-select').value = playerRoster[0].gun;
   updateUI();
+  
 </script>
 
 </body>
