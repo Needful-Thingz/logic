@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Needful Thingz - Squad Deployment</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #00aaff;
+            padding-bottom: 10px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        h1 {
+            color: #00aaff;
+            font-size: 32px;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 170, 255, 0.5);
+        }
+
+        h2 {
+            color: #ffaa00;
+            font-size: 18px;
+            margin: 5px 0 0 0;
+        }
+
+        .squad-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            max-width: 1000px;
+            margin-bottom: 40px;
+        }
+
+        .drop-pod {
+            background: #161b22;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            width: 260px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            transition: border-color 0.3s;
+        }
+
+        .drop-pod:hover {
+            border-color: #58a6ff;
+        }
+
+        .pod-header {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #ffffff;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #30363d;
+        }
+
+        .pod-1 { color: #00aaff; } /* Vanguard Blue */
+        .pod-2 { color: #aaaa00; } /* Recon Yellow */
+        .pod-3 { color: #aa00ff; } /* Heavy Purple */
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #8b949e;
+        }
+
+        select {
+            width: 100%;
+            background: #0d1117;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 10px;
+            margin-top: 5px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: #00aaff;
+        }
+
+        .deploy-btn {
+            background: linear-gradient(180deg, #ff5500 0%, #cc3300 100%);
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            font-size: 24px;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 85, 0, 0.4);
+            transition: transform 0.1s, box-shadow 0.2s;
+            letter-spacing: 2px;
+        }
+
+        .deploy-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 85, 0, 0.7);
+        }
+
+        .deploy-btn:active {
+            transform: scale(0.95);
+        }
+
+        .brand-footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #484f58;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Needful Thingz Arcade</h1>
+        <h2>TACTICAL SQUAD CONFIGURATION</h2>
+    </div>
+
+    <div class="squad-container">
+        <!-- DROP POD 1 -->
+        <div class="drop-pod">
+            <div class="pod-header pod-1">DROP POD 1 (POINT)</div>
+            
+            <label>Operator Class</label>
+            <select id="p1-class">
+                <option value="Vanguard">Vanguard (Assault)</option>
+                <option value="Recon">Recon (Scout)</option>
+                <option value="Heavy">Heavy (Demolition)</option>
+            </select>
+
+            <label>Melee Weapon</label>
+            <select id="p1-melee">
+                <option value="Sword">Broadsword</option>
+                <option value="Knife">Combat Knife</option>
+                <option value="Whip">Energy Whip</option>
+            </select>
+
+            <label>Firearm</label>
+            <select id="p1-gun">
+                <option value="Shotgun">Pump Shotgun</option>
+                <option value="Pistol">Service Pistol</option>
+                <option value="Rifle">Assault Rifle</option>
+                <option value="Sniper">Heavy Sniper</option>
+                <option value="GrenadeL">Grenade Tube</option>
+                <option value="Rocket">RPG Launcher</option>
+            </select>
+        </div>
+
+        <!-- DROP POD 2 -->
+        <div class="drop-pod">
+            <div class="pod-header pod-2">DROP POD 2 (SUPPORT)</div>
+            
+            <label>Operator Class</label>
+            <select id="p2-class">
+                <option value="Recon" selected>Recon (Scout)</option>
+                <option value="Vanguard">Vanguard (Assault)</option>
+                <option value="Heavy">Heavy (Demolition)</option>
+            </select>
+
+            <label>Melee Weapon</label>
+            <select id="p2-melee">
+                <option value="Knife" selected>Combat Knife</option>
+                <option value="Sword">Broadsword</option>
+                <option value="Whip">Energy Whip</option>
+            </select>
+
+            <label>Firearm</label>
+            <select id="p2-gun">
+                <option value="Rifle" selected>Assault Rifle</option>
+                <option value="Pistol">Service Pistol</option>
+                <option value="Shotgun">Pump Shotgun</option>
+                <option value="Sniper">Heavy Sniper</option>
+                <option value="GrenadeL">Grenade Tube</option>
+                <option value="Rocket">RPG Launcher</option>
+            </select>
+        </div>
+
+        <!-- DROP POD 3 -->
+        <div class="drop-pod">
+            <div class="pod-header pod-3">DROP POD 3 (ANCHOR)</div>
+            
+            <label>Operator Class</label>
+            <select id="p3-class">
+                <option value="Heavy" selected>Heavy (Demolition)</option>
+                <option value="Vanguard">Vanguard (Assault)</option>
+                <option value="Recon">Recon (Scout)</option>
+            </select>
+
+            <label>Melee Weapon</label>
+            <select id="p3-melee">
+                <option value="Whip" selected>Energy Whip</option>
+                <option value="Knife">Combat Knife</option>
+                <option value="Sword">Broadsword</option>
+            </select>
+
+            <label>Firearm</label>
+            <select id="p3-gun">
+                <option value="Rocket" selected>RPG Launcher</option>
+                <option value="Pistol">Service Pistol</option>
+                <option value="Shotgun">Pump Shotgun</option>
+                <option value="Rifle">Assault Rifle</option>
+                <option value="Sniper">Heavy Sniper</option>
+                <option value="GrenadeL">Grenade Tube</option>
+            </select>
+        </div>
+    </div>
+
+    <button class="deploy-btn" onclick="deploySquad()">DEPLOY TO SECTOR ALPHA</button>
+
+    <div class="brand-footer">
+        Powered by Needful Thingz LLC
+    </div>
+
+    <script>
+        // Maps class names to their hex colors for the game engine
+        const colorMap = {
+            "Vanguard": 0x00aaff, // Blue
+            "Recon": 0xaaaa00,    // Yellow
+            "Heavy": 0xaa00ff     // Purple
+        };
+
+        function deploySquad() {
+            // Gather all the data from the dropdowns
+            const roster = [
+                {
+                    name: document.getElementById('p1-class').value,
+                    color: colorMap[document.getElementById('p1-class').value],
+                    melee: document.getElementById('p1-melee').value,
+                    gun: document.getElementById('p1-gun').value
+                },
+                {
+                    name: document.getElementById('p2-class').value,
+                    color: colorMap[document.getElementById('p2-class').value],
+                    melee: document.getElementById('p2-melee').value,
+                    gun: document.getElementById('p2-gun').value
+                },
+                {
+                    name: document.getElementById('p3-class').value,
+                    color: colorMap[document.getElementById('p3-class').value],
+                    melee: document.getElementById('p3-melee').value,
+                    gun: document.getElementById('p3-gun').value
+                }
+            ];
+
+            // Package it into local browser storage so the next HTML file can read it
+            localStorage.setItem('nt_roster', JSON.stringify(roster));
+
+            // Blast off to the Level 1 file!
+            window.location.href = 'level1.html';
+        }
+    </script>
+</body>
+</html>
