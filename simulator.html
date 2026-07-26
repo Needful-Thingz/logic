@@ -10,12 +10,12 @@
   #player { background: #00aaff; left: 10%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: left 0.1s, background-color 0.1s, opacity 0.1s; z-index: 2;}
   #dummy { background: #ff5555; right: 80%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: left 0.2s ease-in-out, background-color 0.1s; z-index: 1;}
   
-  /* V12: Floating Health Bars */
+  /* Floating Health Bars */
   .float-bg { position: absolute; top: -15px; left: -5px; width: 40px; height: 5px; background: #333; border-radius: 2px;}
   .float-fill { height: 100%; border-radius: 2px; transition: width 0.2s; }
   .float-armor { position: absolute; top: -9px; left: -5px; width: 40px; height: 5px; background: #333; border-radius: 2px;}
   
-  /* V13: Floating Damage Text */
+  /* Floating Damage Text */
   .damage-text { position: absolute; font-weight: bold; pointer-events: none; z-index: 10; text-shadow: 2px 2px 0 #000; }
   .float-up { animation: floatUpAnim 0.8s ease-out forwards; }
   @keyframes floatUpAnim { 
@@ -185,7 +185,6 @@
 
 <div id="ammo-display" class="hidden">AMMO: 15 / 15</div>
 
-<!-- DUAL ATTACK BUTTONS -->
 <div style="display:flex; gap:10px;">
     <button id="strike-btn" style="flex:1;" onclick="executeAction()">LIGHT STRIKE</button>
     <button id="heavy-btn" style="flex:1;" onclick="executeHeavyAction()">HEAVY STRIKE</button>
@@ -402,7 +401,6 @@
       }, iframeDuration);
   }
 
-  // --- V13: CSS FLOATING DAMAGE TEXT ---
   function spawnDamageText(targetEl, amount, isCrit, isPlayer) {
       let txt = document.createElement('div');
       txt.className = 'damage-text float-up';
@@ -410,7 +408,7 @@
       txt.style.color = isPlayer ? '#ff3333' : '#ffdd00';
       txt.style.fontSize = isCrit ? '24px' : '16px';
       
-      let drift = (Math.random() - 0.5) * 30; // Random horizontal spread
+      let drift = (Math.random() - 0.5) * 30; 
       let arenaRect = document.getElementById('arena').getBoundingClientRect();
       let targetRect = targetEl.getBoundingClientRect();
       
@@ -477,30 +475,26 @@
     let piercePercent = parseInt(document.getElementById('pierce').value) / 100;
     let stunDuration = parseFloat(document.getElementById('stun').value);
 
-    // --- V14: AI TELEGRAPHING SIMULATION ---
     if (mode === 'defense') {
         if (isAttacking) return;
-        isAttacking = true; // Prevent spamming the button
+        isAttacking = true; 
         let incDmg = parseInt(document.getElementById('incdmg').value);
         let mitPercent = parseInt(document.getElementById('mit').value) / 100;
         let dummyEl = document.getElementById('dummy');
         let pPos = parseInt(document.getElementById('position').value);
         
-        // 1. CHASE
         document.getElementById('status-log').innerText = "Target approaches...";
         dummyEl.style.transition = "left 0.3s ease-out";
         dummyEl.style.left = (pPos + 10) + '%';
         
-        // 2. TELEGRAPH
         setTimeout(() => {
             dummyEl.style.backgroundColor = "#ffffff";
             document.getElementById('status-log').innerText = "Target winding up! (400ms window)";
             
-            // 3. STRIKE
             setTimeout(() => {
                 dummyEl.style.backgroundColor = "#ff5555";
                 dummyEl.style.transition = "left 0.4s ease-in-out";
-                dummyEl.style.left = '80%'; // Retreat
+                dummyEl.style.left = '80%'; 
                 
                 if (isDashing) {
                     document.getElementById('status-log').innerText = "EVADED! I-frames absorbed the attack.";
@@ -518,8 +512,8 @@
                 if (playerHP < 0) playerHP = 0; 
                 updateBars();
                 setTimeout(() => isAttacking = false, 500);
-            }, 400); // Telegraph Window
-        }, 300); // Travel Time
+            }, 400); 
+        }, 300); 
         return;
     }
 
