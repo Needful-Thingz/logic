@@ -52,17 +52,19 @@
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
     let activeOrdnance = ordnanceArmory['Frag'];
 
-    // --- ROSTER MANAGER ---
-    const playerRoster = [
+    // --- ROSTER MANAGER (Linked to Hangar) ---
+    let savedRoster = localStorage.getItem('nt_roster');
+    const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
         { name: "Vanguard", color: 0x00aaff, melee: 'Sword', gun: 'Shotgun' },
         { name: "Recon",    color: 0xaaaa00, melee: 'Knife', gun: 'Rifle' },
         { name: "Heavy",    color: 0xaa00ff, melee: 'Whip',  gun: 'Rocket' }
     ];
+    
     let currentRosterIndex = 0, activeCharDef = playerRoster[currentRosterIndex];
     let playerHealth = 100, jumps = 0, joystickUpReleased = true, playerHealthBar; 
-    let currentWeaponIndex = 0, activeWeapon = weaponArmory['Knife'];
-    let currentGunIndex = 1, activeGun = gunArmory['Shotgun'];
-    let lastFiredTime = 0, currentAmmo = 6, isReloading = false, reloadTimer;
+    let currentWeaponIndex = 0, activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
+    let currentGunIndex = 1, activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
+    let lastFiredTime = 0, currentAmmo = activeGun.clipSize, isReloading = false, reloadTimer;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
     // --- COMBAT FLAGS ---
@@ -107,26 +109,24 @@
         platforms.add(this.add.rectangle(1800, 280, 150, 15, 0x4a544a));
         platforms.add(this.add.rectangle(2000, 220, 150, 15, 0x4a544a));
         
-        // Boss Arena (Final 800 pixels)
+        // Boss Arena
         platforms.add(this.add.rectangle(2800, 390, 800, 20, 0x2d382d)); 
         platforms.add(this.add.rectangle(2650, 260, 150, 15, 0x4a544a));
         platforms.add(this.add.rectangle(2950, 260, 150, 15, 0x4a544a));
 
-        // Invisible wall for the boss trap (starts disabled)
         bossWall = this.add.rectangle(2400, 200, 20, 400, 0x00ffff, 0.4);
         this.physics.add.existing(bossWall, true);
-        bossWall.body.checkCollision.none = true; // disabled until triggered
+        bossWall.body.checkCollision.none = true; 
 
-        // Pre-Spawn Level Enemies
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
         // --- GOLIATH BOSS SETUP ---
-        boss = this.add.rectangle(3100, 300, 80, 150, 0x444444); // Big rusted mech
+        boss = this.add.rectangle(3100, 300, 80, 150, 0x444444); 
         this.physics.add.existing(boss);
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
-        boss.body.setAllowGravity(false); // Hovering slightly
+        boss.body.setAllowGravity(false); 
         boss.setDepth(5);
         
         boss.enemyData = {
@@ -148,11 +148,10 @@
         bossHpBar = this.add.graphics().setScrollFactor(0).setDepth(20);
 
         this.physics.add.collider(player, platforms);
-        this.physics.add.collider(player, bossWall); // Traps player in boss arena
+        this.physics.add.collider(player, bossWall); 
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
         
-        // Enemy Projectile Collision
         this.physics.add.overlap(player, enemyProjectiles, (p, proj) => {
             proj.destroy();
             playerTakeDamage(proj.dmg, proj.x);
@@ -232,13 +231,12 @@
         bossActive = true;
         boss.enemyData.state = 'active';
         
-        // Trap Player
         currentScene.cameras.main.stopFollow();
         currentScene.cameras.main.pan(2800, 200, 1000, 'Sine.easeInOut');
         
         currentScene.time.delayedCall(1000, () => {
             currentScene.cameras.main.setBounds(2400, 0, 800, 400);
-            bossWall.body.checkCollision.none = false; // Wall is solid
+            bossWall.body.checkCollision.none = false; 
             
             showCenterMessage("WARNING: GOLIATH MECH", '#ff0000');
             
@@ -252,8 +250,7 @@
         let attackType = Phaser.Math.Between(1, 2);
         
         if (attackType === 1) {
-            // THE SWEEP
-            boss.fillColor = 0xffff00; // Glow yellow
+            boss.fillColor = 0xffff00; 
             currentScene.time.delayedCall(500, () => {
                 if(!boss.active) return;
                 boss.fillColor = 0x444444;
@@ -269,11 +266,9 @@
                 }
             });
         } else {
-            // THE MORTAR
-            boss.fillColor = 0xffffff; // Glow white
+            boss.fillColor = 0xffffff; 
             let targetX = player.x;
             
-            // Draw warning reticle
             let reticle = currentScene.add.circle(targetX, 380, 60, 0xff0000, 0.4);
             currentScene.tweens.add({ targets: reticle, alpha: 0.8, duration: 800, yoyo: true, repeat: 0 });
             
@@ -318,8 +313,8 @@
 
     function applyCharacterLoadout() {
         activeCharDef = playerRoster[currentRosterIndex]; player.fillColor = activeCharDef.color;
-        currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee];
-        currentGunIndex = gunKeys.indexOf(activeCharDef.gun); activeGun = gunArmory[activeCharDef.gun];
+        currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
+        currentGunIndex = gunKeys.indexOf(activeCharDef.gun); activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
         playerHealth = 100; currentAmmo = activeGun.clipSize; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
         isReloading = false; isSpawning = false;
         meleeText.setText('Melee: ' + activeWeapon.name); gunText.setText('Gun: ' + activeGun.name);
@@ -529,17 +524,12 @@
             }
         });
         
-        // Draw massive Boss UI if active
         if (bossActive && !bossDefeated && boss.active) {
             bossHpBar.clear();
             let data = boss.enemyData;
-            
             bossHpBar.fillStyle(0x333333, 1).fillRect(200, 30, 400, 12);
             bossHpBar.fillStyle(0x333333, 1).fillRect(200, 45, 400, 12);
-            
-            // Health
             bossHpBar.fillStyle(0xff0000, 1).fillRect(200, 30, 400 * (data.hp / data.maxHp), 12);
-            // Armor
             bossHpBar.fillStyle(0xcccccc, 1).fillRect(200, 45, 400 * (data.armor / data.maxArmor), 12);
         }
     }
@@ -548,15 +538,9 @@
         drawFloatingBars();
         let currentTime = currentScene.time.now;
         
-        // --- TRIGGER BOSS EVENT ---
-        if (!bossActive && player.x > 2600) {
-            triggerBoss();
-        }
+        if (!bossActive && player.x > 2600) triggerBoss();
 
-        // --- PITFALL LOGIC ---
-        if (player.y > 395 && playerHealth > 0 && !isSpawning) {
-            playerTakeDamage(1000, player.x); 
-        }
+        if (player.y > 395 && playerHealth > 0 && !isSpawning) playerTakeDamage(1000, player.x); 
 
         // Player Logic
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
@@ -579,7 +563,7 @@
         // Enemies Loop
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData;
-            if (data.isBoss) return; // Handled by separate AI timer
+            if (data.isBoss) return; 
             
             if (enemy.y > 395) { destroyEnemy(enemy); return; }
 
