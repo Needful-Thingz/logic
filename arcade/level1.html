@@ -92,6 +92,8 @@
         currentScene = this; 
         
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
+        // FIX BUG 2: Disable bottom collision so players can fall into pits!
+        this.physics.world.setBoundsCollision(true, true, true, false); 
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
 
         grenadesGroup = this.physics.add.group(); 
@@ -543,10 +545,15 @@
         
         if (!bossActive && player.x > 2600) triggerBoss();
 
-        if (player.y > 395 && playerHealth > 0 && !isSpawning) playerTakeDamage(1000, player.x); 
+        // FIX BUG 2: Check if player fell below 450 (below the screen)
+        if (player.y > 450 && playerHealth > 0 && !isSpawning) playerTakeDamage(1000, player.x); 
 
         // Player Logic
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
+            
+            // FIX BUG 1: Lock player upright so they never lay on their back!
+            player.rotation = 0; 
+            
             if (joyStickLeft.left) { player.body.setVelocityX(-250); facingDirection = Math.PI; }
             else if (joyStickLeft.right) { player.body.setVelocityX(250); facingDirection = 0; }
             else player.body.setVelocityX(0);
@@ -555,12 +562,16 @@
             else if (!joyStickLeft.up) joystickUpReleased = true;
 
             if (joyStickRight.force > 0) {
-                player.rotation = joyStickRight.rotation; facingDirection = joyStickRight.rotation; 
+                // FIX BUG 1: Update facing direction so melee works, but don't physically spin the character
+                if (Math.abs(joyStickRight.rotation) > Math.PI/2) facingDirection = Math.PI;
+                else facingDirection = 0;
+                
                 if (currentTime > lastFiredTime + activeGun.fireRate && !isReloading) {
                     if (currentAmmo > 0) { shootGun(joyStickRight.rotation); currentAmmo--; updateUI(); lastFiredTime = currentTime; } else reloadGun();
                 }
-            } else player.rotation = facingDirection; 
-        } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); }
+            } 
+        } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; } // Keep upright when hitting
+        
         if (player.body.touching.down) jumps = 0;
 
         // Enemies Loop
@@ -568,7 +579,8 @@
             let data = enemy.enemyData;
             if (data.isBoss) return; 
             
-            if (enemy.y > 395) { destroyEnemy(enemy); return; }
+            // FIX BUG 2: Destroy enemy if they fall in the pit
+            if (enemy.y > 450) { destroyEnemy(enemy); return; }
 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
             if (distToPlayer > 800) return; 
