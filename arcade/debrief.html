@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Needful Thingz - Mission Debrief</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .container {
+            background: #161b22;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            padding: 40px;
+            max-width: 600px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+        }
+
+        h1 {
+            font-size: 48px;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .win-text { color: #00ff00; text-shadow: 0 0 15px rgba(0, 255, 0, 0.5); }
+        .lose-text { color: #ff0000; text-shadow: 0 0 15px rgba(255, 0, 0, 0.5); }
+
+        h2 {
+            color: #00aaff;
+            font-size: 24px;
+            margin: 20px 0;
+        }
+
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+            color: #8b949e;
+            margin-bottom: 30px;
+        }
+
+        .btn-resolve {
+            display: inline-block;
+            background: linear-gradient(180deg, #0077ff 0%, #0044aa 100%);
+            color: white;
+            text-decoration: none;
+            padding: 20px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(0, 119, 255, 0.4);
+            transition: transform 0.1s, box-shadow 0.2s;
+            letter-spacing: 1px;
+            border: 1px solid #58a6ff;
+            margin-bottom: 15px;
+            width: 80%;
+        }
+
+        .btn-resolve:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 119, 255, 0.8);
+        }
+
+        .btn-replay {
+            display: inline-block;
+            background: transparent;
+            color: #ffaa00;
+            text-decoration: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border: 2px solid #ffaa00;
+            border-radius: 6px;
+            transition: background 0.2s, color 0.2s;
+            width: 80%;
+        }
+
+        .btn-replay:hover {
+            background: #ffaa00;
+            color: #000;
+        }
+
+        .brand-footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #484f58;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1 id="status-title">STANDBY...</h1>
+        <h2 id="hook-text">Processing Mission Data</h2>
+        
+        <p>
+            The arcade may be chaotic, but your property management doesn't have to be. 
+            Join the <strong>Kill the Clipboard</strong> campaign and streamline your maintenance triage, technician routing, and vendor management.
+        </p>
+
+        <a href="https://resolve.needfulthingz.com" class="btn-resolve">Access Resolve Platform</a><br>
+        <a href="index.html" class="btn-replay">Return to Hangar</a>
+    </div>
+
+    <div class="brand-footer">
+        Powered by Needful Thingz LLC
+    </div>
+
+    <script>
+        // Check the URL to see if they won or lost
+        const urlParams = new URLSearchParams(window.location.search);
+        const result = urlParams.get('status');
+
+        const title = document.getElementById('status-title');
+        const hook = document.getElementById('hook-text');
+
+        if (result === 'win') {
+            title.textContent = "SECTOR CLEARED";
+            title.className = "win-text";
+            hook.textContent = "Now it's time to clear your maintenance backlog.";
+        } else {
+            title.textContent = "TEAM WIPED";
+            title.className = "lose-text";
+            hook.textContent = "Don't let your daily operations suffer the same fate.";
+        }
+    </script>
+</body>
+</html>
