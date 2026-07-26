@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Level 1: Overgrown Facility</title>
+    <title>Needful Thingz - Survival Arena (Endless Waves)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -26,7 +26,6 @@
     
     // Core Entities
     let player, joyStickLeft, joyStickRight, platforms;
-    let uiElements = []; // Store UI to pin to camera
     let meleeText, gunText, ammoText, grenadeText, actionText, rosterText, scoreText;
     let facingDirection = 0, currentScene, grenadesGroup; 
     let score = 0;
@@ -73,8 +72,9 @@
     let attackActiveTimer, attackRecoveryTimer;
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
     
+    // --- WAVE SPAWNER SYSTEM ---
     let enemiesGroup;
-    const WORLD_WIDTH = 3200; // HUGE scrolling world
+    const MAX_ENEMIES = 5;
     
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
@@ -82,92 +82,58 @@
 
     function create() {
         currentScene = this; 
-        
-        // --- 1. WORLD & CAMERA SETUP ---
-        this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
-        this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
-
         grenadesGroup = this.physics.add.group(); 
         enemiesGroup = this.physics.add.group();
         platforms = this.physics.add.staticGroup();
 
-        // --- 2. THE LEVEL DESIGN (Scrolling Obstacle Course) ---
-        // Section 1: The Drop Zone
-        platforms.add(this.add.rectangle(400, 390, 800, 20, 0x2d382d)); // Ground
-        platforms.add(this.add.rectangle(600, 300, 150, 15, 0x4a544a)); // First jump
+        // --- LEVEL 1 TACTICAL LAYOUT ---
+        let floor = this.add.rectangle(400, 390, 800, 20, 0x2d382d);
+        platforms.add(floor);
         
-        // Section 2: The Pit & The High Road
-        platforms.add(this.add.rectangle(1050, 250, 200, 15, 0x4a544a)); // Bridge over pit
-        platforms.add(this.add.rectangle(1350, 390, 400, 20, 0x2d382d)); // Ground returns
-        platforms.add(this.add.rectangle(1350, 180, 200, 15, 0x4a544a)); // Sniper nest
+        let leftPlat = this.add.rectangle(150, 260, 200, 15, 0x4a544a);
+        let rightPlat = this.add.rectangle(650, 260, 200, 15, 0x4a544a);
+        let centerPlat = this.add.rectangle(400, 160, 250, 15, 0x4a544a);
         
-        // Section 3: The Gauntlet
-        platforms.add(this.add.rectangle(1900, 390, 500, 20, 0x2d382d)); 
-        platforms.add(this.add.rectangle(1800, 280, 150, 15, 0x4a544a));
-        platforms.add(this.add.rectangle(2000, 220, 150, 15, 0x4a544a));
-        
-        // Section 4: The Boss Arena (End of level)
-        platforms.add(this.add.rectangle(2800, 390, 800, 20, 0x2d382d)); 
-        
-        // Spawn Enemies across the level
-        spawnEnemyAt(700, 200);
-        spawnEnemyAt(1050, 150);
-        spawnEnemyAt(1350, 100);
-        spawnEnemyAt(1450, 300);
-        spawnEnemyAt(1800, 200);
-        spawnEnemyAt(2000, 100);
-        spawnEnemyAt(2100, 300);
+        platforms.add(leftPlat); platforms.add(rightPlat); platforms.add(centerPlat);
 
         // Player Setup
-        player = this.add.rectangle(100, 200, 30, 50, activeCharDef.color);
-        this.physics.add.existing(player); 
-        player.body.setCollideWorldBounds(true);
+        player = this.add.rectangle(400, 100, 30, 50, activeCharDef.color);
+        this.physics.add.existing(player); player.body.setCollideWorldBounds(true);
         
-        // Lock Camera to Player!
-        this.cameras.main.startFollow(player, true, 0.1, 0.1);
-
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, 0xffffff).setAlpha(0);
         this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
 
         playerHealthBar = this.add.graphics();
-        playerHealthBar.setDepth(10); // keep bars above world
 
         this.physics.add.collider(player, platforms);
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
 
-        // --- 3. UI SETUP (Pinned to screen) ---
-        meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff' }); uiElements.push(meleeText);
-        gunText = this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00' }); uiElements.push(gunText);
-        ammoText = this.add.text(10, 40, `Ammo: `, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' }); uiElements.push(ammoText);
-        grenadeText = this.add.text(10, 60, `Nades: `, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold' }); uiElements.push(grenadeText);
-        actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(actionText);
-        rosterText = this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(rosterText);
-        scoreText = this.add.text(400, 65, 'SCORE: 0', { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(scoreText);
+        // UI Setup
+        meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff' });
+        gunText = this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00' });
+        ammoText = this.add.text(10, 40, `Ammo: `, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' });
+        grenadeText = this.add.text(10, 60, `Nades: `, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold' });
+        actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+        rosterText = this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' }).setOrigin(0.5);
+        scoreText = this.add.text(400, 65, 'SCORE: 0', { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold' }).setOrigin(0.5);
 
+        // --- CONTROLS & UI BUTTONS ---
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
-        joyStickLeft.base.setScrollFactor(0); joyStickLeft.thumb.setScrollFactor(0);
-        
-        const leftTapZone = this.add.circle(120, 300, 25, 0xffffff, 0).setInteractive(); uiElements.push(leftTapZone);
+        const leftTapZone = this.add.circle(120, 300, 25, 0xffffff, 0).setInteractive();
         leftTapZone.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Triple Jump: ' + jumps + '/3'); } });
-        
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16 });
-        joyStickRight.base.setScrollFactor(0); joyStickRight.thumb.setScrollFactor(0);
 
-        const btnMelee = this.add.circle(570, 310, 25, 0xffaa00).setAlpha(0.6).setInteractive(); uiElements.push(btnMelee);
-        const btnMeleeT = this.add.text(554, 302, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }); uiElements.push(btnMeleeT);
+        const btnMelee = this.add.circle(570, 310, 25, 0xffaa00).setAlpha(0.6).setInteractive(); this.add.text(554, 302, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' });
         btnMelee.on('pointerdown', () => { if (isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
 
-        const btnHeavy = this.add.circle(570, 250, 25, 0xff3300).setAlpha(0.7).setInteractive(); uiElements.push(btnHeavy);
-        const btnHeavyT = this.add.text(554, 242, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }); uiElements.push(btnHeavyT);
+        const btnHeavy = this.add.circle(570, 250, 25, 0xff3300).setAlpha(0.7).setInteractive(); this.add.text(554, 242, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnHeavy.on('pointerdown', () => { if (!isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
 
-        const btnToss = this.add.circle(510, 250, 25, 0x00cc00).setAlpha(0.6).setInteractive(); uiElements.push(btnToss);
-        const btnTossT = this.add.text(492, 242, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }); uiElements.push(btnTossT);
+        const btnToss = this.add.circle(510, 250, 25, 0x00cc00).setAlpha(0.6).setInteractive(); this.add.text(492, 242, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnToss.on('pointerdown', tossGrenade);
 
-        const btnDefend = this.add.circle(510, 310, 25, 0x888888).setAlpha(0.8).setInteractive(); uiElements.push(btnDefend);
-        const btnDefendT = this.add.text(495, 302, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }); uiElements.push(btnDefendT);
+        const btnDefend = this.add.circle(510, 310, 25, 0x888888).setAlpha(0.8).setInteractive(); this.add.text(495, 302, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnDefend.on('pointerdown', () => {
             if (isAttacking || isDashing || isSpawning) return;
             if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } 
@@ -176,19 +142,16 @@
         btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock);
         function releaseBlock() { if (isBlocking) { isBlocking = false; player.fillColor = activeCharDef.color; actionText.setText('Ready'); } }
 
-        const btnReload = this.add.circle(450, 310, 25, 0x4444ff).setAlpha(0.7).setInteractive(); uiElements.push(btnReload);
-        const btnReloadT = this.add.text(435, 302, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }); uiElements.push(btnReloadT);
+        const btnReload = this.add.circle(450, 310, 25, 0x4444ff).setAlpha(0.7).setInteractive(); this.add.text(435, 302, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnReload.on('pointerdown', () => { if (!isReloading && !isAttacking && !isBlocking && !isDashing && !isSpawning && currentAmmo < activeGun.clipSize) reloadGun(); });
 
-        specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive(); uiElements.push(specialButton);
-        const specialButtonT = this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }); uiElements.push(specialButtonT);
-        specialGraphics = this.add.graphics(); uiElements.push(specialGraphics);
-        
+        specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive(); this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' });
+        specialGraphics = this.add.graphics();
         specialButton.on('pointerdown', () => {
             if (specialReady && !isAttacking && !isBlocking && !isSpawning) {
                 player.fillColor = 0x00ffff;
                 enemiesGroup.getChildren().forEach(enemy => {
-                    if (Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y) < 250) { 
+                    if (Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y) < 200) { 
                         dealDamageToEnemy(enemy, 50, 0.8, 0); enemy.fillColor = 0x00ffff; this.time.delayedCall(200, () => { if(enemy.active) enemy.fillColor = 0xff5555; }); 
                     }
                 });
@@ -196,16 +159,21 @@
                 specialCharge = 0; specialReady = false; specialButton.setFillStyle(0x555555); specialGraphics.clear();
             }
         });
-
-        // PIN ALL UI TO CAMERA SO IT DOESN'T SCROLL AWAY!
-        uiElements.forEach(el => el.setScrollFactor(0));
         
         applyCharacterLoadout();
+        
+        // Spawn Wave Timer
+        this.time.addEvent({ delay: 3500, callback: spawnEnemy, loop: true });
     }
 
-    // --- ENEMY PLACEMENT ---
-    function spawnEnemyAt(x, y) {
-        let enemy = currentScene.add.rectangle(x, y, 30, 50, 0xff5555);
+    // --- ENEMY SPAWNER ---
+    function spawnEnemy() {
+        if (enemiesGroup.getChildren().length >= MAX_ENEMIES || playerHealth <= 0) return;
+        
+        let spawnLeft = Phaser.Math.Between(0, 1) === 0;
+        let startX = spawnLeft ? 30 : 770;
+        
+        let enemy = currentScene.add.rectangle(startX, 100, 30, 50, 0xff5555);
         currentScene.physics.add.existing(enemy);
         enemy.body.setCollideWorldBounds(true);
         
@@ -214,12 +182,12 @@
         hitbox.body.setAllowGravity(false);
         
         let barGraphics = currentScene.add.graphics();
-        barGraphics.setDepth(10);
         
         enemy.enemyData = {
             hp: 60, maxHp: 60, armor: 20, maxArmor: 20, state: 'idle', canAttack: true, isStunned: false,
             hitbox: hitbox, bars: barGraphics
         };
+        
         enemiesGroup.add(enemy);
     }
 
@@ -236,9 +204,7 @@
     function spawnNextCharacter() {
         if (currentRosterIndex >= 3) return; 
         isSpawning = true; isInvincible = true;
-        // Drop them exactly where the camera is!
-        player.x = currentScene.cameras.main.scrollX + 100; 
-        player.y = -50; player.body.setVelocityY(800); 
+        player.x = 400; player.y = -50; player.body.setVelocityY(800); 
         applyCharacterLoadout();
         player.setAlpha(0.5);
         currentScene.time.delayedCall(1500, () => { isInvincible = false; player.setAlpha(1); actionText.setText('Ready'); });
@@ -247,7 +213,7 @@
     function resetEntireMatch() {
         currentRosterIndex = 0; score = 0; scoreText.setText('SCORE: 0');
         enemiesGroup.getChildren().forEach(enemy => destroyEnemy(enemy));
-        currentScene.scene.restart(); // Fully reset the level
+        spawnNextCharacter();
     }
 
     function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) {
@@ -428,11 +394,6 @@
     function update() {
         drawFloatingBars();
         let currentTime = currentScene.time.now;
-        
-        // --- PITFALL LOGIC ---
-        if (player.y > 395 && playerHealth > 0 && !isSpawning) {
-            playerTakeDamage(1000, player.x); // Insta-kill if you fall down a pit
-        }
 
         // Player Logic
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
@@ -455,15 +416,8 @@
         // Enemies Loop
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData;
-            
-            // Enemy Pitfall Logic
-            if (enemy.y > 395) { destroyEnemy(enemy); return; }
-
-            // Only wake enemies up when the player gets somewhat close to them
-            let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
-            if (distToPlayer > 800) return; // Enemy sleeps if off screen
-
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
+                let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
                 if (distToPlayer < 65 && data.canAttack) {
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.fillColor = 0xffffff;
                     
@@ -481,6 +435,7 @@
 
                 } else if (distToPlayer < 400 && distToPlayer >= 65 && data.state !== 'attack') {
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
+                    // Basic jump AI so they can navigate platforms
                     if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
                 } else if (data.state !== 'attack') {
                     data.state = 'idle'; enemy.body.setVelocityX(0);
@@ -488,7 +443,7 @@
             } else { if (data.state !== 'attack') enemy.body.setVelocityX(0); }
         });
 
-        // Special Attack Charge (UI is pinned to camera now, so we draw it dynamically based on scroll)
+        // Special Attack Charge
         if (!specialReady) {
             specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
             specialGraphics.arc(680, 180, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false);
