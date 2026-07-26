@@ -212,12 +212,6 @@
         currentScene.time.delayedCall(1500, () => { isInvincible = false; player.setAlpha(1); actionText.setText('Ready'); });
     }
 
-    function resetEntireMatch() {
-        currentRosterIndex = 0; score = 0; scoreText.setText('SCORE: 0');
-        enemiesGroup.getChildren().forEach(enemy => destroyEnemy(enemy));
-        spawnNextCharacter();
-    }
-
     function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) {
         let fontSize = isCritical ? '26px' : '16px'; let color = isPlayerHit ? '#ff3333' : '#ffdd00'; 
         let floatText = currentScene.add.text(x, y, Math.round(amount).toString(), { fontSize: fontSize, fill: color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5);
@@ -295,8 +289,11 @@
             playerHealth = 0; currentRosterIndex++;
             if (currentRosterIndex < playerRoster.length) spawnNextCharacter();
             else {
-                player.setAlpha(0); actionText.setText('TEAM WIPED! Resetting...'); rosterText.setText('TEAM: 0 LIVES');
-                currentScene.time.delayedCall(3000, resetEntireMatch);
+                // REDIRECT TO MARKETING FUNNEL (LOSE)
+                player.setAlpha(0); actionText.setText('TEAM WIPED! Redirecting...'); rosterText.setText('TEAM: 0 LIVES');
+                currentScene.time.delayedCall(3000, () => {
+                    window.location.href = 'debrief.html?status=lose';
+                });
             }
         } 
     }
