@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Arena V14.1 (Bug Fix)</title>
+    <title>Needful Thingz - Arena V15 (The 3-Character Roster)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -25,12 +25,8 @@
     
     // Core Entities
     let player, dummy, joyStickLeft, joyStickRight;
-    let meleeText, gunText, ammoText, grenadeText, actionText;
+    let meleeText, gunText, ammoText, grenadeText, actionText, rosterText;
     let facingDirection = 0, currentScene, grenadesGroup; 
-    
-    // Player Stats
-    let playerHealth = 100, jumps = 0, joystickUpReleased = true;
-    let playerHealthBar; 
     
     // --- ARMORY DATA ---
     const weaponArmory = {
@@ -39,8 +35,7 @@
         'Whip':  { name: 'Energy Whip',  damage: 12, reach: 170, pierce: 0.90, stun: 1.0, speed: 250, color: 0x00ffff }
     };
     let weaponKeys = ['Knife', 'Sword', 'Whip'];
-    let currentWeaponIndex = 0, activeWeapon = weaponArmory['Knife'];
-
+    
     const gunArmory = {
         'Pistol':   { name: 'Service Pistol', damage: 15, fireRate: 300, speed: 900, count: 1, color: 0xcccccc, lifespan: 1000, clipSize: 12, reloadTime: 1000 },
         'Shotgun':  { name: 'Pump Shotgun',   damage: 10, fireRate: 800, speed: 600, count: 5, color: 0xffaa00, lifespan: 300,  clipSize: 6,  reloadTime: 3000 }, 
@@ -50,21 +45,31 @@
         'Rocket':   { name: 'RPG Launcher',   damage: 90, fireRate: 1000,speed: 900, count: 1, color: 0xff0000, lifespan: 2000, clipSize: 1,  reloadTime: 3000 }
     };
     let gunKeys = ['Pistol', 'Shotgun', 'Rifle', 'Sniper', 'GrenadeL', 'Rocket'];
-    let currentGunIndex = 1, activeGun = gunArmory['Shotgun'];
-    let lastFiredTime = 0, currentAmmo = activeGun.clipSize, isReloading = false, reloadTimer;
-
+    
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
     let activeOrdnance = ordnanceArmory['Frag'];
-    let currentOrdnanceAmmo = activeOrdnance.maxAmmo, lastTossedTime = 0;
+
+    // --- NEW: THE ROSTER MANAGER ---
+    const playerRoster = [
+        { name: "Vanguard", color: 0x00aaff, melee: 'Sword', gun: 'Shotgun' }, // Char 1: Blue
+        { name: "Recon",    color: 0xaaaa00, melee: 'Knife', gun: 'Rifle' },   // Char 2: Yellow
+        { name: "Heavy",    color: 0xaa00ff, melee: 'Whip',  gun: 'Rocket' }   // Char 3: Purple
+    ];
+    let currentRosterIndex = 0;
+    let activeCharDef = playerRoster[currentRosterIndex];
+    let playerHealth = 100, jumps = 0, joystickUpReleased = true, playerHealthBar; 
+    let currentWeaponIndex = 0, activeWeapon = weaponArmory['Knife'];
+    let currentGunIndex = 1, activeGun = gunArmory['Shotgun'];
+    let lastFiredTime = 0, currentAmmo = 6, isReloading = false, reloadTimer;
+    let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
-    // --- COMBAT & DEFENSE FLAGS (Fixed missing vars here!) ---
+    // --- COMBAT & DEFENSE FLAGS ---
     let specialCharge = 0, specialReady = false, meleeHitbox, isStunned = false;
     const specialMax = 100;
     let specialButton, specialGraphics;
-
     let comboStep = 0, isAttacking = false, inputBuffered = false, canCancel = false;
     let attackActiveTimer, attackRecoveryTimer;
-    let isBlocking = false, isDashing = false, canDash = true, isInvincible = false;
+    let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
     
     // Dummy Stats & AI
     let dummyHealth = 100, dummyArmor = 100, dummyHealthBar, dummyArmorBar;
@@ -83,15 +88,14 @@
         const islandBot = this.add.rectangle(400, 260, 250, 20, 0x666666);
         [floor, islandTop, islandMid, islandBot].forEach(obj => this.physics.add.existing(obj, true));
 
-        player = this.add.rectangle(200, 300, 30, 50, 0x00aaff);
+        player = this.add.rectangle(200, 300, 30, 50, activeCharDef.color);
         this.physics.add.existing(player); player.body.setCollideWorldBounds(true);
         
         dummy = this.add.rectangle(600, 335, 30, 50, 0xff5555);
         this.physics.add.existing(dummy, true); dummy.body.setCollideWorldBounds(true);
 
-        meleeHitbox = this.add.rectangle(-100, -100, 40, 20, activeWeapon.color).setAlpha(0);
+        meleeHitbox = this.add.rectangle(-100, -100, 40, 20, 0xffffff).setAlpha(0);
         this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
-        
         dummyHitbox = this.add.rectangle(-100, -100, 30, 30, 0xff0000).setAlpha(0);
         this.physics.add.existing(dummyHitbox); dummyHitbox.body.setAllowGravity(false);
 
@@ -102,57 +106,115 @@
         this.physics.add.collider(dummy, [floor, islandTop, islandMid, islandBot]); 
         this.physics.add.collider(grenadesGroup, [floor, islandTop, islandMid, islandBot]);
 
-        meleeText = this.add.text(10, 10, 'Melee: Combat Knife', { fontSize: '12px', fill: '#ffffff' });
-        gunText = this.add.text(10, 25, 'Gun: Pump Shotgun', { fontSize: '12px', fill: '#ffff00' });
-        ammoText = this.add.text(10, 40, `Ammo: ${currentAmmo}/${activeGun.clipSize}`, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' });
-        grenadeText = this.add.text(10, 60, `Nades: ${currentOrdnanceAmmo}/${activeOrdnance.maxAmmo}`, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold' });
+        meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff' });
+        gunText = this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00' });
+        ammoText = this.add.text(10, 40, `Ammo: `, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' });
+        grenadeText = this.add.text(10, 60, `Nades: `, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold' });
         actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+        rosterText = this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' }).setOrigin(0.5);
 
         // --- CONTROLS & UI BUTTONS ---
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
         const leftTapZone = this.add.circle(120, 300, 25, 0xffffff, 0).setInteractive();
-        leftTapZone.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3) { player.body.setVelocityY(-450); jumps++; actionText.setText('Triple Jump: ' + jumps + '/3'); } });
+        leftTapZone.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Triple Jump: ' + jumps + '/3'); } });
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
         const btnMelee = this.add.circle(570, 310, 25, 0xffaa00).setAlpha(0.6).setInteractive(); this.add.text(554, 302, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' });
-        btnMelee.on('pointerdown', () => { if (isStunned || isBlocking || isDashing) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
+        btnMelee.on('pointerdown', () => { if (isStunned || isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
 
         const btnHeavy = this.add.circle(570, 250, 25, 0xff3300).setAlpha(0.7).setInteractive(); this.add.text(554, 242, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
-        btnHeavy.on('pointerdown', () => { if (!isStunned && !isBlocking && !isDashing && !isAttacking) executeHeavyAttack(); });
+        btnHeavy.on('pointerdown', () => { if (!isStunned && !isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
 
         const btnToss = this.add.circle(510, 250, 25, 0x00cc00).setAlpha(0.6).setInteractive(); this.add.text(492, 242, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnToss.on('pointerdown', tossGrenade);
 
         const btnDefend = this.add.circle(510, 310, 25, 0x888888).setAlpha(0.8).setInteractive(); this.add.text(495, 302, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
         btnDefend.on('pointerdown', () => {
-            if (isAttacking || isDashing || isStunned) return;
+            if (isAttacking || isDashing || isStunned || isSpawning) return;
             if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } 
             else { isBlocking = true; player.fillColor = 0xcccccc; actionText.setText('BLOCKING'); }
         });
         btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock);
-        function releaseBlock() { if (isBlocking) { isBlocking = false; player.fillColor = 0x00aaff; actionText.setText('Ready'); } }
+        function releaseBlock() { if (isBlocking) { isBlocking = false; player.fillColor = activeCharDef.color; actionText.setText('Ready'); } }
 
         const btnReload = this.add.circle(450, 310, 25, 0x4444ff).setAlpha(0.7).setInteractive(); this.add.text(435, 302, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
-        btnReload.on('pointerdown', () => { if (!isReloading && !isAttacking && !isBlocking && !isDashing && currentAmmo < activeGun.clipSize) reloadGun(); });
+        btnReload.on('pointerdown', () => { if (!isReloading && !isAttacking && !isBlocking && !isDashing && !isSpawning && currentAmmo < activeGun.clipSize) reloadGun(); });
 
         const btnMeleeSwap = this.add.circle(450, 180, 20, 0xaaaaaa).setAlpha(0.5).setInteractive(); this.add.text(432, 172, 'M-GEAR', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
-        btnMeleeSwap.on('pointerdown', () => { if (!isAttacking && !isBlocking) { currentWeaponIndex = (currentWeaponIndex + 1) % weaponKeys.length; activeWeapon = weaponArmory[weaponKeys[currentWeaponIndex]]; meleeText.setText('Melee: ' + activeWeapon.name); } });
+        btnMeleeSwap.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isSpawning) { currentWeaponIndex = (currentWeaponIndex + 1) % weaponKeys.length; activeWeapon = weaponArmory[weaponKeys[currentWeaponIndex]]; meleeText.setText('Melee: ' + activeWeapon.name); } });
 
         const btnGunSwap = this.add.circle(500, 180, 20, 0xaaaaaa).setAlpha(0.5).setInteractive(); this.add.text(484, 172, 'G-GEAR', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
-        btnGunSwap.on('pointerdown', () => { if (!isAttacking && !isReloading && !isBlocking) { currentGunIndex = (currentGunIndex + 1) % gunKeys.length; activeGun = gunArmory[gunKeys[currentGunIndex]]; gunText.setText('Gun: ' + activeGun.name); currentAmmo = activeGun.clipSize; updateUI(); } });
+        btnGunSwap.on('pointerdown', () => { if (!isAttacking && !isReloading && !isBlocking && !isSpawning) { currentGunIndex = (currentGunIndex + 1) % gunKeys.length; activeGun = gunArmory[gunKeys[currentGunIndex]]; gunText.setText('Gun: ' + activeGun.name); currentAmmo = activeGun.clipSize; updateUI(); } });
 
         specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive(); this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' });
         specialGraphics = this.add.graphics();
         specialButton.on('pointerdown', () => {
-            if (specialReady && !isAttacking && !isBlocking) {
+            if (specialReady && !isAttacking && !isBlocking && !isSpawning) {
                 player.fillColor = 0x00ffff;
                 if (Phaser.Math.Distance.Between(player.x, player.y, dummy.x, dummy.y) < 180) { 
                     dealDamage(50, 0.8, 0); dummy.fillColor = 0x00ffff; this.time.delayedCall(200, () => dummy.fillColor = 0xff5555); 
                 }
-                this.time.delayedCall(500, () => player.fillColor = 0x00aaff);
+                this.time.delayedCall(500, () => player.fillColor = activeCharDef.color);
                 specialCharge = 0; specialReady = false; specialButton.setFillStyle(0x555555); specialGraphics.clear();
             }
         });
+        
+        // Spawn the first character on creation!
+        applyCharacterLoadout();
+    }
+
+    // --- NEW: ROSTER & LOADOUT MANAGER ---
+    function applyCharacterLoadout() {
+        activeCharDef = playerRoster[currentRosterIndex];
+        player.fillColor = activeCharDef.color;
+        
+        // Equip their specific starting weapons
+        currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee);
+        activeWeapon = weaponArmory[activeCharDef.melee];
+        
+        currentGunIndex = gunKeys.indexOf(activeCharDef.gun);
+        activeGun = gunArmory[activeCharDef.gun];
+        
+        // Reset Stats
+        playerHealth = 100;
+        currentAmmo = activeGun.clipSize;
+        currentOrdnanceAmmo = activeOrdnance.maxAmmo;
+        isReloading = false;
+        isSpawning = false;
+        
+        meleeText.setText('Melee: ' + activeWeapon.name);
+        gunText.setText('Gun: ' + activeGun.name);
+        rosterText.setText(`TEAM: ${3 - currentRosterIndex} LIVES`);
+        actionText.setText(`${activeCharDef.name} DROPS IN!`);
+        updateUI();
+    }
+
+    function spawnNextCharacter() {
+        if (currentRosterIndex >= 3) return; // Failsafe
+        
+        isSpawning = true;
+        isInvincible = true;
+        
+        // Teleport high into the air
+        player.x = 200;
+        player.y = -50; 
+        player.body.setVelocityY(800); // Slam down
+        
+        applyCharacterLoadout();
+        
+        // Brief I-frames upon dropping in so they don't get instantly spawn-camped
+        player.setAlpha(0.5);
+        currentScene.time.delayedCall(1500, () => {
+            isInvincible = false;
+            player.setAlpha(1);
+            actionText.setText('Ready');
+        });
+    }
+
+    function resetEntireMatch() {
+        currentRosterIndex = 0;
+        dummyHealth = 100; dummyArmor = 100; dummy.x = 600;
+        spawnNextCharacter();
     }
 
     // --- FLOATING DAMAGE TEXT SYSTEM ---
@@ -181,7 +243,7 @@
             }
             attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
                 meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); 
-                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; player.fillColor = 0x00aaff; actionText.setText('Ready'); });
+                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; player.fillColor = activeCharDef.color; actionText.setText('Ready'); });
             });
         });
     }
@@ -203,7 +265,7 @@
         attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
             meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); canCancel = true; 
             if (inputBuffered && step < 3) triggerNextHit();
-            else { attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; player.fillColor = 0x00aaff; }); }
+            else { attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; player.fillColor = activeCharDef.color; }); }
         });
     }
     function triggerNextHit() { if (comboStep < 3) executeAttack(comboStep + 1); }
@@ -211,24 +273,42 @@
     function executeDash() {
         isDashing = true; canDash = false; isInvincible = true; actionText.setText('DODGE!');
         player.setAlpha(0.5); player.fillColor = 0x00ffff; player.body.setVelocityX((facingDirection === 0) ? 700 : -700);
-        currentScene.time.delayedCall(250, () => { isDashing = false; isInvincible = false; player.setAlpha(1); player.fillColor = 0x00aaff; actionText.setText('Ready'); });
+        currentScene.time.delayedCall(250, () => { isDashing = false; isInvincible = false; player.setAlpha(1); player.fillColor = activeCharDef.color; actionText.setText('Ready'); });
         currentScene.time.delayedCall(1200, () => { canDash = true; });
     }
 
+    // --- UPDATED: ROSTER DEATH LOGIC ---
     function playerTakeDamage(incomingDmg, attackXLocation) {
-        if (isInvincible) return; 
+        if (isInvincible || playerHealth <= 0) return; 
+        
         let finalDmg = incomingDmg;
         if (isBlocking) {
             let playerFacingRight = (facingDirection === 0), attackFromRight = (attackXLocation > player.x);
             if ((playerFacingRight && attackFromRight) || (!playerFacingRight && !attackFromRight)) finalDmg *= 0.2; 
         }
+        
         playerHealth -= finalDmg;
         spawnDamageText(player.x, player.y - 30, finalDmg, finalDmg >= 30, true);
-        if (playerHealth <= 0) { playerHealth = 100; player.x = 200; player.y = 300; } 
+        
+        if (playerHealth <= 0) { 
+            playerHealth = 0; // Don't let bar go negative visually
+            
+            currentRosterIndex++; // Move to next character
+            if (currentRosterIndex < playerRoster.length) {
+                // Drop in next character
+                spawnNextCharacter();
+            } else {
+                // Team wiped!
+                player.setAlpha(0); // Hide body
+                actionText.setText('TEAM WIPED! Resetting...');
+                rosterText.setText('TEAM: 0 LIVES');
+                currentScene.time.delayedCall(3000, resetEntireMatch);
+            }
+        } 
     }
 
     function tossGrenade() {
-        if (currentOrdnanceAmmo <= 0 || isAttacking || isBlocking || isDashing || currentScene.time.now < lastTossedTime + activeOrdnance.cooldown) return;
+        if (currentOrdnanceAmmo <= 0 || isAttacking || isBlocking || isDashing || isSpawning || currentScene.time.now < lastTossedTime + activeOrdnance.cooldown) return;
         currentOrdnanceAmmo--; updateUI(); lastTossedTime = currentScene.time.now; actionText.setText("TOSS!");
         let nade = currentScene.add.circle(player.x, player.y - 10, 6, activeOrdnance.color);
         currentScene.physics.add.existing(nade); nade.body.setBounce(0.6); nade.body.setDrag(100, 0); nade.body.setCollideWorldBounds(true);
@@ -290,7 +370,12 @@
     }
 
     function drawFloatingBars() {
-        playerHealthBar.clear(); playerHealthBar.fillStyle(0x333333, 1).fillRect(player.x - 20, player.y - 40, 40, 5); playerHealthBar.fillStyle(0x00ff00, 1).fillRect(player.x - 20, player.y - 40, 40 * (playerHealth / 100), 5); 
+        playerHealthBar.clear(); 
+        if (playerHealth > 0 && !isSpawning) {
+            playerHealthBar.fillStyle(0x333333, 1).fillRect(player.x - 20, player.y - 40, 40, 5); 
+            playerHealthBar.fillStyle(0x00ff00, 1).fillRect(player.x - 20, player.y - 40, 40 * (playerHealth / 100), 5); 
+        }
+        
         dummyHealthBar.clear(); dummyArmorBar.clear();
         dummyHealthBar.fillStyle(0x333333, 1).fillRect(dummy.x - 25, dummy.y - 45, 50, 6); dummyArmorBar.fillStyle(0x333333, 1).fillRect(dummy.x - 25, dummy.y - 36, 50, 6);
         dummyHealthBar.fillStyle(0x00ff00, 1).fillRect(dummy.x - 25, dummy.y - 45, 50 * (dummyHealth / 100), 6); dummyArmorBar.fillStyle(0xcccccc, 1).fillRect(dummy.x - 25, dummy.y - 36, 50 * (dummyArmor / 100), 6);
@@ -300,7 +385,7 @@
         drawFloatingBars();
         let currentTime = currentScene.time.now;
 
-        if (!isDashing && !isAttacking && !isBlocking) {
+        if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
             if (joyStickLeft.left) { player.body.setVelocityX(-250); facingDirection = Math.PI; }
             else if (joyStickLeft.right) { player.body.setVelocityX(250); facingDirection = 0; }
             else player.body.setVelocityX(0);
@@ -317,10 +402,11 @@
         } else if (isAttacking || isBlocking) {
             player.body.setVelocityX(0); 
         }
+        
         if (player.body.touching.down) jumps = 0;
 
         // Enemy AI System
-        if (!isStunned && dummyHealth > 0) {
+        if (!isStunned && dummyHealth > 0 && playerHealth > 0 && !isSpawning) {
             let distToPlayer = Phaser.Math.Distance.Between(dummy.x, dummy.y, player.x, player.y);
             
             if (distToPlayer < 65 && dummyCanAttack) {
@@ -328,7 +414,7 @@
                 dummy.fillColor = 0xffffff;
                 
                 currentScene.time.delayedCall(400, () => {
-                    if (isStunned || dummyHealth <= 0) return; 
+                    if (isStunned || dummyHealth <= 0 || playerHealth <= 0) return; 
                     dummy.fillColor = 0xff5555;
                     dummyHitbox.setPosition(dummy.x + (dummy.x < player.x ? 25 : -25), dummy.y);
                     dummyHitbox.setAlpha(1);
@@ -346,7 +432,10 @@
             } else if (dummyState !== 'attack') {
                 dummyState = 'idle'; dummy.body.setVelocityX(0);
             }
-        } else if (isStunned) { dummy.body.setVelocityX(0); }
+        } else { 
+            // Stop dummy if player is dead or spawning
+            if (dummyState !== 'attack') dummy.body.setVelocityX(0); 
+        }
 
         if (!specialReady) {
             specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
