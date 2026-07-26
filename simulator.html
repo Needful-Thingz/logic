@@ -2,14 +2,27 @@
 <html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Weapon Loadout Simulator V11 (Heavy Attacks & Defense)</title>
+<title>Weapon Loadout Simulator V14 (AI & Floating UI)</title>
 <style>
   body { font-family: sans-serif; background: #111; color: #fff; text-align: center; margin: 0; padding: 20px; }
-  .arena-box { background: #222; border-radius: 10px; margin-bottom: 20px; position: relative; height: 200px; overflow: hidden; }
+  .arena-box { background: #222; border-radius: 10px; margin-bottom: 20px; position: relative; height: 220px; overflow: hidden; }
   
   #player { background: #00aaff; left: 10%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: left 0.1s, background-color 0.1s, opacity 0.1s; z-index: 2;}
-  #dummy { background: #ff5555; right: 80%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: left 0.15s ease-in-out, background-color 0.1s; z-index: 1;}
+  #dummy { background: #ff5555; right: 80%; width: 30px; height: 50px; position: absolute; bottom: 20px; transition: left 0.2s ease-in-out, background-color 0.1s; z-index: 1;}
   
+  /* V12: Floating Health Bars */
+  .float-bg { position: absolute; top: -15px; left: -5px; width: 40px; height: 5px; background: #333; border-radius: 2px;}
+  .float-fill { height: 100%; border-radius: 2px; transition: width 0.2s; }
+  .float-armor { position: absolute; top: -9px; left: -5px; width: 40px; height: 5px; background: #333; border-radius: 2px;}
+  
+  /* V13: Floating Damage Text */
+  .damage-text { position: absolute; font-weight: bold; pointer-events: none; z-index: 10; text-shadow: 2px 2px 0 #000; }
+  .float-up { animation: floatUpAnim 0.8s ease-out forwards; }
+  @keyframes floatUpAnim { 
+      0% { opacity: 1; transform: translateY(0) scale(1); } 
+      100% { opacity: 0; transform: translateY(-50px) scale(1.2); } 
+  }
+
   /* Visuals */
   #hitbox { background: rgba(255, 170, 0, 0.7); height: 20px; position: absolute; bottom: 40px; left: calc(10% + 30px); width: 0px; opacity: 0; }
   .bullet { position: absolute; width: 12px; height: 4px; border-radius: 2px; }
@@ -27,7 +40,7 @@
   .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 14px; font-weight: bold; }
   .bar-container { width: 100%; background: #444; height: 20px; margin-top: 5px; border-radius: 5px; overflow: hidden;}
   .bar { height: 100%; transition: width 0.3s; }
-  #p-health-bar { background: #00aaff; width: 100%; }
+  #p-health-bar { background: #00ff00; width: 100%; }
   #health-bar { background: #00ff00; width: 100%; }
   #armor-bar { background: #cccccc; width: 100%; }
   
@@ -47,7 +60,7 @@
 </head>
 <body>
 
-<h2>Weapon Loadout Simulator V11</h2>
+<h2>Weapon Loadout Simulator V14</h2>
 <div id="status-log">Target is ready.</div>
 
 <div class="stats">
@@ -66,9 +79,14 @@
 </div>
 
 <div class="arena-box" id="arena">
-  <div id="player"></div>
+  <div id="player">
+      <div class="float-bg"><div id="float-p-hp" class="float-fill" style="background:#00ff00;"></div></div>
+  </div>
   <div id="hitbox"></div>
-  <div id="dummy"></div>
+  <div id="dummy">
+      <div class="float-bg"><div id="float-d-hp" class="float-fill" style="background:#00ff00;"></div></div>
+      <div class="float-armor"><div id="float-d-ar" class="float-fill" style="background:#cccccc;"></div></div>
+  </div>
 </div>
 
 <div class="controls">
@@ -109,8 +127,8 @@
   
   <!-- 4. DEFENSE DROPDOWN -->
   <select id="defense-select" class="hidden" onchange="loadWeapon()">
-    <option value="standard" data-incdmg="40" data-mit="80" data-iframe="250" selected>Standard Enemy Strike</option>
-    <option value="heavy" data-incdmg="90" data-mit="80" data-iframe="250">Heavy Boss Attack</option>
+    <option value="standard" data-incdmg="25" data-mit="80" data-iframe="250" selected>Standard Enemy Strike</option>
+    <option value="heavy" data-incdmg="60" data-mit="80" data-iframe="250">Heavy Boss Attack</option>
   </select>
 
   <div id="melee-controls">
@@ -147,8 +165,8 @@
   </div>
 
   <div id="defense-controls" class="hidden">
-    <label style="color: #ff5555;">Incoming Enemy Damage: <span id="incdmg-val">40</span></label>
-    <input type="range" id="incdmg" min="10" max="150" value="40" oninput="updateUI()">
+    <label style="color: #ff5555;">Incoming Enemy Damage: <span id="incdmg-val">25</span></label>
+    <input type="range" id="incdmg" min="10" max="150" value="25" oninput="updateUI()">
     <label style="color: #00ffff;">Block Mitigation (%): <span id="mit-val">80</span>%</label>
     <input type="range" id="mit" min="10" max="100" value="80" oninput="updateUI()">
     <label style="color: #00ffff;">Dash I-Frames Duration (ms): <span id="iframe-val">250</span>ms</label>
@@ -229,7 +247,7 @@
       document.getElementById('heavy-btn').classList.add('hidden');
       document.getElementById('block-btn').classList.remove('hidden');
       document.getElementById('dash-btn').classList.remove('hidden');
-      document.getElementById('strike-btn').innerText = "SIMULATE ENEMY STRIKE";
+      document.getElementById('strike-btn').innerText = "SIMULATE AI ATTACK";
     }
     
     document.getElementById('hitbox').style.opacity = "0"; 
@@ -384,70 +402,72 @@
       }, iframeDuration);
   }
 
-  // --- NEW: HEAVY ATTACK MATH ---
+  // --- V13: CSS FLOATING DAMAGE TEXT ---
+  function spawnDamageText(targetEl, amount, isCrit, isPlayer) {
+      let txt = document.createElement('div');
+      txt.className = 'damage-text float-up';
+      txt.innerText = Math.round(amount);
+      txt.style.color = isPlayer ? '#ff3333' : '#ffdd00';
+      txt.style.fontSize = isCrit ? '24px' : '16px';
+      
+      let drift = (Math.random() - 0.5) * 30; // Random horizontal spread
+      let arenaRect = document.getElementById('arena').getBoundingClientRect();
+      let targetRect = targetEl.getBoundingClientRect();
+      
+      let startX = (targetRect.left - arenaRect.left) + (targetRect.width / 2) + drift;
+      let startY = (targetRect.top - arenaRect.top) - 10;
+      
+      txt.style.left = startX + 'px';
+      txt.style.top = startY + 'px';
+      
+      document.getElementById('arena').appendChild(txt);
+      setTimeout(() => txt.remove(), 800);
+  }
+
   function executeHeavyAction() {
       if (isAttacking || isStunned || getMode() !== 'melee') return;
       isAttacking = true;
 
       let baseDmg = parseInt(document.getElementById('dmg').value);
-      let dmg = baseDmg * 2.5; // Massive Damage
-      
+      let dmg = baseDmg * 2.5; 
       let piercePercent = parseInt(document.getElementById('pierce').value) / 100;
-      
       let baseStun = parseFloat(document.getElementById('stun').value);
-      let stunDuration = baseStun > 0 ? baseStun * 2 : 0.5; // Guaranteed Stun
-
+      let stunDuration = baseStun > 0 ? baseStun * 2 : 0.5; 
       let attackSpeed = parseInt(document.getElementById('speed').value);
       let baseReach = parseInt(document.getElementById('reach').value);
       
-      let pEl = document.getElementById('player');
-      let hitboxElement = document.getElementById('hitbox');
-      let dummyElement = document.getElementById('dummy');
+      let pEl = document.getElementById('player'), hitboxElement = document.getElementById('hitbox'), dummyElement = document.getElementById('dummy');
       
-      // Windup Phase
       pEl.style.backgroundColor = "#ff5500";
       document.getElementById('status-log').innerText = "WINDUP...";
 
       setTimeout(() => {
           pEl.style.backgroundColor = "#00aaff";
-          
-          hitboxElement.style.height = "40px"; // Taller hitbox
-          hitboxElement.style.width = (baseReach * 1.8) + 'px'; // 80% longer
+          hitboxElement.style.height = "40px"; 
+          hitboxElement.style.width = (baseReach * 1.8) + 'px'; 
           hitboxElement.style.opacity = "1";
           hitboxElement.style.transition = `opacity 0.05s`; 
           
           setTimeout(() => {
               hitboxElement.style.transition = `opacity ${attackSpeed / 1000}s ease-in`; 
               hitboxElement.style.opacity = "0";
-              setTimeout(() => {
-                  isAttacking = false;
-                  hitboxElement.style.height = "20px"; // Reset
-                  updateUI(); 
-              }, attackSpeed * 2.5); // Punishing Recovery Time
+              setTimeout(() => { isAttacking = false; hitboxElement.style.height = "20px"; updateUI(); }, attackSpeed * 2.5); 
           }, 50);
 
-          let hitRect = hitboxElement.getBoundingClientRect();
-          let dumRect = dummyElement.getBoundingClientRect();
-
-          if (hitRect.right < dumRect.left) {
+          if (hitboxElement.getBoundingClientRect().right < dummyElement.getBoundingClientRect().left) {
               document.getElementById('status-log').innerText = "Heavy swing and a miss! (Vulnerable)";
           } else {
               applyDamage(dmg, piercePercent, stunDuration, `CRITICAL! Dealt ${dmg} dmg. Target knocked back!`);
               hitboxElement.style.background = "#ffffff";
               setTimeout(() => hitboxElement.style.background = currentColor, 100);
               
-              // Knockback Math
               dummyElement.style.transition = "left 0.15s ease-out";
               let currentLeft = parseFloat(dummyElement.style.left || '80');
-              dummyElement.style.left = (currentLeft + 10) + '%';
+              dummyElement.style.left = (currentLeft - 5) + '%';
               
-              // Walk back for ease of simulator testing
-              setTimeout(() => {
-                  dummyElement.style.transition = "left 1s ease-in-out";
-                  dummyElement.style.left = '80%';
-              }, 600);
+              setTimeout(() => { dummyElement.style.transition = "left 1s ease-in-out"; dummyElement.style.left = '80%'; }, 600);
           }
-      }, attackSpeed * 1.5); // Windup Time
+      }, attackSpeed * 1.5); 
   }
 
   function executeAction() {
@@ -457,28 +477,49 @@
     let piercePercent = parseInt(document.getElementById('pierce').value) / 100;
     let stunDuration = parseFloat(document.getElementById('stun').value);
 
+    // --- V14: AI TELEGRAPHING SIMULATION ---
     if (mode === 'defense') {
+        if (isAttacking) return;
+        isAttacking = true; // Prevent spamming the button
         let incDmg = parseInt(document.getElementById('incdmg').value);
         let mitPercent = parseInt(document.getElementById('mit').value) / 100;
         let dummyEl = document.getElementById('dummy');
         let pPos = parseInt(document.getElementById('position').value);
-        dummyEl.style.transition = "left 0.15s ease-out";
+        
+        // 1. CHASE
+        document.getElementById('status-log').innerText = "Target approaches...";
+        dummyEl.style.transition = "left 0.3s ease-out";
         dummyEl.style.left = (pPos + 10) + '%';
         
+        // 2. TELEGRAPH
         setTimeout(() => {
-            dummyEl.style.transition = "left 0.4s ease-in-out";
-            dummyEl.style.left = '80%'; 
+            dummyEl.style.backgroundColor = "#ffffff";
+            document.getElementById('status-log').innerText = "Target winding up! (400ms window)";
             
-            if (isDashing) document.getElementById('status-log').innerText = "EVADED! I-frames absorbed the attack.";
-            else if (isBlocking) {
-                let finalDmg = Math.round(incDmg * (1 - mitPercent));
-                playerHP -= finalDmg;
-                document.getElementById('status-log').innerText = `BLOCKED! Mitigated ${mitPercent*100}%. Took ${finalDmg} dmg.`;
-            } else {
-                playerHP -= incDmg; document.getElementById('status-log').innerText = `DIRECT HIT! Took ${incDmg} dmg.`;
-            }
-            if (playerHP < 0) playerHP = 0; updateBars();
-        }, 150);
+            // 3. STRIKE
+            setTimeout(() => {
+                dummyEl.style.backgroundColor = "#ff5555";
+                dummyEl.style.transition = "left 0.4s ease-in-out";
+                dummyEl.style.left = '80%'; // Retreat
+                
+                if (isDashing) {
+                    document.getElementById('status-log').innerText = "EVADED! I-frames absorbed the attack.";
+                } else if (isBlocking) {
+                    let finalDmg = Math.round(incDmg * (1 - mitPercent));
+                    playerHP -= finalDmg;
+                    spawnDamageText(document.getElementById('player'), finalDmg, false, true);
+                    document.getElementById('status-log').innerText = `BLOCKED! Mitigated ${mitPercent*100}%. Took ${finalDmg} dmg.`;
+                } else {
+                    playerHP -= incDmg;
+                    spawnDamageText(document.getElementById('player'), incDmg, incDmg >= 40, true);
+                    document.getElementById('status-log').innerText = `DIRECT HIT! Took ${incDmg} dmg.`;
+                }
+                
+                if (playerHP < 0) playerHP = 0; 
+                updateBars();
+                setTimeout(() => isAttacking = false, 500);
+            }, 400); // Telegraph Window
+        }, 300); // Travel Time
         return;
     }
 
@@ -558,9 +599,18 @@
   function applyDamage(dmg, piercePercent, stunDuration, logMessage) {
     let dummyElement = document.getElementById('dummy');
     let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg;
-    if (armor > 0) { armor -= standardDmg; if (armor < 0) { health += armor; armor = 0; }
-    } else health -= standardDmg;
+    let totalDealt = piercingDmg;
+    
+    if (armor > 0) { 
+        armor -= standardDmg; 
+        if (armor < 0) { health += armor; totalDealt += (standardDmg + armor); armor = 0; }
+    } else {
+        health -= standardDmg; totalDealt += standardDmg;
+    }
+    
     health -= piercingDmg; if (health < 0) health = 0;
+
+    spawnDamageText(dummyElement, totalDealt, totalDealt >= 40, false);
 
     if (stunDuration > 0) {
         isStunned = true; dummyElement.style.backgroundColor = "#00ffff"; 
@@ -571,9 +621,17 @@
   }
 
   function updateBars() {
-    document.getElementById('p-health-val').innerText = Math.round(playerHP); document.getElementById('p-health-bar').style.width = playerHP + '%';
-    document.getElementById('health-val').innerText = Math.round(health); document.getElementById('health-bar').style.width = health + '%';
-    document.getElementById('armor-val').innerText = Math.round(armor); document.getElementById('armor-bar').style.width = armor + '%';
+    document.getElementById('p-health-val').innerText = Math.round(playerHP); 
+    document.getElementById('p-health-bar').style.width = playerHP + '%';
+    document.getElementById('float-p-hp').style.width = playerHP + '%';
+
+    document.getElementById('health-val').innerText = Math.round(health); 
+    document.getElementById('health-bar').style.width = health + '%';
+    document.getElementById('float-d-hp').style.width = health + '%';
+    
+    document.getElementById('armor-val').innerText = Math.round(armor); 
+    document.getElementById('armor-bar').style.width = armor + '%';
+    document.getElementById('float-d-ar').style.width = armor + '%';
   }
 
   function reset() {
