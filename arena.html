@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Arena V14 (Enemy AI Awakens)</title>
+    <title>Needful Thingz - Arena V14.1 (Bug Fix)</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -28,7 +28,7 @@
     let meleeText, gunText, ammoText, grenadeText, actionText;
     let facingDirection = 0, currentScene, grenadesGroup; 
     
-    // Player Stats & UI
+    // Player Stats
     let playerHealth = 100, jumps = 0, joystickUpReleased = true;
     let playerHealthBar; 
     
@@ -57,17 +57,18 @@
     let activeOrdnance = ordnanceArmory['Frag'];
     let currentOrdnanceAmmo = activeOrdnance.maxAmmo, lastTossedTime = 0;
     
-    // --- COMBAT & DEFENSE FLAGS ---
+    // --- COMBAT & DEFENSE FLAGS (Fixed missing vars here!) ---
     let specialCharge = 0, specialReady = false, meleeHitbox, isStunned = false;
+    const specialMax = 100;
+    let specialButton, specialGraphics;
+
     let comboStep = 0, isAttacking = false, inputBuffered = false, canCancel = false;
     let attackActiveTimer, attackRecoveryTimer;
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false;
     
     // Dummy Stats & AI
     let dummyHealth = 100, dummyArmor = 100, dummyHealthBar, dummyArmorBar;
-    let dummyState = 'idle'; // AI State
-    let dummyCanAttack = true;
-    let dummyHitbox;
+    let dummyState = 'idle', dummyCanAttack = true, dummyHitbox;
     
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
@@ -91,7 +92,6 @@
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, activeWeapon.color).setAlpha(0);
         this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
         
-        // NEW: Dummy Attack Hitbox
         dummyHitbox = this.add.rectangle(-100, -100, 30, 30, 0xff0000).setAlpha(0);
         this.physics.add.existing(dummyHitbox); dummyHitbox.body.setAllowGravity(false);
 
@@ -99,7 +99,7 @@
         dummyHealthBar = this.add.graphics(); dummyArmorBar = this.add.graphics(); 
 
         this.physics.add.collider(player, [floor, islandTop, islandMid, islandBot]);
-        this.physics.add.collider(dummy, [floor, islandTop, islandMid, islandBot]); // Let dummy walk on platforms
+        this.physics.add.collider(dummy, [floor, islandTop, islandMid, islandBot]); 
         this.physics.add.collider(grenadesGroup, [floor, islandTop, islandMid, islandBot]);
 
         meleeText = this.add.text(10, 10, 'Melee: Combat Knife', { fontSize: '12px', fill: '#ffffff' });
@@ -108,7 +108,7 @@
         grenadeText = this.add.text(10, 60, `Nades: ${currentOrdnanceAmmo}/${activeOrdnance.maxAmmo}`, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold' });
         actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
 
-        // --- CONTROLS & UI BUTTONS (Same as V13) ---
+        // --- CONTROLS & UI BUTTONS ---
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
         const leftTapZone = this.add.circle(120, 300, 25, 0xffffff, 0).setInteractive();
         leftTapZone.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3) { player.body.setVelocityY(-450); jumps++; actionText.setText('Triple Jump: ' + jumps + '/3'); } });
@@ -140,18 +140,29 @@
 
         const btnGunSwap = this.add.circle(500, 180, 20, 0xaaaaaa).setAlpha(0.5).setInteractive(); this.add.text(484, 172, 'G-GEAR', { fontSize: '10px', fill: '#fff', fontStyle: 'bold' });
         btnGunSwap.on('pointerdown', () => { if (!isAttacking && !isReloading && !isBlocking) { currentGunIndex = (currentGunIndex + 1) % gunKeys.length; activeGun = gunArmory[gunKeys[currentGunIndex]]; gunText.setText('Gun: ' + activeGun.name); currentAmmo = activeGun.clipSize; updateUI(); } });
+
+        specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive(); this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' });
+        specialGraphics = this.add.graphics();
+        specialButton.on('pointerdown', () => {
+            if (specialReady && !isAttacking && !isBlocking) {
+                player.fillColor = 0x00ffff;
+                if (Phaser.Math.Distance.Between(player.x, player.y, dummy.x, dummy.y) < 180) { 
+                    dealDamage(50, 0.8, 0); dummy.fillColor = 0x00ffff; this.time.delayedCall(200, () => dummy.fillColor = 0xff5555); 
+                }
+                this.time.delayedCall(500, () => player.fillColor = 0x00aaff);
+                specialCharge = 0; specialReady = false; specialButton.setFillStyle(0x555555); specialGraphics.clear();
+            }
+        });
     }
 
     // --- FLOATING DAMAGE TEXT SYSTEM ---
     function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) {
         let fontSize = isCritical ? '26px' : '16px';
-        let color = isPlayerHit ? '#ff3333' : '#ffdd00'; // Red for player hurt, Yellow for enemy hurt
+        let color = isPlayerHit ? '#ff3333' : '#ffdd00'; 
         let floatText = currentScene.add.text(x, y, Math.round(amount).toString(), { fontSize: fontSize, fill: color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5);
-        let xDrift = Phaser.Math.Between(-25, 25);
-        currentScene.tweens.add({ targets: floatText, x: floatText.x + xDrift, y: floatText.y - 60, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() });
+        currentScene.tweens.add({ targets: floatText, x: floatText.x + Phaser.Math.Between(-25, 25), y: floatText.y - 60, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() });
     }
 
-    // --- OFFENSIVE & DEFENSIVE LOGIC (Same as V13) ---
     function executeHeavyAttack() {
         isAttacking = true; inputBuffered = false; canCancel = false; 
         if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove();
@@ -166,7 +177,7 @@
                 let heavyStun = activeWeapon.stun > 0 ? activeWeapon.stun * 2 : 0.5;
                 dealDamage(activeWeapon.damage * 2.5, activeWeapon.pierce, heavyStun);
                 dummy.fillColor = activeWeapon.color; currentScene.time.delayedCall(100, () => { if(!isStunned) dummy.fillColor = 0xff5555; });
-                if(dummyHealth > 0) dummy.body.setVelocityX(facingDirection === 0 ? 300 : -300); // Physics knockback
+                if(dummyHealth > 0) dummy.body.setVelocityX(facingDirection === 0 ? 300 : -300);
             }
             attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
                 meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); 
@@ -213,7 +224,7 @@
         }
         playerHealth -= finalDmg;
         spawnDamageText(player.x, player.y - 30, finalDmg, finalDmg >= 30, true);
-        if (playerHealth <= 0) { playerHealth = 100; player.x = 200; player.y = 300; } // Basic respawn 
+        if (playerHealth <= 0) { playerHealth = 100; player.x = 200; player.y = 300; } 
     }
 
     function tossGrenade() {
@@ -274,7 +285,7 @@
 
         if (dummyHealth <= 0) { 
             dummyHealth = 100; dummyArmor = 100; currentOrdnanceAmmo = activeOrdnance.maxAmmo; updateUI(); 
-            dummy.x = Phaser.Math.Between(100, 700); // Respawn somewhere else
+            dummy.x = Phaser.Math.Between(100, 700); 
         }
     }
 
@@ -285,12 +296,10 @@
         dummyHealthBar.fillStyle(0x00ff00, 1).fillRect(dummy.x - 25, dummy.y - 45, 50 * (dummyHealth / 100), 6); dummyArmorBar.fillStyle(0xcccccc, 1).fillRect(dummy.x - 25, dummy.y - 36, 50 * (dummyArmor / 100), 6);
     }
 
-    // --- MAIN GAME LOOP ---
     function update() {
         drawFloatingBars();
         let currentTime = currentScene.time.now;
 
-        // --- 1. PLAYER MOVEMENT & ACTIONS ---
         if (!isDashing && !isAttacking && !isBlocking) {
             if (joyStickLeft.left) { player.body.setVelocityX(-250); facingDirection = Math.PI; }
             else if (joyStickLeft.right) { player.body.setVelocityX(250); facingDirection = 0; }
@@ -310,54 +319,35 @@
         }
         if (player.body.touching.down) jumps = 0;
 
-        // --- 2. ENEMY AI STATE MACHINE ---
+        // Enemy AI System
         if (!isStunned && dummyHealth > 0) {
             let distToPlayer = Phaser.Math.Distance.Between(dummy.x, dummy.y, player.x, player.y);
             
             if (distToPlayer < 65 && dummyCanAttack) {
-                // STATE: ATTACK
-                dummyState = 'attack';
-                dummyCanAttack = false;
-                dummy.body.setVelocityX(0);
-                
-                // Telegraph (Flash White)
+                dummyState = 'attack'; dummyCanAttack = false; dummy.body.setVelocityX(0);
                 dummy.fillColor = 0xffffff;
                 
                 currentScene.time.delayedCall(400, () => {
-                    if (isStunned || dummyHealth <= 0) return; // Interrupted!
+                    if (isStunned || dummyHealth <= 0) return; 
                     dummy.fillColor = 0xff5555;
-                    
-                    // Strike Player
                     dummyHitbox.setPosition(dummy.x + (dummy.x < player.x ? 25 : -25), dummy.y);
                     dummyHitbox.setAlpha(1);
                     
                     if (Phaser.Geom.Intersects.RectangleToRectangle(dummyHitbox.getBounds(), player.getBounds())) {
-                        playerTakeDamage(25, dummy.x); // Base AI Damage
+                        playerTakeDamage(25, dummy.x); 
                     }
                     
-                    currentScene.time.delayedCall(150, () => {
-                        dummyHitbox.setAlpha(0); dummyHitbox.setPosition(-100, -100); dummyState = 'idle';
-                    });
+                    currentScene.time.delayedCall(150, () => { dummyHitbox.setAlpha(0); dummyHitbox.setPosition(-100, -100); dummyState = 'idle'; });
                 });
-                
-                // Cooldown
                 currentScene.time.delayedCall(2000, () => { dummyCanAttack = true; });
 
             } else if (distToPlayer < 400 && distToPlayer >= 65 && dummyState !== 'attack') {
-                // STATE: CHASE
-                dummyState = 'chase';
-                let dir = (player.x > dummy.x) ? 1 : -1;
-                dummy.body.setVelocityX(100 * dir); // Slower than player
+                dummyState = 'chase'; let dir = (player.x > dummy.x) ? 1 : -1; dummy.body.setVelocityX(100 * dir); 
             } else if (dummyState !== 'attack') {
-                // STATE: IDLE
-                dummyState = 'idle';
-                dummy.body.setVelocityX(0);
+                dummyState = 'idle'; dummy.body.setVelocityX(0);
             }
-        } else if (isStunned) {
-            dummy.body.setVelocityX(0);
-        }
+        } else if (isStunned) { dummy.body.setVelocityX(0); }
 
-        // Ultimate Charge
         if (!specialReady) {
             specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
             specialGraphics.arc(680, 180, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false);
