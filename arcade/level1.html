@@ -86,35 +86,48 @@
     
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
+        
+        // --- LOAD THE SCENERY ASSETS ---
+        this.load.image('bg1', 'assets/bg1.png');
+        this.load.image('bg2', 'assets/bg2.png');
+        this.load.image('bg3', 'assets/bg3.png');
+        this.load.image('floorTile', 'assets/bg4.png'); // Your renamed floor block!
     }
 
     function create() {
         currentScene = this; 
         
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
-        // FIX BUG 2: Disable bottom collision so players can fall into pits!
         this.physics.world.setBoundsCollision(true, true, true, false); 
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
+
+        // --- DRAW THE PARALLAX BACKGROUNDS ---
+        // These are drawn first so they sit behind everything else.
+        // We use tileSprite stretched across the whole level width so it never runs out.
+        this.add.tileSprite(0, 0, WORLD_WIDTH, 400, 'bg1').setOrigin(0, 0).setScrollFactor(0.1); // Moves slowest (Far away)
+        this.add.tileSprite(0, 0, WORLD_WIDTH, 400, 'bg2').setOrigin(0, 0).setScrollFactor(0.4); // Moves medium (Midground)
+        this.add.tileSprite(0, 0, WORLD_WIDTH, 400, 'bg3').setOrigin(0, 0).setScrollFactor(0.7); // Moves fastest (Close)
 
         grenadesGroup = this.physics.add.group(); 
         enemiesGroup = this.physics.add.group();
         enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup();
 
-        // --- LEVEL DESIGN ---
-        platforms.add(this.add.rectangle(400, 390, 800, 20, 0x2d382d)); 
-        platforms.add(this.add.rectangle(600, 300, 150, 15, 0x4a544a)); 
-        platforms.add(this.add.rectangle(1050, 250, 200, 15, 0x4a544a)); 
-        platforms.add(this.add.rectangle(1350, 390, 400, 20, 0x2d382d)); 
-        platforms.add(this.add.rectangle(1350, 180, 200, 15, 0x4a544a)); 
-        platforms.add(this.add.rectangle(1900, 390, 500, 20, 0x2d382d)); 
-        platforms.add(this.add.rectangle(1800, 280, 150, 15, 0x4a544a));
-        platforms.add(this.add.rectangle(2000, 220, 150, 15, 0x4a544a));
+        // --- LEVEL DESIGN (NOW WITH CUSTOM FLOOR TEXTURE) ---
+        // Using tileSprite so the small image block you downloaded repeats itself smoothly
+        platforms.add(this.add.tileSprite(400, 390, 800, 20, 'floorTile')); 
+        platforms.add(this.add.tileSprite(600, 300, 150, 15, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1050, 250, 200, 15, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1350, 390, 400, 20, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1350, 180, 200, 15, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1900, 390, 500, 20, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1800, 280, 150, 15, 'floorTile'));
+        platforms.add(this.add.tileSprite(2000, 220, 150, 15, 'floorTile'));
         
         // Boss Arena
-        platforms.add(this.add.rectangle(2800, 390, 800, 20, 0x2d382d)); 
-        platforms.add(this.add.rectangle(2650, 260, 150, 15, 0x4a544a));
-        platforms.add(this.add.rectangle(2950, 260, 150, 15, 0x4a544a));
+        platforms.add(this.add.tileSprite(2800, 390, 800, 20, 'floorTile')); 
+        platforms.add(this.add.tileSprite(2650, 260, 150, 15, 'floorTile'));
+        platforms.add(this.add.tileSprite(2950, 260, 150, 15, 'floorTile'));
 
         bossWall = this.add.rectangle(2400, 200, 20, 400, 0x00ffff, 0.4);
         this.physics.add.existing(bossWall, true);
@@ -160,13 +173,13 @@
         });
 
         // --- UI SETUP ---
-        meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff' }); uiElements.push(meleeText);
-        gunText = this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00' }); uiElements.push(gunText);
-        ammoText = this.add.text(10, 40, `Ammo: `, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' }); uiElements.push(ammoText);
-        grenadeText = this.add.text(10, 60, `Nades: `, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold' }); uiElements.push(grenadeText);
-        actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(actionText);
-        rosterText = this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(rosterText);
-        scoreText = this.add.text(400, 65, 'SCORE: 0', { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(scoreText);
+        meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff', backgroundColor: '#000000' }); uiElements.push(meleeText);
+        gunText = this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00', backgroundColor: '#000000' }); uiElements.push(gunText);
+        ammoText = this.add.text(10, 40, `Ammo: `, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }); uiElements.push(ammoText);
+        grenadeText = this.add.text(10, 60, `Nades: `, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold', backgroundColor: '#000000' }); uiElements.push(grenadeText);
+        actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5); uiElements.push(actionText);
+        rosterText = this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5); uiElements.push(rosterText);
+        scoreText = this.add.text(400, 65, 'SCORE: 0', { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5); uiElements.push(scoreText);
         
         centerMsgText = this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0);
         uiElements.push(centerMsgText);
@@ -410,7 +423,6 @@
             playerHealth = 0; currentRosterIndex++;
             if (currentRosterIndex < playerRoster.length) spawnNextCharacter();
             else {
-                // REDIRECT TO MARKETING FUNNEL (LOSE)
                 player.setAlpha(0); actionText.setText('TEAM WIPED! Redirecting...'); rosterText.setText('TEAM: 0 LIVES');
                 if(bossAIEvent) bossAIEvent.remove();
                 currentScene.time.delayedCall(3000, () => {
@@ -481,7 +493,6 @@
             bossWall.body.checkCollision.none = true;
             bossWall.setAlpha(0);
             
-            // REDIRECT TO MARKETING FUNNEL (WIN)
             currentScene.time.delayedCall(4000, () => {
                 window.location.href = 'debrief.html?status=win';
             });
@@ -545,13 +556,11 @@
         
         if (!bossActive && player.x > 2600) triggerBoss();
 
-        // FIX BUG 2: Check if player fell below 450 (below the screen)
         if (player.y > 450 && playerHealth > 0 && !isSpawning) playerTakeDamage(1000, player.x); 
 
         // Player Logic
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
             
-            // FIX BUG 1: Lock player upright so they never lay on their back!
             player.rotation = 0; 
             
             if (joyStickLeft.left) { player.body.setVelocityX(-250); facingDirection = Math.PI; }
@@ -562,7 +571,6 @@
             else if (!joyStickLeft.up) joystickUpReleased = true;
 
             if (joyStickRight.force > 0) {
-                // FIX BUG 1: Update facing direction so melee works, but don't physically spin the character
                 if (Math.abs(joyStickRight.rotation) > Math.PI/2) facingDirection = Math.PI;
                 else facingDirection = 0;
                 
@@ -570,7 +578,7 @@
                     if (currentAmmo > 0) { shootGun(joyStickRight.rotation); currentAmmo--; updateUI(); lastFiredTime = currentTime; } else reloadGun();
                 }
             } 
-        } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; } // Keep upright when hitting
+        } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
         if (player.body.touching.down) jumps = 0;
 
@@ -579,7 +587,6 @@
             let data = enemy.enemyData;
             if (data.isBoss) return; 
             
-            // FIX BUG 2: Destroy enemy if they fall in the pit
             if (enemy.y > 450) { destroyEnemy(enemy); return; }
 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
