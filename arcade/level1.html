@@ -88,10 +88,11 @@
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
         
         // --- LOAD THE SCENERY ASSETS ---
+        // Assuming you fixed the file names on GitHub to be clean .png files!
         this.load.image('bg1', 'assets/bg1.png');
         this.load.image('bg2', 'assets/bg2.png');
         this.load.image('bg3', 'assets/bg3.png');
-        this.load.image('floorTile', 'assets/bg4.png'); // Your renamed floor block!
+        this.load.image('floorTile', 'assets/bg4.png');
     }
 
     function create() {
@@ -102,19 +103,24 @@
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
 
         // --- DRAW THE PARALLAX BACKGROUNDS ---
-        // These are drawn first so they sit behind everything else.
-        // We use tileSprite stretched across the whole level width so it never runs out.
-        this.add.tileSprite(0, 0, WORLD_WIDTH, 400, 'bg1').setOrigin(0, 0).setScrollFactor(0.1); // Moves slowest (Far away)
-        this.add.tileSprite(0, 0, WORLD_WIDTH, 400, 'bg2').setOrigin(0, 0).setScrollFactor(0.4); // Moves medium (Midground)
-        this.add.tileSprite(0, 0, WORLD_WIDTH, 400, 'bg3').setOrigin(0, 0).setScrollFactor(0.7); // Moves fastest (Close)
+        
+        // Background 1 (Sky/Volcano) stays stretched to cover the whole 400 height
+        this.add.tileSprite(0, 0, WORLD_WIDTH, 400, 'bg1').setOrigin(0, 0).setScrollFactor(0.1); 
+
+        // Background 2 (Trees) - Anchors to the bottom left (0, 1) and uses its natural height
+        let bg2Height = this.textures.get('bg2').getSourceImage().height;
+        this.add.tileSprite(0, 400, WORLD_WIDTH, bg2Height, 'bg2').setOrigin(0, 1).setScrollFactor(0.4); 
+
+        // Background 3 (Foreground Trees) - Anchors to the bottom left and uses its natural height
+        let bg3Height = this.textures.get('bg3').getSourceImage().height;
+        this.add.tileSprite(0, 400, WORLD_WIDTH, bg3Height, 'bg3').setOrigin(0, 1).setScrollFactor(0.7);
 
         grenadesGroup = this.physics.add.group(); 
         enemiesGroup = this.physics.add.group();
         enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup();
 
-        // --- LEVEL DESIGN (NOW WITH CUSTOM FLOOR TEXTURE) ---
-        // Using tileSprite so the small image block you downloaded repeats itself smoothly
+        // --- LEVEL DESIGN (CUSTOM FLOOR TEXTURE) ---
         platforms.add(this.add.tileSprite(400, 390, 800, 20, 'floorTile')); 
         platforms.add(this.add.tileSprite(600, 300, 150, 15, 'floorTile')); 
         platforms.add(this.add.tileSprite(1050, 250, 200, 15, 'floorTile')); 
