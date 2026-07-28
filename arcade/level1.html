@@ -87,8 +87,6 @@
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
         
-        // --- LOAD THE SCENERY ASSETS ---
-        // Assuming you fixed the file names on GitHub to be clean .png files!
         this.load.image('bg1', 'assets/bg1.png');
         this.load.image('bg2', 'assets/bg2.png');
         this.load.image('bg3', 'assets/bg3.png');
@@ -103,15 +101,11 @@
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
 
         // --- DRAW THE PARALLAX BACKGROUNDS ---
-        
-        // Background 1 (Sky/Volcano) stays stretched to cover the whole 400 height
         this.add.tileSprite(0, 0, WORLD_WIDTH, 400, 'bg1').setOrigin(0, 0).setScrollFactor(0.1); 
 
-        // Background 2 (Trees) - Anchors to the bottom left (0, 1) and uses its natural height
         let bg2Height = this.textures.get('bg2').getSourceImage().height;
         this.add.tileSprite(0, 400, WORLD_WIDTH, bg2Height, 'bg2').setOrigin(0, 1).setScrollFactor(0.4); 
 
-        // Background 3 (Foreground Trees) - Anchors to the bottom left and uses its natural height
         let bg3Height = this.textures.get('bg3').getSourceImage().height;
         this.add.tileSprite(0, 400, WORLD_WIDTH, bg3Height, 'bg3').setOrigin(0, 1).setScrollFactor(0.7);
 
@@ -195,20 +189,21 @@
         leftTapZone.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Triple Jump: ' + jumps + '/3'); } });
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        const btnMelee = this.add.circle(570, 310, 25, 0xffaa00).setAlpha(0.6).setInteractive(); uiElements.push(btnMelee);
-        const btnMeleeT = this.add.text(554, 302, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }); uiElements.push(btnMeleeT);
+        // --- NEW ERGONOMIC BUTTON LAYOUT ---
+        const btnMelee = this.add.circle(610, 230, 25, 0xffaa00).setAlpha(0.6).setInteractive(); uiElements.push(btnMelee);
+        const btnMeleeT = this.add.text(610, 230, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnMeleeT);
         btnMelee.on('pointerdown', () => { if (isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
 
-        const btnHeavy = this.add.circle(570, 250, 25, 0xff3300).setAlpha(0.7).setInteractive(); uiElements.push(btnHeavy);
-        const btnHeavyT = this.add.text(554, 242, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }); uiElements.push(btnHeavyT);
+        const btnHeavy = this.add.circle(540, 190, 25, 0xff3300).setAlpha(0.7).setInteractive(); uiElements.push(btnHeavy);
+        const btnHeavyT = this.add.text(540, 190, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnHeavyT);
         btnHeavy.on('pointerdown', () => { if (!isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
 
-        const btnToss = this.add.circle(510, 250, 25, 0x00cc00).setAlpha(0.6).setInteractive(); uiElements.push(btnToss);
-        const btnTossT = this.add.text(492, 242, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }); uiElements.push(btnTossT);
+        const btnToss = this.add.circle(680, 210, 25, 0x00cc00).setAlpha(0.6).setInteractive(); uiElements.push(btnToss);
+        const btnTossT = this.add.text(680, 210, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnTossT);
         btnToss.on('pointerdown', tossGrenade);
 
-        const btnDefend = this.add.circle(510, 310, 25, 0x888888).setAlpha(0.8).setInteractive(); uiElements.push(btnDefend);
-        const btnDefendT = this.add.text(495, 302, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }); uiElements.push(btnDefendT);
+        const btnDefend = this.add.circle(580, 300, 25, 0x888888).setAlpha(0.8).setInteractive(); uiElements.push(btnDefend);
+        const btnDefendT = this.add.text(580, 300, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnDefendT);
         btnDefend.on('pointerdown', () => {
             if (isAttacking || isDashing || isSpawning) return;
             if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } 
@@ -217,12 +212,12 @@
         btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock);
         function releaseBlock() { if (isBlocking) { isBlocking = false; player.fillColor = activeCharDef.color; actionText.setText('Ready'); } }
 
-        const btnReload = this.add.circle(450, 310, 25, 0x4444ff).setAlpha(0.7).setInteractive(); uiElements.push(btnReload);
-        const btnReloadT = this.add.text(435, 302, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }); uiElements.push(btnReloadT);
+        const btnReload = this.add.circle(510, 260, 25, 0x4444ff).setAlpha(0.7).setInteractive(); uiElements.push(btnReload);
+        const btnReloadT = this.add.text(510, 260, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnReloadT);
         btnReload.on('pointerdown', () => { if (!isReloading && !isAttacking && !isBlocking && !isDashing && !isSpawning && currentAmmo < activeGun.clipSize) reloadGun(); });
 
-        specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive(); uiElements.push(specialButton);
-        const specialButtonT = this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }); uiElements.push(specialButtonT);
+        specialButton = this.add.circle(750, 210, 30, 0x555555).setAlpha(0.7).setInteractive(); uiElements.push(specialButton);
+        const specialButtonT = this.add.text(750, 210, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(specialButtonT);
         specialGraphics = this.add.graphics(); uiElements.push(specialGraphics);
         
         specialButton.on('pointerdown', () => {
@@ -626,7 +621,7 @@
         // Special Attack Charge
         if (!specialReady) {
             specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
-            specialGraphics.arc(680, 180, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false);
+            specialGraphics.arc(750, 210, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false);
             specialGraphics.strokePath();
             if (specialCharge >= specialMax) { specialReady = true; specialButton.setFillStyle(0x00ffff); }
         }
