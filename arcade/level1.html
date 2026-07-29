@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Level 1: Overgrown Facility</title>
+    <title>Needful Thingz - Level 1: Scorched Outskirts</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -52,7 +52,7 @@
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
     let activeOrdnance = ordnanceArmory['Frag'];
 
-    // --- ROSTER MANAGER (Linked to Hangar) ---
+    // --- ROSTER MANAGER ---
     let savedRoster = localStorage.getItem('nt_roster');
     const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
         { name: "Vanguard", color: 0x00aaff, melee: 'Sword', gun: 'Shotgun' },
@@ -101,18 +101,14 @@
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
 
         // --- BULLETPROOF PARALLAX SCALING ---
-        
-        // Background 1 (Sky/Volcano) - Anchors to top (0,0) and dynamically scales to fit 400px height
         let bg1Height = this.textures.get('bg1').getSourceImage().height;
         let scale1 = 400 / bg1Height;
         this.add.tileSprite(0, 0, WORLD_WIDTH / scale1, bg1Height, 'bg1').setOrigin(0, 0).setScale(scale1).setScrollFactor(0.1); 
 
-        // Background 2 (Trees) - Anchors to bottom (0,1) and dynamically scales to fit 400px height
         let bg2Height = this.textures.get('bg2').getSourceImage().height;
         let scale2 = 400 / bg2Height;
         this.add.tileSprite(0, 400, WORLD_WIDTH / scale2, bg2Height, 'bg2').setOrigin(0, 1).setScale(scale2).setScrollFactor(0.4); 
 
-        // Background 3 (Foreground) - Anchors to bottom (0,1) and dynamically scales to fit 400px height
         let bg3Height = this.textures.get('bg3').getSourceImage().height;
         let scale3 = 400 / bg3Height;
         this.add.tileSprite(0, 400, WORLD_WIDTH / scale3, bg3Height, 'bg3').setOrigin(0, 1).setScale(scale3).setScrollFactor(0.7);
@@ -122,20 +118,21 @@
         enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup();
 
-        // --- LEVEL DESIGN (CUSTOM FLOOR TEXTURE) ---
-        platforms.add(this.add.tileSprite(400, 390, 800, 20, 'floorTile')); 
-        platforms.add(this.add.tileSprite(600, 300, 150, 15, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1050, 250, 200, 15, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1350, 390, 400, 20, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1350, 180, 200, 15, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1900, 390, 500, 20, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1800, 280, 150, 15, 'floorTile'));
-        platforms.add(this.add.tileSprite(2000, 220, 150, 15, 'floorTile'));
+        // --- LEVEL DESIGN (UPDATED FOR 32px HEIGHT) ---
+        // Every platform thickness is perfectly set to 32 to match your cracked road!
+        platforms.add(this.add.tileSprite(400, 390, 800, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(600, 300, 150, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1050, 250, 200, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1350, 390, 400, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1350, 180, 200, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1900, 390, 500, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1800, 280, 150, 32, 'floorTile'));
+        platforms.add(this.add.tileSprite(2000, 220, 150, 32, 'floorTile'));
         
         // Boss Arena
-        platforms.add(this.add.tileSprite(2800, 390, 800, 20, 'floorTile')); 
-        platforms.add(this.add.tileSprite(2650, 260, 150, 15, 'floorTile'));
-        platforms.add(this.add.tileSprite(2950, 260, 150, 15, 'floorTile'));
+        platforms.add(this.add.tileSprite(2800, 390, 800, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(2650, 260, 150, 32, 'floorTile'));
+        platforms.add(this.add.tileSprite(2950, 260, 150, 32, 'floorTile'));
 
         bossWall = this.add.rectangle(2400, 200, 20, 400, 0x00ffff, 0.4);
         this.physics.add.existing(bossWall, true);
@@ -197,19 +194,8 @@
         leftTapZone.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Triple Jump: ' + jumps + '/3'); } });
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        // --- NEW ERGONOMIC BUTTON LAYOUT ---
-        const btnMelee = this.add.circle(610, 230, 25, 0xffaa00).setAlpha(0.6).setInteractive(); uiElements.push(btnMelee);
-        const btnMeleeT = this.add.text(610, 230, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnMeleeT);
-        btnMelee.on('pointerdown', () => { if (isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
-
-        const btnHeavy = this.add.circle(540, 190, 25, 0xff3300).setAlpha(0.7).setInteractive(); uiElements.push(btnHeavy);
-        const btnHeavyT = this.add.text(540, 190, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnHeavyT);
-        btnHeavy.on('pointerdown', () => { if (!isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
-
-        const btnToss = this.add.circle(680, 210, 25, 0x00cc00).setAlpha(0.6).setInteractive(); uiElements.push(btnToss);
-        const btnTossT = this.add.text(680, 210, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnTossT);
-        btnToss.on('pointerdown', tossGrenade);
-
+        // --- NEW ERGONOMIC TWO-TIER CLAW BUTTON LAYOUT ---
+        // Main Inner Arc
         const btnDefend = this.add.circle(580, 300, 25, 0x888888).setAlpha(0.8).setInteractive(); uiElements.push(btnDefend);
         const btnDefendT = this.add.text(580, 300, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnDefendT);
         btnDefend.on('pointerdown', () => {
@@ -220,9 +206,22 @@
         btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock);
         function releaseBlock() { if (isBlocking) { isBlocking = false; player.fillColor = activeCharDef.color; actionText.setText('Ready'); } }
 
-        const btnReload = this.add.circle(510, 260, 25, 0x4444ff).setAlpha(0.7).setInteractive(); uiElements.push(btnReload);
-        const btnReloadT = this.add.text(510, 260, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnReloadT);
+        const btnMelee = this.add.circle(610, 230, 25, 0xffaa00).setAlpha(0.6).setInteractive(); uiElements.push(btnMelee);
+        const btnMeleeT = this.add.text(610, 230, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnMeleeT);
+        btnMelee.on('pointerdown', () => { if (isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
+
+        const btnToss = this.add.circle(680, 210, 25, 0x00cc00).setAlpha(0.6).setInteractive(); uiElements.push(btnToss);
+        const btnTossT = this.add.text(680, 210, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnTossT);
+        btnToss.on('pointerdown', tossGrenade);
+
+        // Outer Tier (Higher and between inner buttons)
+        const btnReload = this.add.circle(550, 240, 25, 0x4444ff).setAlpha(0.7).setInteractive(); uiElements.push(btnReload);
+        const btnReloadT = this.add.text(550, 240, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnReloadT);
         btnReload.on('pointerdown', () => { if (!isReloading && !isAttacking && !isBlocking && !isDashing && !isSpawning && currentAmmo < activeGun.clipSize) reloadGun(); });
+
+        const btnHeavy = this.add.circle(630, 170, 25, 0xff3300).setAlpha(0.7).setInteractive(); uiElements.push(btnHeavy);
+        const btnHeavyT = this.add.text(630, 170, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnHeavyT);
+        btnHeavy.on('pointerdown', () => { if (!isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
 
         specialButton = this.add.circle(750, 210, 30, 0x555555).setAlpha(0.7).setInteractive(); uiElements.push(specialButton);
         const specialButtonT = this.add.text(750, 210, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(specialButtonT);
