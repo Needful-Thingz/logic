@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -81,23 +80,41 @@
     
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
+        
+        // Load the new art assets
+        this.load.image('bg1', 'assets/bg1.png');
+        this.load.image('bg2', 'assets/bg2.png');
+        this.load.image('bg3', 'assets/bg3.png');
+        this.load.image('floorTile', 'assets/bg4.png');
     }
 
     function create() {
         currentScene = this; 
+        
+        // --- BULLETPROOF PARALLAX SCALING (Locked to 800 width for Arena) ---
+        let bg1Height = this.textures.get('bg1').getSourceImage().height;
+        let scale1 = 400 / bg1Height;
+        this.add.tileSprite(0, 0, 800 / scale1, bg1Height, 'bg1').setOrigin(0, 0).setScale(scale1).setScrollFactor(0); 
+
+        let bg2Height = this.textures.get('bg2').getSourceImage().height;
+        let scale2 = 400 / bg2Height;
+        this.add.tileSprite(0, 400, 800 / scale2, bg2Height, 'bg2').setOrigin(0, 1).setScale(scale2).setScrollFactor(0); 
+
+        let bg3Height = this.textures.get('bg3').getSourceImage().height;
+        let scale3 = 400 / bg3Height;
+        this.add.tileSprite(0, 400, 800 / scale3, bg3Height, 'bg3').setOrigin(0, 1).setScale(scale3).setScrollFactor(0);
+
         grenadesGroup = this.physics.add.group(); 
         enemiesGroup = this.physics.add.group();
         platforms = this.physics.add.staticGroup();
 
-        // --- LEVEL 1 TACTICAL LAYOUT ---
-        let floor = this.add.rectangle(400, 390, 800, 20, 0x2d382d);
-        platforms.add(floor);
+        // --- LEVEL 1 TACTICAL LAYOUT (Updated to 32px height tileSprites) ---
+        let floor = this.add.tileSprite(400, 390, 800, 32, 'floorTile');
+        let leftPlat = this.add.tileSprite(150, 260, 200, 32, 'floorTile');
+        let rightPlat = this.add.tileSprite(650, 260, 200, 32, 'floorTile');
+        let centerPlat = this.add.tileSprite(400, 160, 250, 32, 'floorTile');
         
-        let leftPlat = this.add.rectangle(150, 260, 200, 15, 0x4a544a);
-        let rightPlat = this.add.rectangle(650, 260, 200, 15, 0x4a544a);
-        let centerPlat = this.add.rectangle(400, 160, 250, 15, 0x4a544a);
-        
-        platforms.add(leftPlat); platforms.add(rightPlat); platforms.add(centerPlat);
+        platforms.add(floor); platforms.add(leftPlat); platforms.add(rightPlat); platforms.add(centerPlat);
 
         // Player Setup
         player = this.add.rectangle(400, 100, 30, 50, activeCharDef.color);
@@ -127,16 +144,10 @@
         leftTapZone.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Triple Jump: ' + jumps + '/3'); } });
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        const btnMelee = this.add.circle(570, 310, 25, 0xffaa00).setAlpha(0.6).setInteractive(); this.add.text(554, 302, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' });
-        btnMelee.on('pointerdown', () => { if (isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
-
-        const btnHeavy = this.add.circle(570, 250, 25, 0xff3300).setAlpha(0.7).setInteractive(); this.add.text(554, 242, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
-        btnHeavy.on('pointerdown', () => { if (!isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
-
-        const btnToss = this.add.circle(510, 250, 25, 0x00cc00).setAlpha(0.6).setInteractive(); this.add.text(492, 242, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
-        btnToss.on('pointerdown', tossGrenade);
-
-        const btnDefend = this.add.circle(510, 310, 25, 0x888888).setAlpha(0.8).setInteractive(); this.add.text(495, 302, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
+        // --- NEW ERGONOMIC TWO-TIER CLAW BUTTON LAYOUT ---
+        // Main Inner Arc
+        const btnDefend = this.add.circle(580, 300, 25, 0x888888).setAlpha(0.8).setInteractive(); 
+        this.add.text(580, 300, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
         btnDefend.on('pointerdown', () => {
             if (isAttacking || isDashing || isSpawning) return;
             if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } 
@@ -145,11 +156,27 @@
         btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock);
         function releaseBlock() { if (isBlocking) { isBlocking = false; player.fillColor = activeCharDef.color; actionText.setText('Ready'); } }
 
-        const btnReload = this.add.circle(450, 310, 25, 0x4444ff).setAlpha(0.7).setInteractive(); this.add.text(435, 302, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' });
+        const btnMelee = this.add.circle(610, 230, 25, 0xffaa00).setAlpha(0.6).setInteractive(); 
+        this.add.text(610, 230, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5);
+        btnMelee.on('pointerdown', () => { if (isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
+
+        const btnToss = this.add.circle(680, 210, 25, 0x00cc00).setAlpha(0.6).setInteractive(); 
+        this.add.text(680, 210, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+        btnToss.on('pointerdown', tossGrenade);
+
+        // Outer Tier (Higher and between inner buttons)
+        const btnReload = this.add.circle(550, 240, 25, 0x4444ff).setAlpha(0.7).setInteractive(); 
+        this.add.text(550, 240, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
         btnReload.on('pointerdown', () => { if (!isReloading && !isAttacking && !isBlocking && !isDashing && !isSpawning && currentAmmo < activeGun.clipSize) reloadGun(); });
 
-        specialButton = this.add.circle(680, 180, 30, 0x555555).setAlpha(0.7).setInteractive(); this.add.text(660, 172, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' });
+        const btnHeavy = this.add.circle(630, 170, 25, 0xff3300).setAlpha(0.7).setInteractive(); 
+        this.add.text(630, 170, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+        btnHeavy.on('pointerdown', () => { if (!isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
+
+        specialButton = this.add.circle(750, 210, 30, 0x555555).setAlpha(0.7).setInteractive(); 
+        this.add.text(750, 210, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
         specialGraphics = this.add.graphics();
+        
         specialButton.on('pointerdown', () => {
             if (specialReady && !isAttacking && !isBlocking && !isSpawning) {
                 player.fillColor = 0x00ffff;
@@ -454,7 +481,7 @@
         // Special Attack Charge
         if (!specialReady) {
             specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
-            specialGraphics.arc(680, 180, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false);
+            specialGraphics.arc(750, 210, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false);
             specialGraphics.strokePath();
             if (specialCharge >= specialMax) { specialReady = true; specialButton.setFillStyle(0x00ffff); }
         }
