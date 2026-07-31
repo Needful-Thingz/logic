@@ -86,6 +86,9 @@
         this.load.image('bg2', 'assets/bg2.png');
         this.load.image('bg3', 'assets/bg3.png');
         this.load.image('floorTile', 'assets/bg4.png');
+
+        // NEW: Load Vanguard Sprite Sheet
+        this.load.spritesheet('vanguard', 'assets/vanguard.png', { frameWidth: 56, frameHeight: 37 });
     }
 
     function create() {
@@ -116,9 +119,14 @@
         
         platforms.add(floor); platforms.add(leftPlat); platforms.add(rightPlat); platforms.add(centerPlat);
 
-        // Player Setup
-        player = this.add.rectangle(400, 100, 30, 50, activeCharDef.color);
-        this.physics.add.existing(player); player.body.setCollideWorldBounds(true);
+        // --- NEW: UPGRADED PLAYER SPRITE SETUP ---
+        player = this.physics.add.sprite(400, 100, 'vanguard'); 
+        player.setScale(2);
+        player.setCollideWorldBounds(true);
+        
+        // NEW: Define Animations
+        this.anims.create({ key: 'idle', frames: this.anims.generateFrameNumbers('vanguard', { start: 0, end: 4 }), frameRate: 8, repeat: -1 });
+        this.anims.create({ key: 'run', frames: this.anims.generateFrameNumbers('vanguard', { start: 5, end: 12 }), frameRate: 15, repeat: -1 });
         
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, 0xffffff).setAlpha(0);
         this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
@@ -151,10 +159,10 @@
         btnDefend.on('pointerdown', () => {
             if (isAttacking || isDashing || isSpawning) return;
             if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } 
-            else { isBlocking = true; player.fillColor = 0xcccccc; actionText.setText('BLOCKING'); }
+            else { isBlocking = true; player.setTint(0xcccccc); actionText.setText('BLOCKING'); }
         });
         btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock);
-        function releaseBlock() { if (isBlocking) { isBlocking = false; player.fillColor = activeCharDef.color; actionText.setText('Ready'); } }
+        function releaseBlock() { if (isBlocking) { isBlocking = false; player.setTint(activeCharDef.color); actionText.setText('Ready'); } }
 
         const btnMelee = this.add.circle(610, 230, 25, 0xffaa00).setAlpha(0.6).setInteractive(); 
         this.add.text(610, 230, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5);
@@ -179,13 +187,13 @@
         
         specialButton.on('pointerdown', () => {
             if (specialReady && !isAttacking && !isBlocking && !isSpawning) {
-                player.fillColor = 0x00ffff;
+                player.setTint(0x00ffff);
                 enemiesGroup.getChildren().forEach(enemy => {
                     if (Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y) < 200) { 
                         dealDamageToEnemy(enemy, 50, 0.8, 0); enemy.fillColor = 0x00ffff; this.time.delayedCall(200, () => { if(enemy.active) enemy.fillColor = 0xff5555; }); 
                     }
                 });
-                this.time.delayedCall(500, () => player.fillColor = activeCharDef.color);
+                this.time.delayedCall(500, () => player.setTint(activeCharDef.color));
                 specialCharge = 0; specialReady = false; specialButton.setFillStyle(0x555555); specialGraphics.clear();
             }
         });
@@ -222,7 +230,8 @@
     }
 
     function applyCharacterLoadout() {
-        activeCharDef = playerRoster[currentRosterIndex]; player.fillColor = activeCharDef.color;
+        activeCharDef = playerRoster[currentRosterIndex]; 
+        player.setTint(activeCharDef.color); // Changed for Sprite
         currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
         currentGunIndex = gunKeys.indexOf(activeCharDef.gun); activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
         playerHealth = 100; currentAmmo = activeGun.clipSize; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
@@ -249,9 +258,9 @@
     function executeHeavyAttack() {
         isAttacking = true; inputBuffered = false; canCancel = false; 
         if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove();
-        player.fillColor = 0xff5500; actionText.setText(`WINDUP: ${activeWeapon.name}!`);
+        player.setTint(0xff5500); actionText.setText(`WINDUP: ${activeWeapon.name}!`);
         currentScene.time.delayedCall(activeWeapon.speed * 1.5, () => {
-            player.fillColor = activeWeapon.color; actionText.setText(`HEAVY STRIKE!`);
+            player.setTint(activeWeapon.color); actionText.setText(`HEAVY STRIKE!`);
             let currentReach = activeWeapon.reach * 1.8; meleeHitbox.width = currentReach; meleeHitbox.height = 40; meleeHitbox.setAlpha(1);
             let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
             meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
@@ -267,7 +276,7 @@
 
             attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
                 meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); 
-                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; player.fillColor = activeCharDef.color; actionText.setText('Ready'); });
+                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; player.setTint(activeCharDef.color); actionText.setText('Ready'); });
             });
         });
     }
@@ -275,7 +284,7 @@
     function executeAttack(step) {
         isAttacking = true; comboStep = step; inputBuffered = false; canCancel = false;
         if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove();
-        player.fillColor = activeWeapon.color;
+        player.setTint(activeWeapon.color);
         let currentReach = step === 3 ? activeWeapon.reach * 1.5 : activeWeapon.reach;
         meleeHitbox.width = currentReach; meleeHitbox.height = step === 3 ? 40 : 20; meleeHitbox.setAlpha(1);
         let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
@@ -292,15 +301,15 @@
         attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
             meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); canCancel = true; 
             if (inputBuffered && step < 3) triggerNextHit();
-            else { attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; player.fillColor = activeCharDef.color; }); }
+            else { attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; player.setTint(activeCharDef.color); }); }
         });
     }
     function triggerNextHit() { if (comboStep < 3) executeAttack(comboStep + 1); }
 
     function executeDash() {
         isDashing = true; canDash = false; isInvincible = true; actionText.setText('DODGE!');
-        player.setAlpha(0.5); player.fillColor = 0x00ffff; player.body.setVelocityX((facingDirection === 0) ? 700 : -700);
-        currentScene.time.delayedCall(250, () => { isDashing = false; isInvincible = false; player.setAlpha(1); player.fillColor = activeCharDef.color; actionText.setText('Ready'); });
+        player.setAlpha(0.5); player.setTint(0x00ffff); player.body.setVelocityX((facingDirection === 0) ? 700 : -700);
+        currentScene.time.delayedCall(250, () => { isDashing = false; isInvincible = false; player.setAlpha(1); player.setTint(activeCharDef.color); actionText.setText('Ready'); });
         currentScene.time.delayedCall(1200, () => { canDash = true; });
     }
 
@@ -425,26 +434,49 @@
         // Player Logic
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
             
-            // FIX BUG 1: Lock player upright!
             player.rotation = 0; 
             
-            if (joyStickLeft.left) { player.body.setVelocityX(-250); facingDirection = Math.PI; }
-            else if (joyStickLeft.right) { player.body.setVelocityX(250); facingDirection = 0; }
-            else player.body.setVelocityX(0);
+            // --- NEW: MOVEMENT & ANIMATIONS ---
+            if (joyStickLeft.left) { 
+                player.body.setVelocityX(-250); 
+                facingDirection = Math.PI; 
+                player.setFlipX(true); 
+                player.anims.play('run', true); 
+            }
+            else if (joyStickLeft.right) { 
+                player.body.setVelocityX(250); 
+                facingDirection = 0; 
+                player.setFlipX(false); 
+                player.anims.play('run', true); 
+            }
+            else { 
+                player.body.setVelocityX(0); 
+                player.anims.play('idle', true); 
+            }
             
             if (joyStickLeft.up && joystickUpReleased && jumps < 3) { player.body.setVelocityY(-450); jumps++; joystickUpReleased = false; }
             else if (!joyStickLeft.up) joystickUpReleased = true;
 
             if (joyStickRight.force > 0) {
-                // FIX BUG 1: Visually face left or right based on aim, without rotating the whole body
-                if (Math.abs(joyStickRight.rotation) > Math.PI/2) facingDirection = Math.PI;
-                else facingDirection = 0;
+                // NEW: Aiming with right stick properly flips the sprite visually!
+                if (Math.abs(joyStickRight.rotation) > Math.PI/2) {
+                    facingDirection = Math.PI;
+                    player.setFlipX(true);
+                } else {
+                    facingDirection = 0;
+                    player.setFlipX(false);
+                }
                 
                 if (currentTime > lastFiredTime + activeGun.fireRate && !isReloading) {
                     if (currentAmmo > 0) { shootGun(joyStickRight.rotation); currentAmmo--; updateUI(); lastFiredTime = currentTime; } else reloadGun();
                 }
             } 
-        } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
+        } else if (isAttacking || isBlocking) { 
+            player.body.setVelocityX(0); 
+            player.rotation = 0; 
+            // Ensures he goes back to idle when locked in place
+            player.anims.play('idle', true); 
+        }
         
         if (player.body.touching.down) jumps = 0;
 
