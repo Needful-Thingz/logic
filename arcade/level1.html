@@ -119,8 +119,7 @@
         player.setScale(2);
         player.setCollideWorldBounds(true);
         
-        // --- THE MASTER ANIMATION LIBRARY ---
-        // (All 32 of your tracked movements are now hardcoded into memory)
+        // --- RECALCULATED MASTER ANIMATION LIBRARY ---
         this.anims.create({ key: 'pistol_idle', frames: this.anims.generateFrameNumbers('vanguard', { start: 0, end: 0 }), frameRate: 8 });
         this.anims.create({ key: 'pistol_shoot', frames: this.anims.generateFrameNumbers('vanguard', { start: 1, end: 3 }), frameRate: 15 });
         this.anims.create({ key: 'pistol_crouch', frames: this.anims.generateFrameNumbers('vanguard', { start: 4, end: 4 }), frameRate: 8 });
@@ -142,23 +141,21 @@
         this.anims.create({ key: 'rifle_run', frames: this.anims.generateFrameNumbers('vanguard', { start: 42, end: 45 }), frameRate: 12, repeat: -1 });
         this.anims.create({ key: 'rifle_run_shoot', frames: this.anims.generateFrameNumbers('vanguard', { start: 46, end: 49 }), frameRate: 12, repeat: -1 });
 
-        this.anims.create({ key: 'unarmed_idle', frames: this.anims.generateFrameNumbers('vanguard', { start: 50, end: 51 }), frameRate: 4, repeat: -1 });
-        this.anims.create({ key: 'squat', frames: this.anims.generateFrameNumbers('vanguard', { start: 52, end: 54 }), frameRate: 8 });
-        this.anims.create({ key: 'leap', frames: this.anims.generateFrameNumbers('vanguard', { start: 55, end: 58 }), frameRate: 12 });
-        this.anims.create({ key: 'run_fast', frames: this.anims.generateFrameNumbers('vanguard', { start: 59, end: 62 }), frameRate: 12, repeat: -1 });
-        
-        // This is the main 6-frame run we are hooking up right now
-        this.anims.create({ key: 'run_normal', frames: this.anims.generateFrameNumbers('vanguard', { start: 63, end: 68 }), frameRate: 12, repeat: -1 });
-        
-        this.anims.create({ key: 'long_jump', frames: this.anims.generateFrameNumbers('vanguard', { start: 69, end: 81 }), frameRate: 12 });
-        this.anims.create({ key: 'jump_straight', frames: this.anims.generateFrameNumbers('vanguard', { start: 82, end: 91 }), frameRate: 12 });
-        this.anims.create({ key: 'punch_right', frames: this.anims.generateFrameNumbers('vanguard', { start: 92, end: 96 }), frameRate: 15 });
-        this.anims.create({ key: 'punch_left', frames: this.anims.generateFrameNumbers('vanguard', { start: 97, end: 101 }), frameRate: 15 });
-        this.anims.create({ key: 'hit_stand', frames: this.anims.generateFrameNumbers('vanguard', { start: 102, end: 105 }), frameRate: 12 });
-        this.anims.create({ key: 'hit_knockback', frames: this.anims.generateFrameNumbers('vanguard', { start: 106, end: 110 }), frameRate: 12 });
-        this.anims.create({ key: 'hit_knockdown', frames: this.anims.generateFrameNumbers('vanguard', { start: 111, end: 117 }), frameRate: 10 });
-        this.anims.create({ key: 'whip_stand', frames: this.anims.generateFrameNumbers('vanguard', { start: 118, end: 125 }), frameRate: 15 });
-        this.anims.create({ key: 'whip_run', frames: this.anims.generateFrameNumbers('vanguard', { start: 126, end: 133 }), frameRate: 15, repeat: -1 });
+        // PERFECTED FIXES: Shifted math down 1 frame starting here
+        this.anims.create({ key: 'unarmed_idle', frames: this.anims.generateFrameNumbers('vanguard', { start: 50, end: 50 }), frameRate: 4, repeat: -1 });
+        this.anims.create({ key: 'squat', frames: this.anims.generateFrameNumbers('vanguard', { start: 51, end: 53 }), frameRate: 8 });
+        this.anims.create({ key: 'leap', frames: this.anims.generateFrameNumbers('vanguard', { start: 54, end: 57 }), frameRate: 12 });
+        this.anims.create({ key: 'run_fast', frames: this.anims.generateFrameNumbers('vanguard', { start: 58, end: 61 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'run_normal', frames: this.anims.generateFrameNumbers('vanguard', { start: 62, end: 67 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'long_jump', frames: this.anims.generateFrameNumbers('vanguard', { start: 68, end: 80 }), frameRate: 12 });
+        this.anims.create({ key: 'jump_straight', frames: this.anims.generateFrameNumbers('vanguard', { start: 81, end: 90 }), frameRate: 12 });
+        this.anims.create({ key: 'punch_right', frames: this.anims.generateFrameNumbers('vanguard', { start: 91, end: 95 }), frameRate: 15 });
+        this.anims.create({ key: 'punch_left', frames: this.anims.generateFrameNumbers('vanguard', { start: 96, end: 100 }), frameRate: 15 });
+        this.anims.create({ key: 'hit_stand', frames: this.anims.generateFrameNumbers('vanguard', { start: 101, end: 104 }), frameRate: 12 });
+        this.anims.create({ key: 'hit_knockback', frames: this.anims.generateFrameNumbers('vanguard', { start: 105, end: 109 }), frameRate: 12 });
+        this.anims.create({ key: 'hit_knockdown', frames: this.anims.generateFrameNumbers('vanguard', { start: 110, end: 116 }), frameRate: 10 });
+        this.anims.create({ key: 'whip_stand', frames: this.anims.generateFrameNumbers('vanguard', { start: 117, end: 124 }), frameRate: 15 });
+        this.anims.create({ key: 'whip_run', frames: this.anims.generateFrameNumbers('vanguard', { start: 125, end: 132 }), frameRate: 15, repeat: -1 });
         
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, 0xffffff).setAlpha(0);
         this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
@@ -193,7 +190,6 @@
         });
         btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock);
         
-        // BUG FIX: clearTint removes the solid color block so your art shows perfectly
         function releaseBlock() { if (isBlocking) { isBlocking = false; player.clearTint(); actionText.setText('Ready'); } }
 
         const btnMelee = this.add.circle(610, 230, 25, 0xffaa00).setAlpha(0.6).setInteractive(); 
@@ -224,7 +220,7 @@
                         dealDamageToEnemy(enemy, 50, 0.8, 0); enemy.fillColor = 0x00ffff; this.time.delayedCall(200, () => { if(enemy.active) enemy.fillColor = 0xff5555; }); 
                     }
                 });
-                this.time.delayedCall(500, () => player.clearTint()); // BUG FIX
+                this.time.delayedCall(500, () => player.clearTint());
                 specialCharge = 0; specialReady = false; specialButton.setFillStyle(0x555555); specialGraphics.clear();
             }
         });
@@ -260,7 +256,7 @@
 
     function applyCharacterLoadout() {
         activeCharDef = playerRoster[currentRosterIndex]; 
-        player.clearTint(); // BUG FIX: Let the real art colors show
+        player.clearTint(); 
         currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
         currentGunIndex = gunKeys.indexOf(activeCharDef.gun); activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
         playerHealth = 100; currentAmmo = activeGun.clipSize; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
@@ -305,7 +301,7 @@
 
             attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
                 meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); 
-                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; player.clearTint(); actionText.setText('Ready'); }); // BUG FIX
+                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; player.clearTint(); actionText.setText('Ready'); });
             });
         });
     }
@@ -330,7 +326,7 @@
         attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
             meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); canCancel = true; 
             if (inputBuffered && step < 3) triggerNextHit();
-            else { attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; player.clearTint(); }); } // BUG FIX
+            else { attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; player.clearTint(); }); }
         });
     }
     function triggerNextHit() { if (comboStep < 3) executeAttack(comboStep + 1); }
@@ -338,7 +334,7 @@
     function executeDash() {
         isDashing = true; canDash = false; isInvincible = true; actionText.setText('DODGE!');
         player.setAlpha(0.5); player.setTint(0x00ffff); player.body.setVelocityX((facingDirection === 0) ? 700 : -700);
-        currentScene.time.delayedCall(250, () => { isDashing = false; isInvincible = false; player.setAlpha(1); player.clearTint(); actionText.setText('Ready'); }); // BUG FIX
+        currentScene.time.delayedCall(250, () => { isDashing = false; isInvincible = false; player.setAlpha(1); player.clearTint(); actionText.setText('Ready'); });
         currentScene.time.delayedCall(1200, () => { canDash = true; });
     }
 
@@ -350,7 +346,6 @@
             if ((playerFacingRight && attackFromRight) || (!playerFacingRight && !attackFromRight)) finalDmg *= 0.2; 
         }
         
-        // Flash red when hit
         player.setTint(0xff0000);
         currentScene.time.delayedCall(150, () => { if (!isBlocking && !isAttacking && !isDashing) player.clearTint(); });
 
@@ -464,27 +459,25 @@
         drawFloatingBars();
         let currentTime = currentScene.time.now;
 
-        // Player Logic
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
             
             player.rotation = 0; 
             
-            // --- MOVEMENT & ANIMATIONS HOOKED UP ---
             if (joyStickLeft.left) { 
                 player.body.setVelocityX(-250); 
                 facingDirection = Math.PI; 
                 player.setFlipX(true); 
-                player.anims.play('run_normal', true); // Pulls from frames 63-68
+                player.anims.play('run_normal', true); 
             }
             else if (joyStickLeft.right) { 
                 player.body.setVelocityX(250); 
                 facingDirection = 0; 
                 player.setFlipX(false); 
-                player.anims.play('run_normal', true); // Pulls from frames 63-68
+                player.anims.play('run_normal', true); 
             }
             else { 
                 player.body.setVelocityX(0); 
-                player.anims.play('unarmed_idle', true); // Pulls from frames 50-51
+                player.anims.play('unarmed_idle', true); 
             }
             
             if (joyStickLeft.up && joystickUpReleased && jumps < 3) { player.body.setVelocityY(-450); jumps++; joystickUpReleased = false; }
