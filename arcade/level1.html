@@ -55,9 +55,9 @@
     // --- ROSTER MANAGER ---
     let savedRoster = localStorage.getItem('nt_roster');
     const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
-        { name: "Vanguard", color: 0x00aaff, melee: 'Sword', gun: 'Shotgun' },
+        { name: "Vanguard", color: 0x00aaff, melee: 'Whip', gun: 'Shotgun' },
         { name: "Recon",    color: 0xaaaa00, melee: 'Knife', gun: 'Rifle' },
-        { name: "Heavy",    color: 0xaa00ff, melee: 'Whip',  gun: 'Rocket' }
+        { name: "Heavy",    color: 0xaa00ff, melee: 'Sword',  gun: 'Rocket' }
     ];
     
     let currentRosterIndex = 0, activeCharDef = playerRoster[currentRosterIndex];
@@ -199,6 +199,7 @@
         this.anims.create({ key: 'whip_stand', frames: this.anims.generateFrameNumbers('vanguard', { start: 117, end: 124 }), frameRate: 15 });
         this.anims.create({ key: 'whip_run', frames: this.anims.generateFrameNumbers('vanguard', { start: 125, end: 132 }), frameRate: 15, repeat: -1 });
 
+        // Math Hitbox - Rendered INVISIBLE
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, 0xffffff).setAlpha(0);
         this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
 
@@ -397,15 +398,35 @@
         currentScene.tweens.add({ targets: floatText, x: floatText.x + Phaser.Math.Between(-25, 25), y: floatText.y - 60, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() });
     }
 
+    // UPDATED HEAVY ATTACK: Uses FX and Hides the Grey Hitbox
     function executeHeavyAttack() {
         isAttacking = true; inputBuffered = false; canCancel = false; 
         if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove();
-        player.setTint(0xff5500); actionText.setText(`WINDUP: ${activeWeapon.name}!`);
+        actionText.setText(`WINDUP: ${activeWeapon.name}!`);
+        
+        if (activeWeapon.name === 'Energy Whip') player.anims.play('whip_stand', true);
+        else player.anims.play('punch_right', true);
+
         currentScene.time.delayedCall(activeWeapon.speed * 1.5, () => {
-            player.setTint(activeWeapon.color); actionText.setText(`HEAVY STRIKE!`);
-            let currentReach = activeWeapon.reach * 1.8; meleeHitbox.width = currentReach; meleeHitbox.height = 40; meleeHitbox.setAlpha(1);
+            actionText.setText(`HEAVY STRIKE!`);
+            let currentReach = activeWeapon.reach * 1.8; meleeHitbox.width = currentReach; meleeHitbox.height = 40; 
+            
+            // HIDE GREY BOX
+            meleeHitbox.setAlpha(0); 
+            
             let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
             meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
+
+            // BIGGER ENERGY FX FOR HEAVY
+            let slashGraphic = currentScene.add.graphics();
+            slashGraphic.lineStyle(10, activeWeapon.color, 1);
+            slashGraphic.beginPath();
+            let arcRadius = (activeWeapon.name === 'Energy Whip') ? 120 : 50;
+            let startArc = (facingDirection === 0) ? -90 : 270;
+            let endArc = (facingDirection === 0) ? 90 : 90; 
+            slashGraphic.arc(player.x, player.y, arcRadius, Phaser.Math.DegToRad(startArc), Phaser.Math.DegToRad(endArc), false);
+            slashGraphic.strokePath();
+            currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 300, onComplete: () => slashGraphic.destroy() });
 
             enemiesGroup.getChildren().forEach(enemy => {
                 if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds())) {
@@ -417,33 +438,72 @@
             });
 
             attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
-                meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); 
-                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; player.clearTint(); actionText.setText('Ready'); });
+                meleeHitbox.setPosition(-100, -100); 
+                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { 
+                    isAttacking = false; 
+                    player.anims.play('unarmed_idle', true);
+                    actionText.setText('Ready'); 
+                });
             });
         });
     }
 
+    // UPDATED STANDARD ATTACK: Uses FX and Hides the Grey Hitbox
     function executeAttack(step) {
         isAttacking = true; comboStep = step; inputBuffered = false; canCancel = false;
         if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove();
-        player.setTint(activeWeapon.color);
+        
+        // Play appropriate sprite animation
+        if (activeWeapon.name === 'Energy Whip') {
+            player.anims.play('whip_stand', true);
+        } else {
+            if (step === 1) player.anims.play('punch_right', true);
+            else player.anims.play('punch_left', true);
+        }
+
         let currentReach = step === 3 ? activeWeapon.reach * 1.5 : activeWeapon.reach;
-        meleeHitbox.width = currentReach; meleeHitbox.height = step === 3 ? 40 : 20; meleeHitbox.setAlpha(1);
+        meleeHitbox.width = currentReach; meleeHitbox.height = step === 3 ? 40 : 20; 
+        
+        // HIDE GREY BOX
+        meleeHitbox.setAlpha(0); 
+        
         let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
         meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
 
-        enemiesGroup.getChildren().forEach(enemy => {
-            if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds())) {
-                dealDamageToEnemy(enemy, activeWeapon.damage * (step === 3 ? 2 : 1), activeWeapon.pierce, activeWeapon.stun);
-                enemy.fillColor = activeWeapon.color; currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.fillColor = enemy.enemyData.isBoss ? 0x444444 : 0xff5555; });
-                if(step === 3 && enemy.active && !enemy.enemyData.isBoss) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150);
-            }
+        // ENERGY FX HALFWAY THROUGH ANIMATION
+        currentScene.time.delayedCall(activeWeapon.speed * 0.5, () => {
+            
+            let slashGraphic = currentScene.add.graphics();
+            slashGraphic.lineStyle(6, activeWeapon.color, 1);
+            slashGraphic.beginPath();
+            
+            let arcRadius = (activeWeapon.name === 'Energy Whip') ? 80 : 30;
+            let startArc = (facingDirection === 0) ? -45 : 225;
+            let endArc = (facingDirection === 0) ? 45 : 135;
+            
+            slashGraphic.arc(player.x, player.y, arcRadius, Phaser.Math.DegToRad(startArc), Phaser.Math.DegToRad(endArc), false);
+            slashGraphic.strokePath();
+            
+            currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 200, onComplete: () => slashGraphic.destroy() });
+
+            enemiesGroup.getChildren().forEach(enemy => {
+                if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds())) {
+                    dealDamageToEnemy(enemy, activeWeapon.damage * (step === 3 ? 2 : 1), activeWeapon.pierce, activeWeapon.stun);
+                    enemy.fillColor = activeWeapon.color; currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.fillColor = enemy.enemyData.isBoss ? 0x444444 : 0xff5555; });
+                    if(step === 3 && enemy.active && !enemy.enemyData.isBoss) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150);
+                }
+            });
         });
 
         attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
-            meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); canCancel = true; 
+            meleeHitbox.setPosition(-100, -100); canCancel = true; 
             if (inputBuffered && step < 3) triggerNextHit();
-            else { attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; player.clearTint(); }); }
+            else { 
+                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { 
+                    isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; 
+                    player.anims.play('unarmed_idle', true); 
+                }); 
+            }
         });
     }
     function triggerNextHit() { if (comboStep < 3) executeAttack(comboStep + 1); }
@@ -607,7 +667,7 @@
 
         if (player.y > 450 && playerHealth > 0 && !isSpawning) playerTakeDamage(1000, player.x); 
 
-        // Player Logic with Animations Hooked Up!
+        // Player Logic with Animations
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
             
             player.rotation = 0; 
@@ -648,7 +708,6 @@
         } else if (isAttacking || isBlocking) { 
             player.body.setVelocityX(0); 
             player.rotation = 0; 
-            if (!isAttacking) player.anims.play('unarmed_idle', true); 
         }
         
         if (player.body.touching.down) jumps = 0;
