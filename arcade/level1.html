@@ -51,7 +51,7 @@
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
     let activeOrdnance = ordnanceArmory['Frag'];
 
-    // --- ROSTER MANAGER (Linked to Hangar) ---
+    // --- ROSTER MANAGER ---
     let savedRoster = localStorage.getItem('nt_roster');
     const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
         { name: "Vanguard", color: 0x00aaff, melee: 'Sword', gun: 'Shotgun' },
@@ -80,21 +80,18 @@
     
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
-        
-        // Load the new art assets
         this.load.image('bg1', 'assets/bg1.png');
         this.load.image('bg2', 'assets/bg2.png');
         this.load.image('bg3', 'assets/bg3.png');
         this.load.image('floorTile', 'assets/bg4.png');
 
-        // NEW: Load Vanguard Sprite Sheet
+        // Loading the master Sprite Sheet
         this.load.spritesheet('vanguard', 'assets/vanguard.png', { frameWidth: 56, frameHeight: 37 });
     }
 
     function create() {
         currentScene = this; 
         
-        // --- BULLETPROOF PARALLAX SCALING (Locked to 800 width for Arena) ---
         let bg1Height = this.textures.get('bg1').getSourceImage().height;
         let scale1 = 400 / bg1Height;
         this.add.tileSprite(0, 0, 800 / scale1, bg1Height, 'bg1').setOrigin(0, 0).setScale(scale1).setScrollFactor(0); 
@@ -111,22 +108,57 @@
         enemiesGroup = this.physics.add.group();
         platforms = this.physics.add.staticGroup();
 
-        // --- LEVEL 1 TACTICAL LAYOUT ---
         let floor = this.add.tileSprite(400, 390, 800, 32, 'floorTile');
         let leftPlat = this.add.tileSprite(150, 260, 200, 32, 'floorTile');
         let rightPlat = this.add.tileSprite(650, 260, 200, 32, 'floorTile');
         let centerPlat = this.add.tileSprite(400, 160, 250, 32, 'floorTile');
-        
         platforms.add(floor); platforms.add(leftPlat); platforms.add(rightPlat); platforms.add(centerPlat);
 
-        // --- NEW: UPGRADED PLAYER SPRITE SETUP ---
+        // Player Sprite Generation
         player = this.physics.add.sprite(400, 100, 'vanguard'); 
         player.setScale(2);
         player.setCollideWorldBounds(true);
         
-        // NEW: Define Animations
-        this.anims.create({ key: 'idle', frames: this.anims.generateFrameNumbers('vanguard', { start: 0, end: 4 }), frameRate: 8, repeat: -1 });
-        this.anims.create({ key: 'run', frames: this.anims.generateFrameNumbers('vanguard', { start: 5, end: 12 }), frameRate: 15, repeat: -1 });
+        // --- THE MASTER ANIMATION LIBRARY ---
+        // (All 32 of your tracked movements are now hardcoded into memory)
+        this.anims.create({ key: 'pistol_idle', frames: this.anims.generateFrameNumbers('vanguard', { start: 0, end: 0 }), frameRate: 8 });
+        this.anims.create({ key: 'pistol_shoot', frames: this.anims.generateFrameNumbers('vanguard', { start: 1, end: 3 }), frameRate: 15 });
+        this.anims.create({ key: 'pistol_crouch', frames: this.anims.generateFrameNumbers('vanguard', { start: 4, end: 4 }), frameRate: 8 });
+        this.anims.create({ key: 'pistol_crouch_shoot', frames: this.anims.generateFrameNumbers('vanguard', { start: 5, end: 7 }), frameRate: 15 });
+        this.anims.create({ key: 'pistol_run', frames: this.anims.generateFrameNumbers('vanguard', { start: 8, end: 11 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'pistol_run_shoot', frames: this.anims.generateFrameNumbers('vanguard', { start: 12, end: 15 }), frameRate: 12, repeat: -1 });
+        
+        this.anims.create({ key: 'shotgun_idle', frames: this.anims.generateFrameNumbers('vanguard', { start: 16, end: 16 }), frameRate: 8 });
+        this.anims.create({ key: 'shotgun_shoot', frames: this.anims.generateFrameNumbers('vanguard', { start: 17, end: 20 }), frameRate: 15 });
+        this.anims.create({ key: 'shotgun_crouch', frames: this.anims.generateFrameNumbers('vanguard', { start: 21, end: 21 }), frameRate: 8 });
+        this.anims.create({ key: 'shotgun_crouch_shoot', frames: this.anims.generateFrameNumbers('vanguard', { start: 22, end: 24 }), frameRate: 15 });
+        this.anims.create({ key: 'shotgun_run', frames: this.anims.generateFrameNumbers('vanguard', { start: 25, end: 28 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'shotgun_run_shoot', frames: this.anims.generateFrameNumbers('vanguard', { start: 29, end: 32 }), frameRate: 12, repeat: -1 });
+
+        this.anims.create({ key: 'rifle_idle', frames: this.anims.generateFrameNumbers('vanguard', { start: 33, end: 33 }), frameRate: 8 });
+        this.anims.create({ key: 'rifle_shoot', frames: this.anims.generateFrameNumbers('vanguard', { start: 34, end: 37 }), frameRate: 15 });
+        this.anims.create({ key: 'rifle_crouch', frames: this.anims.generateFrameNumbers('vanguard', { start: 38, end: 38 }), frameRate: 8 });
+        this.anims.create({ key: 'rifle_crouch_shoot', frames: this.anims.generateFrameNumbers('vanguard', { start: 39, end: 41 }), frameRate: 15 });
+        this.anims.create({ key: 'rifle_run', frames: this.anims.generateFrameNumbers('vanguard', { start: 42, end: 45 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'rifle_run_shoot', frames: this.anims.generateFrameNumbers('vanguard', { start: 46, end: 49 }), frameRate: 12, repeat: -1 });
+
+        this.anims.create({ key: 'unarmed_idle', frames: this.anims.generateFrameNumbers('vanguard', { start: 50, end: 51 }), frameRate: 4, repeat: -1 });
+        this.anims.create({ key: 'squat', frames: this.anims.generateFrameNumbers('vanguard', { start: 52, end: 54 }), frameRate: 8 });
+        this.anims.create({ key: 'leap', frames: this.anims.generateFrameNumbers('vanguard', { start: 55, end: 58 }), frameRate: 12 });
+        this.anims.create({ key: 'run_fast', frames: this.anims.generateFrameNumbers('vanguard', { start: 59, end: 62 }), frameRate: 12, repeat: -1 });
+        
+        // This is the main 6-frame run we are hooking up right now
+        this.anims.create({ key: 'run_normal', frames: this.anims.generateFrameNumbers('vanguard', { start: 63, end: 68 }), frameRate: 12, repeat: -1 });
+        
+        this.anims.create({ key: 'long_jump', frames: this.anims.generateFrameNumbers('vanguard', { start: 69, end: 81 }), frameRate: 12 });
+        this.anims.create({ key: 'jump_straight', frames: this.anims.generateFrameNumbers('vanguard', { start: 82, end: 91 }), frameRate: 12 });
+        this.anims.create({ key: 'punch_right', frames: this.anims.generateFrameNumbers('vanguard', { start: 92, end: 96 }), frameRate: 15 });
+        this.anims.create({ key: 'punch_left', frames: this.anims.generateFrameNumbers('vanguard', { start: 97, end: 101 }), frameRate: 15 });
+        this.anims.create({ key: 'hit_stand', frames: this.anims.generateFrameNumbers('vanguard', { start: 102, end: 105 }), frameRate: 12 });
+        this.anims.create({ key: 'hit_knockback', frames: this.anims.generateFrameNumbers('vanguard', { start: 106, end: 110 }), frameRate: 12 });
+        this.anims.create({ key: 'hit_knockdown', frames: this.anims.generateFrameNumbers('vanguard', { start: 111, end: 117 }), frameRate: 10 });
+        this.anims.create({ key: 'whip_stand', frames: this.anims.generateFrameNumbers('vanguard', { start: 118, end: 125 }), frameRate: 15 });
+        this.anims.create({ key: 'whip_run', frames: this.anims.generateFrameNumbers('vanguard', { start: 126, end: 133 }), frameRate: 15, repeat: -1 });
         
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, 0xffffff).setAlpha(0);
         this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
@@ -137,7 +169,6 @@
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
 
-        // UI Setup
         meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff' });
         gunText = this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00' });
         ammoText = this.add.text(10, 40, `Ammo: `, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' });
@@ -146,23 +177,24 @@
         rosterText = this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold' }).setOrigin(0.5);
         scoreText = this.add.text(400, 65, 'SCORE: 0', { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold' }).setOrigin(0.5);
 
-        // --- CONTROLS & UI BUTTONS ---
+        // CONTROLS
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
         const leftTapZone = this.add.circle(120, 300, 25, 0xffffff, 0).setInteractive();
         leftTapZone.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Triple Jump: ' + jumps + '/3'); } });
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        // --- NEW ERGONOMIC TWO-TIER CLAW BUTTON LAYOUT ---
-        // Main Inner Arc
+        // ATTACK BUTTONS
         const btnDefend = this.add.circle(580, 300, 25, 0x888888).setAlpha(0.8).setInteractive(); 
         this.add.text(580, 300, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
         btnDefend.on('pointerdown', () => {
             if (isAttacking || isDashing || isSpawning) return;
             if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } 
-            else { isBlocking = true; player.setTint(0xcccccc); actionText.setText('BLOCKING'); }
+            else { isBlocking = true; player.setTint(0x888888); actionText.setText('BLOCKING'); }
         });
         btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock);
-        function releaseBlock() { if (isBlocking) { isBlocking = false; player.setTint(activeCharDef.color); actionText.setText('Ready'); } }
+        
+        // BUG FIX: clearTint removes the solid color block so your art shows perfectly
+        function releaseBlock() { if (isBlocking) { isBlocking = false; player.clearTint(); actionText.setText('Ready'); } }
 
         const btnMelee = this.add.circle(610, 230, 25, 0xffaa00).setAlpha(0.6).setInteractive(); 
         this.add.text(610, 230, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5);
@@ -172,7 +204,6 @@
         this.add.text(680, 210, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
         btnToss.on('pointerdown', tossGrenade);
 
-        // Outer Tier (Higher and between inner buttons)
         const btnReload = this.add.circle(550, 240, 25, 0x4444ff).setAlpha(0.7).setInteractive(); 
         this.add.text(550, 240, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
         btnReload.on('pointerdown', () => { if (!isReloading && !isAttacking && !isBlocking && !isDashing && !isSpawning && currentAmmo < activeGun.clipSize) reloadGun(); });
@@ -193,18 +224,16 @@
                         dealDamageToEnemy(enemy, 50, 0.8, 0); enemy.fillColor = 0x00ffff; this.time.delayedCall(200, () => { if(enemy.active) enemy.fillColor = 0xff5555; }); 
                     }
                 });
-                this.time.delayedCall(500, () => player.setTint(activeCharDef.color));
+                this.time.delayedCall(500, () => player.clearTint()); // BUG FIX
                 specialCharge = 0; specialReady = false; specialButton.setFillStyle(0x555555); specialGraphics.clear();
             }
         });
         
         applyCharacterLoadout();
         
-        // Spawn Wave Timer
         this.time.addEvent({ delay: 3500, callback: spawnEnemy, loop: true });
     }
 
-    // --- ENEMY SPAWNER ---
     function spawnEnemy() {
         if (enemiesGroup.getChildren().length >= MAX_ENEMIES || playerHealth <= 0) return;
         
@@ -231,7 +260,7 @@
 
     function applyCharacterLoadout() {
         activeCharDef = playerRoster[currentRosterIndex]; 
-        player.setTint(activeCharDef.color); // Changed for Sprite
+        player.clearTint(); // BUG FIX: Let the real art colors show
         currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
         currentGunIndex = gunKeys.indexOf(activeCharDef.gun); activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
         playerHealth = 100; currentAmmo = activeGun.clipSize; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
@@ -276,7 +305,7 @@
 
             attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
                 meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); 
-                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; player.setTint(activeCharDef.color); actionText.setText('Ready'); });
+                attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; player.clearTint(); actionText.setText('Ready'); }); // BUG FIX
             });
         });
     }
@@ -301,7 +330,7 @@
         attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
             meleeHitbox.setAlpha(0); meleeHitbox.setPosition(-100, -100); canCancel = true; 
             if (inputBuffered && step < 3) triggerNextHit();
-            else { attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; player.setTint(activeCharDef.color); }); }
+            else { attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; player.clearTint(); }); } // BUG FIX
         });
     }
     function triggerNextHit() { if (comboStep < 3) executeAttack(comboStep + 1); }
@@ -309,7 +338,7 @@
     function executeDash() {
         isDashing = true; canDash = false; isInvincible = true; actionText.setText('DODGE!');
         player.setAlpha(0.5); player.setTint(0x00ffff); player.body.setVelocityX((facingDirection === 0) ? 700 : -700);
-        currentScene.time.delayedCall(250, () => { isDashing = false; isInvincible = false; player.setAlpha(1); player.setTint(activeCharDef.color); actionText.setText('Ready'); });
+        currentScene.time.delayedCall(250, () => { isDashing = false; isInvincible = false; player.setAlpha(1); player.clearTint(); actionText.setText('Ready'); }); // BUG FIX
         currentScene.time.delayedCall(1200, () => { canDash = true; });
     }
 
@@ -320,13 +349,17 @@
             let playerFacingRight = (facingDirection === 0), attackFromRight = (attackXLocation > player.x);
             if ((playerFacingRight && attackFromRight) || (!playerFacingRight && !attackFromRight)) finalDmg *= 0.2; 
         }
+        
+        // Flash red when hit
+        player.setTint(0xff0000);
+        currentScene.time.delayedCall(150, () => { if (!isBlocking && !isAttacking && !isDashing) player.clearTint(); });
+
         playerHealth -= finalDmg; spawnDamageText(player.x, player.y - 30, finalDmg, finalDmg >= 30, true);
         
         if (playerHealth <= 0) { 
             playerHealth = 0; currentRosterIndex++;
             if (currentRosterIndex < playerRoster.length) spawnNextCharacter();
             else {
-                // REDIRECT TO MARKETING FUNNEL (LOSE)
                 player.setAlpha(0); actionText.setText('TEAM WIPED! Redirecting...'); rosterText.setText('TEAM: 0 LIVES');
                 currentScene.time.delayedCall(3000, () => {
                     window.location.href = 'debrief.html?status=lose';
@@ -436,29 +469,28 @@
             
             player.rotation = 0; 
             
-            // --- NEW: MOVEMENT & ANIMATIONS ---
+            // --- MOVEMENT & ANIMATIONS HOOKED UP ---
             if (joyStickLeft.left) { 
                 player.body.setVelocityX(-250); 
                 facingDirection = Math.PI; 
                 player.setFlipX(true); 
-                player.anims.play('run', true); 
+                player.anims.play('run_normal', true); // Pulls from frames 63-68
             }
             else if (joyStickLeft.right) { 
                 player.body.setVelocityX(250); 
                 facingDirection = 0; 
                 player.setFlipX(false); 
-                player.anims.play('run', true); 
+                player.anims.play('run_normal', true); // Pulls from frames 63-68
             }
             else { 
                 player.body.setVelocityX(0); 
-                player.anims.play('idle', true); 
+                player.anims.play('unarmed_idle', true); // Pulls from frames 50-51
             }
             
             if (joyStickLeft.up && joystickUpReleased && jumps < 3) { player.body.setVelocityY(-450); jumps++; joystickUpReleased = false; }
             else if (!joyStickLeft.up) joystickUpReleased = true;
 
             if (joyStickRight.force > 0) {
-                // NEW: Aiming with right stick properly flips the sprite visually!
                 if (Math.abs(joyStickRight.rotation) > Math.PI/2) {
                     facingDirection = Math.PI;
                     player.setFlipX(true);
@@ -474,8 +506,7 @@
         } else if (isAttacking || isBlocking) { 
             player.body.setVelocityX(0); 
             player.rotation = 0; 
-            // Ensures he goes back to idle when locked in place
-            player.anims.play('idle', true); 
+            if (!isAttacking) player.anims.play('unarmed_idle', true); 
         }
         
         if (player.body.touching.down) jumps = 0;
@@ -502,7 +533,6 @@
 
                 } else if (distToPlayer < 400 && distToPlayer >= 65 && data.state !== 'attack') {
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
-                    // Basic jump AI so they can navigate platforms
                     if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
                 } else if (data.state !== 'attack') {
                     data.state = 'idle'; enemy.body.setVelocityX(0);
