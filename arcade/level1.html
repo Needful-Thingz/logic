@@ -25,7 +25,7 @@
     const game = new Phaser.Game(config);
     
     // Core Entities
-    let player, joyStickLeft, joyStickRight, platforms;
+    let player, joyStickLeft, platforms;
     let uiElements = []; 
     let meleeText, gunText, ammoText, grenadeText, actionText, rosterText, scoreText, centerMsgText;
     let facingDirection = 0, currentScene, grenadesGroup; 
@@ -39,7 +39,7 @@
     };
     let weaponKeys = ['Knife', 'Sword', 'Whip'];
     
-    // Guns now act with infinite ammo, so clipSize and reloadTime are ignored
+    // Unlimited Ammo Armory
     const gunArmory = {
         'Pistol':   { name: 'Service Pistol', damage: 15, fireRate: 300, speed: 900, count: 1, color: 0xcccccc, lifespan: 1000 },
         'Shotgun':  { name: 'Pump Shotgun',   damage: 10, fireRate: 800, speed: 600, count: 5, color: 0xffaa00, lifespan: 300 }, 
@@ -75,6 +75,7 @@
     let comboStep = 0, isAttacking = false, inputBuffered = false, canCancel = false;
     let attackActiveTimer, attackRecoveryTimer;
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
+    let isFiring = false; // New Auto-Aim Firing Flag
     
     // --- LEVEL & BOSS VARS ---
     let enemiesGroup, enemyProjectiles;
@@ -191,11 +192,17 @@
         centerMsgText = this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0);
         uiElements.push(centerMsgText);
 
-        // CONTROLS
+        // CONTROLS (Left Stick Only)
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
-        joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        // --- UPDATED JUMP BUTTON LOCATION ---
+        // --- NEW AUTO-AIM FIRE BUTTON ---
+        const btnFire = this.add.circle(670, 300, 45, 0xff0000).setAlpha(0.6).setInteractive(); uiElements.push(btnFire);
+        const btnFireT = this.add.text(670, 300, 'FIRE', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnFireT);
+        btnFire.on('pointerdown', () => { isFiring = true; });
+        btnFire.on('pointerup', () => { isFiring = false; });
+        btnFire.on('pointerout', () => { isFiring = false; });
+
+        // Jump button placed perfectly
         const btnJump = this.add.circle(730, 360, 25, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
         const btnJumpT = this.add.text(730, 360, 'JMP', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
         btnJump.on('pointerdown', () => { 
@@ -244,7 +251,6 @@
 
         uiElements.forEach(el => { if (el.setScrollFactor) el.setScrollFactor(0); });
         joyStickLeft.base.setScrollFactor(0); joyStickLeft.thumb.setScrollFactor(0);
-        joyStickRight.base.setScrollFactor(0); joyStickRight.thumb.setScrollFactor(0);
         
         applyCharacterLoadout();
     }
@@ -312,7 +318,6 @@
         currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 150, onComplete: () => slashGraphic.destroy() });
     }
 
-    // --- PURE SEPARATION FOR WHIP VS SWORD GRAPHICS ---
     function executeHeavyAttack() {
         isAttacking = true; inputBuffered = false; canCancel = false; 
         if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove();
@@ -327,10 +332,8 @@
             let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
             meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
 
-            // Pure isolated graphic check
-            if (activeWeapon.name === 'Energy Whip') { 
-                drawWhipFX(true); 
-            } else {
+            if (activeWeapon.name === 'Energy Whip') { drawWhipFX(true); } 
+            else {
                 let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(10, activeWeapon.color, 1); slashGraphic.beginPath();
                 slashGraphic.arc(player.x, player.y, 50, Phaser.Math.DegToRad(facingDirection === 0 ? -90 : 270), Phaser.Math.DegToRad(90), false);
                 slashGraphic.strokePath(); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 300, onComplete: () => slashGraphic.destroy() });
@@ -364,11 +367,8 @@
         meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
 
         currentScene.time.delayedCall(activeWeapon.speed * 0.5, () => {
-            
-            // Pure isolated graphic check
-            if (activeWeapon.name === 'Energy Whip') { 
-                drawWhipFX(false); 
-            } else {
+            if (activeWeapon.name === 'Energy Whip') { drawWhipFX(false); } 
+            else {
                 let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(6, activeWeapon.color, 1); slashGraphic.beginPath();
                 slashGraphic.arc(player.x, player.y, 30, Phaser.Math.DegToRad(facingDirection === 0 ? -45 : 225), Phaser.Math.DegToRad(facingDirection === 0 ? 45 : 135), false);
                 slashGraphic.strokePath(); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 200, onComplete: () => slashGraphic.destroy() });
@@ -546,22 +546,54 @@
 
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
             player.rotation = 0; 
-            if (joyStickLeft.left) { player.body.setVelocityX(-250); facingDirection = Math.PI; player.setFlipX(true); playAnim('run_normal'); }
-            else if (joyStickLeft.right) { player.body.setVelocityX(250); facingDirection = 0; player.setFlipX(false); playAnim('run_normal'); }
-            else { player.body.setVelocityX(0); playAnim('unarmed_idle'); }
             
+            // 1. Manage Movement and Animations
+            if (joyStickLeft.left) { player.body.setVelocityX(-250); playAnim('run_normal'); }
+            else if (joyStickLeft.right) { player.body.setVelocityX(250); playAnim('run_normal'); }
+            else { player.body.setVelocityX(0); playAnim('unarmed_idle'); }
             if (player.body.touching.down) jumps = 0;
 
-            if (joyStickRight.force > 0) {
-                if (Math.abs(joyStickRight.rotation) > Math.PI/2) { facingDirection = Math.PI; player.setFlipX(true); } else { facingDirection = 0; player.setFlipX(false); }
-                
-                // Infinite Ammo Loop: Removed reload checks
-                if (currentTime > lastFiredTime + activeGun.fireRate) {
-                    shootGun(joyStickRight.rotation); lastFiredTime = currentTime; 
+            // 2. The Auto-Aim Engine
+            let shootAngle = facingDirection;
+            let nearestEnemy = null;
+            let minDist = 600; // Radar radius
+
+            if (isFiring) {
+                enemiesGroup.getChildren().forEach(enemy => {
+                    if (enemy.active && enemy.enemyData.state !== 'dead' && enemy.y <= 450) {
+                        let dist = Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y);
+                        if (dist < minDist) { minDist = dist; nearestEnemy = enemy; }
+                    }
+                });
+
+                if (nearestEnemy) {
+                    // Lock onto enemy
+                    shootAngle = Phaser.Math.Angle.Between(player.x, player.y, nearestEnemy.x, nearestEnemy.y);
+                    facingDirection = (nearestEnemy.x < player.x) ? Math.PI : 0;
+                } else {
+                    // Manual override via left joystick, or snap forward
+                    if (joyStickLeft.force > 0) {
+                        shootAngle = joyStickLeft.rotation;
+                        facingDirection = Math.abs(shootAngle) > Math.PI/2 ? Math.PI : 0;
+                    } 
                 }
-            } 
+                
+                // Shoot with unlimited ammo
+                if (currentTime > lastFiredTime + activeGun.fireRate) {
+                    shootGun(shootAngle); lastFiredTime = currentTime; 
+                }
+            } else {
+                // Not firing, facing direction is purely based on movement
+                if (joyStickLeft.left) facingDirection = Math.PI;
+                else if (joyStickLeft.right) facingDirection = 0;
+            }
+
+            // Apply visual flip perfectly based on aim or movement
+            player.setFlipX(facingDirection === Math.PI);
+
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
+        // --- ENEMY AI LOOP ---
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (data.isBoss) return; 
