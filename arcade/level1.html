@@ -39,13 +39,14 @@
     };
     let weaponKeys = ['Knife', 'Sword', 'Whip'];
     
+    // Guns now act with infinite ammo, so clipSize and reloadTime are ignored
     const gunArmory = {
-        'Pistol':   { name: 'Service Pistol', damage: 15, fireRate: 300, speed: 900, count: 1, color: 0xcccccc, lifespan: 1000, clipSize: 12, reloadTime: 1000 },
-        'Shotgun':  { name: 'Pump Shotgun',   damage: 10, fireRate: 800, speed: 600, count: 5, color: 0xffaa00, lifespan: 300,  clipSize: 6,  reloadTime: 3000 }, 
-        'Rifle':    { name: 'Assault Rifle',  damage: 8,  fireRate: 100, speed: 1200,count: 1, color: 0x00ff00, lifespan: 800,  clipSize: 30, reloadTime: 1200 },
-        'Sniper':   { name: 'Heavy Sniper',   damage: 60, fireRate: 1200,speed: 2000,count: 1, color: 0xff00ff, lifespan: 1500, clipSize: 5,  reloadTime: 2500 },
-        'GrenadeL': { name: 'Grenade Tube',   damage: 45, fireRate: 800, speed: 500, count: 1, color: 0xff5500, lifespan: 1200, clipSize: 4,  reloadTime: 2200 },
-        'Rocket':   { name: 'RPG Launcher',   damage: 90, fireRate: 1000,speed: 900, count: 1, color: 0xff0000, lifespan: 2000, clipSize: 1,  reloadTime: 3000 }
+        'Pistol':   { name: 'Service Pistol', damage: 15, fireRate: 300, speed: 900, count: 1, color: 0xcccccc, lifespan: 1000 },
+        'Shotgun':  { name: 'Pump Shotgun',   damage: 10, fireRate: 800, speed: 600, count: 5, color: 0xffaa00, lifespan: 300 }, 
+        'Rifle':    { name: 'Assault Rifle',  damage: 8,  fireRate: 100, speed: 1200,count: 1, color: 0x00ff00, lifespan: 800 },
+        'Sniper':   { name: 'Heavy Sniper',   damage: 60, fireRate: 1200,speed: 2000,count: 1, color: 0xff00ff, lifespan: 1500 },
+        'GrenadeL': { name: 'Grenade Tube',   damage: 45, fireRate: 800, speed: 500, count: 1, color: 0xff5500, lifespan: 1200 },
+        'Rocket':   { name: 'RPG Launcher',   damage: 90, fireRate: 1000,speed: 900, count: 1, color: 0xff0000, lifespan: 2000 }
     };
     let gunKeys = ['Pistol', 'Shotgun', 'Rifle', 'Sniper', 'GrenadeL', 'Rocket'];
     
@@ -64,7 +65,7 @@
     let playerHealth = 100, jumps = 0, playerHealthBar; 
     let currentWeaponIndex = 0, activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
     let currentGunIndex = 1, activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
-    let lastFiredTime = 0, currentAmmo = activeGun.clipSize, isReloading = false, reloadTimer;
+    let lastFiredTime = 0;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
     // --- COMBAT FLAGS ---
@@ -91,8 +92,6 @@
         this.load.spritesheet('recon', 'assets/recon.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
-        
-        // --- NEW GOLIATH SPRITESHEET LOADED WITH EXACT PIXEL MATH ---
         this.load.spritesheet('boss', 'assets/goliath1.png', { frameWidth: 192, frameHeight: 256 });
     }
 
@@ -140,10 +139,9 @@
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
-        // --- GOLIATH BOSS FULLY ANIMATED SETUP ---
-        boss = this.physics.add.sprite(3100, 240, 'boss'); // Updated to use the sprite sheet!
+        boss = this.physics.add.sprite(3100, 240, 'boss'); 
         boss.setScale(1.2); 
-        boss.setFlipX(true); // Flips him so he faces left towards the player
+        boss.setFlipX(true);
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
         boss.body.setAllowGravity(false); 
@@ -151,7 +149,6 @@
         boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
 
-        // --- HERO & GRUNT ANIMATIONS ---
         const charKeys = ['vanguard', 'recon', 'heavy', 'grunt'];
         charKeys.forEach(char => {
             this.anims.create({ key: `${char}_unarmed_idle`, frames: this.anims.generateFrameNumbers(char, { start: 50, end: 50 }), frameRate: 4, repeat: -1 });
@@ -162,7 +159,6 @@
             this.anims.create({ key: `${char}_die`, frames: this.anims.generateFrameNumbers(char, { start: 125, end: 129 }), frameRate: 8, repeat: 0 });
         });
 
-        // --- GOLIATH ANIMATIONS ---
         this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 8, repeat: -1 });
         this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 12, repeat: 0 });
         this.anims.create({ key: 'boss_die', frames: this.anims.generateFrameNumbers('boss', { start: 24, end: 31 }), frameRate: 8, repeat: 0 });
@@ -187,7 +183,7 @@
         // --- UI SETUP ---
         meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff', backgroundColor: '#000000' }); uiElements.push(meleeText);
         gunText = this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00', backgroundColor: '#000000' }); uiElements.push(gunText);
-        ammoText = this.add.text(10, 40, `Ammo: `, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }); uiElements.push(ammoText);
+        ammoText = this.add.text(10, 40, `Ammo: ∞`, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }); uiElements.push(ammoText);
         grenadeText = this.add.text(10, 60, `Nades: `, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold', backgroundColor: '#000000' }); uiElements.push(grenadeText);
         actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5); uiElements.push(actionText);
         rosterText = this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5); uiElements.push(rosterText);
@@ -199,8 +195,9 @@
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        const btnJump = this.add.circle(240, 320, 25, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
-        const btnJumpT = this.add.text(240, 320, 'JMP', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
+        // --- UPDATED JUMP BUTTON LOCATION ---
+        const btnJump = this.add.circle(730, 360, 25, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
+        const btnJumpT = this.add.text(730, 360, 'JMP', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
         btnJump.on('pointerdown', () => { 
             if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { 
                 player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); 
@@ -224,10 +221,6 @@
         const btnToss = this.add.circle(680, 210, 25, 0x00cc00).setAlpha(0.6).setInteractive(); uiElements.push(btnToss);
         const btnTossT = this.add.text(680, 210, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnTossT);
         btnToss.on('pointerdown', tossGrenade);
-
-        const btnReload = this.add.circle(550, 240, 25, 0x4444ff).setAlpha(0.7).setInteractive(); uiElements.push(btnReload);
-        const btnReloadT = this.add.text(550, 240, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnReloadT);
-        btnReload.on('pointerdown', () => { if (!isReloading && !isAttacking && !isBlocking && !isDashing && !isSpawning && currentAmmo < activeGun.clipSize) reloadGun(); });
 
         const btnHeavy = this.add.circle(630, 170, 25, 0xff3300).setAlpha(0.7).setInteractive(); uiElements.push(btnHeavy);
         const btnHeavyT = this.add.text(630, 170, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnHeavyT);
@@ -282,8 +275,8 @@
         
         currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
         currentGunIndex = gunKeys.indexOf(activeCharDef.gun); activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
-        playerHealth = 100; currentAmmo = activeGun.clipSize; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
-        isReloading = false; isSpawning = false;
+        playerHealth = 100; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
+        isSpawning = false;
         meleeText.setText('Melee: ' + activeWeapon.name); gunText.setText('Gun: ' + activeGun.name);
         rosterText.setText(`TEAM: ${3 - currentRosterIndex} LIVES`); actionText.setText(`${activeCharDef.name} DROPS IN!`); updateUI();
     }
@@ -319,6 +312,7 @@
         currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 150, onComplete: () => slashGraphic.destroy() });
     }
 
+    // --- PURE SEPARATION FOR WHIP VS SWORD GRAPHICS ---
     function executeHeavyAttack() {
         isAttacking = true; inputBuffered = false; canCancel = false; 
         if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove();
@@ -333,8 +327,10 @@
             let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
             meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
 
-            if (activeWeapon.name === 'Energy Whip') { drawWhipFX(true); } 
-            else {
+            // Pure isolated graphic check
+            if (activeWeapon.name === 'Energy Whip') { 
+                drawWhipFX(true); 
+            } else {
                 let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(10, activeWeapon.color, 1); slashGraphic.beginPath();
                 slashGraphic.arc(player.x, player.y, 50, Phaser.Math.DegToRad(facingDirection === 0 ? -90 : 270), Phaser.Math.DegToRad(90), false);
                 slashGraphic.strokePath(); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 300, onComplete: () => slashGraphic.destroy() });
@@ -368,8 +364,11 @@
         meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
 
         currentScene.time.delayedCall(activeWeapon.speed * 0.5, () => {
-            if (activeWeapon.name === 'Energy Whip') { drawWhipFX(false); } 
-            else {
+            
+            // Pure isolated graphic check
+            if (activeWeapon.name === 'Energy Whip') { 
+                drawWhipFX(false); 
+            } else {
                 let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(6, activeWeapon.color, 1); slashGraphic.beginPath();
                 slashGraphic.arc(player.x, player.y, 30, Phaser.Math.DegToRad(facingDirection === 0 ? -45 : 225), Phaser.Math.DegToRad(facingDirection === 0 ? 45 : 135), false);
                 slashGraphic.strokePath(); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 200, onComplete: () => slashGraphic.destroy() });
@@ -436,14 +435,7 @@
         currentScene.tweens.add({ targets: blastVisual, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
     }
 
-    function reloadGun() {
-        isReloading = true; actionText.setText(`Reloading...`); ammoText.setText('RELOADING...'); ammoText.setFill('#ff0000'); 
-        reloadTimer = currentScene.time.delayedCall(activeGun.reloadTime, () => { currentAmmo = activeGun.clipSize; isReloading = false; updateUI(); actionText.setText('Ready'); });
-    }
-
     function updateUI() {
-        ammoText.setText(`Ammo: ${currentAmmo} / ${activeGun.clipSize}`);
-        if (currentAmmo === 0) ammoText.setFill('#ff0000'); else if (currentAmmo <= activeGun.clipSize * 0.25) ammoText.setFill('#ffaa00'); else ammoText.setFill('#00ffff'); 
         grenadeText.setText(`Nades: ${currentOrdnanceAmmo} / ${activeOrdnance.maxAmmo}`);
         if (currentOrdnanceAmmo === 0) grenadeText.setFill('#ff0000'); else grenadeText.setFill('#00ff00');
     }
@@ -474,7 +466,6 @@
         currentScene.tweens.add({ targets: enemy, alpha: 0, delay: 1500, duration: 1000, onComplete: () => enemy.destroy() });
     }
 
-    // GOLIATH DEATH LOGIC INTEGRATED HERE
     function dealDamageToEnemy(enemy, dmg, piercePercent, stunDuration) {
         if (!enemy.active || enemy.enemyData.state === 'dead') return;
         let data = enemy.enemyData; let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg;
@@ -491,10 +482,7 @@
                 if(bossAIEvent) bossAIEvent.remove(); 
                 showCenterMessage("SECTOR CLEARED!", '#00ff00'); 
                 bossWall.body.checkCollision.none = true; bossWall.setAlpha(0);
-                
-                // Plays the massive exploding death animation!
                 enemy.anims.play('boss_die', true);
-                
                 currentScene.time.delayedCall(4000, () => { window.location.href = 'debrief.html?status=win'; });
             } else { 
                 triggerEnemyDeath(enemy); 
@@ -515,21 +503,15 @@
         });
     }
     
-    // --- UPDATED BOSS AI LOGIC TO USE ANIMATIONS ---
     function triggerBoss() {
         bossActive = true; boss.enemyData.state = 'active'; currentScene.cameras.main.stopFollow(); currentScene.cameras.main.pan(2800, 200, 1000, 'Sine.easeInOut');
-        
-        // Start playing the walking animation
         boss.anims.play('boss_walk', true);
-
         currentScene.time.delayedCall(1000, () => { currentScene.cameras.main.setBounds(2400, 0, 800, 400); bossWall.body.checkCollision.none = false; showCenterMessage("WARNING: GOLIATH MECH", '#ff0000'); bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runBossPattern, loop: true }); });
     }
 
     function runBossPattern() {
         if (!boss.active || bossDefeated || playerHealth <= 0) return;
         let attackType = Phaser.Math.Between(1, 2);
-        
-        // Triggers the shooting animation
         boss.anims.play('boss_shoot', true);
 
         if (attackType === 1) {
@@ -542,8 +524,6 @@
                         bullet.body.setVelocityX(-500); bullet.dmg = 15; enemyProjectiles.add(bullet); currentScene.time.delayedCall(2000, () => { if(bullet.active) bullet.destroy(); });
                     });
                 }
-                
-                // Return to walking animation after attack
                 currentScene.time.delayedCall(1000, () => { if(!bossDefeated) boss.anims.play('boss_walk', true); });
             });
         } else {
@@ -554,8 +534,6 @@
                 let explosion = currentScene.add.circle(targetX, 380, 70, 0xff7700, 0.8); currentScene.physics.add.existing(explosion); explosion.body.setAllowGravity(false);
                 if (Phaser.Geom.Intersects.RectangleToRectangle(explosion.getBounds(), player.getBounds())) { playerTakeDamage(40, boss.x); }
                 currentScene.tweens.add({ targets: explosion, alpha: 0, duration: 300, onComplete: () => explosion.destroy() });
-                
-                // Return to walking animation after attack
                 currentScene.time.delayedCall(500, () => { if(!bossDefeated) boss.anims.play('boss_walk', true); });
             });
         }
@@ -576,8 +554,10 @@
 
             if (joyStickRight.force > 0) {
                 if (Math.abs(joyStickRight.rotation) > Math.PI/2) { facingDirection = Math.PI; player.setFlipX(true); } else { facingDirection = 0; player.setFlipX(false); }
-                if (currentTime > lastFiredTime + activeGun.fireRate && !isReloading) {
-                    if (currentAmmo > 0) { shootGun(joyStickRight.rotation); currentAmmo--; updateUI(); lastFiredTime = currentTime; } else reloadGun();
+                
+                // Infinite Ammo Loop: Removed reload checks
+                if (currentTime > lastFiredTime + activeGun.fireRate) {
+                    shootGun(joyStickRight.rotation); lastFiredTime = currentTime; 
                 }
             } 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
