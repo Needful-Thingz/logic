@@ -17,7 +17,8 @@
     const config = {
         type: Phaser.AUTO,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 400 },
-        physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: false } },
+        // --- DEBUG MODE ENABLED HERE ---
+        physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: true } },
         scene: { preload: preload, create: create, update: update },
         backgroundColor: '#121a12' 
     };
@@ -30,7 +31,6 @@
     let facingDirection = 0, currentScene, grenadesGroup; 
     let score = 0;
     
-    // --- ARMORY DATA ---
     const weaponArmory = {
         'Knife': { name: 'Combat Knife', damage: 28, reach: 40, pierce: 0.15, stun: 0, speed: 80, color: 0xcccccc },
         'Sword': { name: 'Broadsword', damage: 35, reach: 75, pierce: 0.50, stun: 0, speed: 150, color: 0xff3333 },
@@ -116,7 +116,6 @@
         enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup();
 
-        // Level Floor Architecture
         platforms.add(this.add.tileSprite(400, 390, 800, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(600, 300, 150, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(1050, 250, 200, 32, 'floorTile')); 
@@ -125,7 +124,6 @@
         platforms.add(this.add.tileSprite(1900, 390, 500, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(1800, 280, 150, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(2000, 220, 150, 32, 'floorTile'));
-        
         platforms.add(this.add.tileSprite(2800, 390, 800, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2650, 260, 150, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(2950, 260, 150, 32, 'floorTile'));
@@ -137,17 +135,19 @@
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
-        // --- BOSS PHYSICS AND HITBOX FIX ---
-        // Gravity turned back on so he spawns naturally.
-        // Hitbox shrunken and offset to cleanly chop off the bottom empty space of his sprite!
+        // --- NEW BOSS HITBOX ATTEMPT ---
         boss = this.physics.add.sprite(3000, 100, 'boss'); 
         boss.setScale(1.2); 
         boss.setFlipX(true);
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
         boss.body.setAllowGravity(true); 
-        boss.body.setSize(100, 180); 
-        boss.body.setOffset(46, 76); 
+        
+        // I aggressively shrunk the physical box and pushed it down.
+        // If this is wrong, the neon pink box will show us EXACTLY how to fix it!
+        boss.body.setSize(60, 160); 
+        boss.body.setOffset(66, 90); 
+        
         boss.setDepth(15); 
         boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
@@ -170,8 +170,6 @@
         player = this.physics.add.sprite(100, 200, activeCharDef.spriteKey); 
         player.setScale(2);
         player.setCollideWorldBounds(true);
-        
-        // --- PIT FALL FIX: NARROWING THE PLAYER HITBOX ---
         player.body.setSize(18, 37); 
         player.body.setOffset(19, 0); 
         
@@ -184,7 +182,7 @@
         bossHpBar = this.add.graphics().setScrollFactor(0).setDepth(20);
 
         this.physics.add.collider(player, platforms);
-        this.physics.add.collider(boss, platforms); // Boss touches the floor again!
+        this.physics.add.collider(boss, platforms); 
         this.physics.add.collider(player, bossWall); 
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
@@ -527,12 +525,9 @@
             currentScene.time.delayedCall(400, () => { 
                 if(!boss.active) return;
                 
-                // --- PROPERLY GRAVITY-DISABLED SHOTGUN BLAST ---
                 for (let i = -2; i <= 2; i++) {
                     let bullet = currentScene.add.rectangle(boss.x - 110, boss.y - 20, 20, 20, 0xff5500); 
                     currentScene.physics.add.existing(bullet); 
-                    
-                    // Crucial fix: Assign to group FIRST, then turn off gravity!
                     enemyProjectiles.add(bullet); 
                     bullet.body.setAllowGravity(false);
                     
@@ -554,11 +549,8 @@
                 if(!boss.active) return; 
                 currentScene.cameras.main.shake(200, 0.01); 
                 
-                // --- PROPERLY GRAVITY-DISABLED FLOOR SHOCKWAVE ---
                 let shockwave = currentScene.add.rectangle(boss.x - 80, 360, 40, 60, 0x00ffff); 
                 currentScene.physics.add.existing(shockwave); 
-                
-                // Crucial fix: Assign to group FIRST, then turn off gravity!
                 enemyProjectiles.add(shockwave);
                 shockwave.body.setAllowGravity(false);
                 
@@ -629,10 +621,8 @@
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
             if (distToPlayer > 800) return; 
 
-            // --- ARMED GRUNT COMBAT AI ---
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 if (distToPlayer < 65 && data.canAttack) {
-                    // CQC Melee Punch Range
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
                     enemy.anims.play('grunt_punch_right', true);
 
@@ -645,7 +635,6 @@
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
                     
                 } else if (distToPlayer < 350 && distToPlayer > 150 && data.canAttack) {
-                    // Mid-Range Gunplay AI
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
                     enemy.anims.play('grunt_punch_right', true); 
                     
@@ -662,7 +651,6 @@
                     currentScene.time.delayedCall(2500, () => { data.canAttack = true; });
 
                 } else if (distToPlayer < 400 && data.state !== 'attack') {
-                    // Aggro Chase Range
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
                     enemy.setFlipX(dir === -1);
                     enemy.anims.play('grunt_run_normal', true);
