@@ -24,7 +24,6 @@
 
     const game = new Phaser.Game(config);
     
-    // Core Entities
     let player, joyStickLeft, platforms;
     let uiElements = []; 
     let meleeText, gunText, ammoText, grenadeText, actionText, rosterText, scoreText, centerMsgText;
@@ -94,7 +93,6 @@
 
     function create() {
         currentScene = this; 
-        
         this.input.addPointer(2);
         
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
@@ -118,6 +116,7 @@
         enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup();
 
+        // Level Floor Architecture
         platforms.add(this.add.tileSprite(400, 390, 800, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(600, 300, 150, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(1050, 250, 200, 32, 'floorTile')); 
@@ -138,15 +137,17 @@
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
-        // --- FLOATING BOSS FIX ---
-        // Gravity is disabled so his invisible padding doesn't hit the floor and push him up.
-        // Y coordinate is manually forced down to 260 so his feet visually touch the platform perfectly.
-        boss = this.physics.add.sprite(3000, 260, 'boss'); 
+        // --- BOSS PHYSICS AND HITBOX FIX ---
+        // Gravity turned back on so he spawns naturally.
+        // Hitbox shrunken and offset to cleanly chop off the bottom empty space of his sprite!
+        boss = this.physics.add.sprite(3000, 100, 'boss'); 
         boss.setScale(1.2); 
         boss.setFlipX(true);
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
-        boss.body.setAllowGravity(false); 
+        boss.body.setAllowGravity(true); 
+        boss.body.setSize(100, 180); 
+        boss.body.setOffset(46, 76); 
         boss.setDepth(15); 
         boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
@@ -169,6 +170,11 @@
         player = this.physics.add.sprite(100, 200, activeCharDef.spriteKey); 
         player.setScale(2);
         player.setCollideWorldBounds(true);
+        
+        // --- PIT FALL FIX: NARROWING THE PLAYER HITBOX ---
+        player.body.setSize(18, 37); 
+        player.body.setOffset(19, 0); 
+        
         this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, 0xffffff).setAlpha(0);
@@ -178,7 +184,7 @@
         bossHpBar = this.add.graphics().setScrollFactor(0).setDepth(20);
 
         this.physics.add.collider(player, platforms);
-        // Note: Boss is removed from platforms collider since gravity is disabled (keeps his Y lock stable)
+        this.physics.add.collider(boss, platforms); // Boss touches the floor again!
         this.physics.add.collider(player, bossWall); 
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
@@ -511,59 +517,56 @@
         currentScene.time.delayedCall(1000, () => { currentScene.cameras.main.setBounds(2400, 0, 800, 400); bossWall.body.checkCollision.none = false; showCenterMessage("WARNING: GOLIATH MECH", '#ff0000'); bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runBossPattern, loop: true }); });
     }
 
-    // --- NEW ARCADE ATTACKS APPLIED HERE ---
     function runBossPattern() {
         if (!boss.active || bossDefeated || playerHealth <= 0) return;
         let attackType = Phaser.Math.Between(1, 2);
         boss.body.setVelocityX(0); 
 
         if (attackType === 1) {
-            // ATTACK 1: THE SHOTGUN SPREAD (Massive visible projectiles!)
             boss.anims.play('boss_shoot', true);
-            
-            currentScene.time.delayedCall(400, () => { // Wait for the muzzle flash in the animation
+            currentScene.time.delayedCall(400, () => { 
                 if(!boss.active) return;
                 
-                // Fire a 5-shot spread of massive 20x20 orange plasma balls
+                // --- PROPERLY GRAVITY-DISABLED SHOTGUN BLAST ---
                 for (let i = -2; i <= 2; i++) {
                     let bullet = currentScene.add.rectangle(boss.x - 110, boss.y - 20, 20, 20, 0xff5500); 
-                    currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false);
+                    currentScene.physics.add.existing(bullet); 
                     
-                    // Math to spread them like a real shotgun blast
+                    // Crucial fix: Assign to group FIRST, then turn off gravity!
+                    enemyProjectiles.add(bullet); 
+                    bullet.body.setAllowGravity(false);
+                    
                     let angle = Math.PI + (i * 0.15); 
                     currentScene.physics.velocityFromRotation(angle, 700, bullet.body.velocity);
                     bullet.rotation = angle;
                     bullet.dmg = 20; 
-                    enemyProjectiles.add(bullet); 
                     
-                    // Extra long lifespan so they travel across the screen
                     currentScene.time.delayedCall(3000, () => { if(bullet.active) bullet.destroy(); });
                 }
             });
-            
             currentScene.time.delayedCall(1200, () => { 
                 if(!bossDefeated) { boss.anims.play('boss_walk', true); boss.body.setVelocityX(-20); } 
             });
             
         } else {
-            // ATTACK 2: THE SHOCKWAVE STOMP (Forces player to jump!)
             boss.anims.play('boss_slam', true); 
-            
-            currentScene.time.delayedCall(600, () => { // Triggers exactly when his fist hits the ground
+            currentScene.time.delayedCall(600, () => { 
                 if(!boss.active) return; 
+                currentScene.cameras.main.shake(200, 0.01); 
                 
-                currentScene.cameras.main.shake(200, 0.01); // Subtle screen shake for impact!
+                // --- PROPERLY GRAVITY-DISABLED FLOOR SHOCKWAVE ---
+                let shockwave = currentScene.add.rectangle(boss.x - 80, 360, 40, 60, 0x00ffff); 
+                currentScene.physics.add.existing(shockwave); 
                 
-                // Massive cyan shockwave racing along the floor
-                let shockwave = currentScene.add.rectangle(boss.x - 80, 370, 40, 60, 0x00ffff); 
-                currentScene.physics.add.existing(shockwave); shockwave.body.setAllowGravity(false);
-                shockwave.body.setVelocityX(-500); 
-                shockwave.dmg = 35; // Heavy damage if you don't jump it!
+                // Crucial fix: Assign to group FIRST, then turn off gravity!
                 enemyProjectiles.add(shockwave);
+                shockwave.body.setAllowGravity(false);
+                
+                shockwave.body.setVelocityX(-500); 
+                shockwave.dmg = 35; 
                 
                 currentScene.time.delayedCall(3000, () => { if(shockwave.active) shockwave.destroy(); });
             });
-            
             currentScene.time.delayedCall(1200, () => { 
                 if(!bossDefeated) { boss.anims.play('boss_walk', true); boss.body.setVelocityX(-20); } 
             });
@@ -626,10 +629,11 @@
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
             if (distToPlayer > 800) return; 
 
+            // --- ARMED GRUNT COMBAT AI ---
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 if (distToPlayer < 65 && data.canAttack) {
+                    // CQC Melee Punch Range
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
-                    
                     enemy.anims.play('grunt_punch_right', true);
 
                     currentScene.time.delayedCall(400, () => {
@@ -639,11 +643,29 @@
                         currentScene.time.delayedCall(150, () => { data.hitbox.setAlpha(0); data.hitbox.setPosition(-100, -100); if (data.state !== 'dead') data.state = 'idle'; });
                     });
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
-                } else if (distToPlayer < 400 && distToPlayer >= 65 && data.state !== 'attack') {
+                    
+                } else if (distToPlayer < 350 && distToPlayer > 150 && data.canAttack) {
+                    // Mid-Range Gunplay AI
+                    data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
+                    enemy.anims.play('grunt_punch_right', true); 
+                    
+                    currentScene.time.delayedCall(300, () => {
+                        if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return;
+                        let b = currentScene.add.rectangle(enemy.x + (enemy.x < player.x ? 30 : -30), enemy.y, 12, 4, 0xff0000);
+                        currentScene.physics.add.existing(b);
+                        enemyProjectiles.add(b);
+                        b.body.setAllowGravity(false); 
+                        b.body.setVelocityX(enemy.x < player.x ? 450 : -450);
+                        b.dmg = 15;
+                        currentScene.time.delayedCall(1500, () => { if(b.active) b.destroy(); });
+                    });
+                    currentScene.time.delayedCall(2500, () => { data.canAttack = true; });
+
+                } else if (distToPlayer < 400 && data.state !== 'attack') {
+                    // Aggro Chase Range
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
                     enemy.setFlipX(dir === -1);
                     enemy.anims.play('grunt_run_normal', true);
-
                     if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
                 } else if (data.state !== 'attack') { 
                     data.state = 'idle'; enemy.body.setVelocityX(0); 
