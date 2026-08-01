@@ -89,8 +89,6 @@
         this.load.spritesheet('recon', 'assets/recon.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
-        
-        // --- LOOKING FOR YOUR NEW GOLIATH3.PNG EXPORT ---
         this.load.spritesheet('boss', 'assets/goliath3.png', { frameWidth: 192, frameHeight: 256 });
     }
 
@@ -140,12 +138,15 @@
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
-        boss = this.physics.add.sprite(3000, 100, 'boss'); 
+        // --- FLOATING BOSS FIX ---
+        // Gravity is disabled so his invisible padding doesn't hit the floor and push him up.
+        // Y coordinate is manually forced down to 260 so his feet visually touch the platform perfectly.
+        boss = this.physics.add.sprite(3000, 260, 'boss'); 
         boss.setScale(1.2); 
         boss.setFlipX(true);
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
-        boss.body.setAllowGravity(true); 
+        boss.body.setAllowGravity(false); 
         boss.setDepth(15); 
         boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
@@ -160,7 +161,6 @@
             this.anims.create({ key: `${char}_die`, frames: this.anims.generateFrameNumbers(char, { start: 125, end: 129 }), frameRate: 8, repeat: 0 });
         });
 
-        // --- TWITCHY ANIMATION FIX: Frame rates dropped for heavy, deliberate stomps ---
         this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 6, repeat: -1 });
         this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 10, repeat: 0 });
         this.anims.create({ key: 'boss_slam', frames: this.anims.generateFrameNumbers('boss', { start: 16, end: 23 }), frameRate: 8, repeat: 0 });
@@ -178,7 +178,7 @@
         bossHpBar = this.add.graphics().setScrollFactor(0).setDepth(20);
 
         this.physics.add.collider(player, platforms);
-        this.physics.add.collider(boss, platforms); 
+        // Note: Boss is removed from platforms collider since gravity is disabled (keeps his Y lock stable)
         this.physics.add.collider(player, bossWall); 
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
@@ -507,55 +507,65 @@
     function triggerBoss() {
         bossActive = true; boss.enemyData.state = 'active'; currentScene.cameras.main.stopFollow(); currentScene.cameras.main.pan(2800, 200, 1000, 'Sine.easeInOut');
         boss.anims.play('boss_walk', true);
-        
-        // --- MOVEMENT FIX: Slower, heavy velocity to match the frame rate ---
         boss.body.setVelocityX(-20); 
-        
         currentScene.time.delayedCall(1000, () => { currentScene.cameras.main.setBounds(2400, 0, 800, 400); bossWall.body.checkCollision.none = false; showCenterMessage("WARNING: GOLIATH MECH", '#ff0000'); bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runBossPattern, loop: true }); });
     }
 
+    // --- NEW ARCADE ATTACKS APPLIED HERE ---
     function runBossPattern() {
         if (!boss.active || bossDefeated || playerHealth <= 0) return;
         let attackType = Phaser.Math.Between(1, 2);
         boss.body.setVelocityX(0); 
 
         if (attackType === 1) {
+            // ATTACK 1: THE SHOTGUN SPREAD (Massive visible projectiles!)
             boss.anims.play('boss_shoot', true);
             
-            for (let i = 0; i < 4; i++) {
-                currentScene.time.delayedCall(200 + (i * 100), () => {
-                    if(!boss.active) return;
-                    let bullet = currentScene.add.rectangle(boss.x - 110, boss.y - 20, 24, 6, 0xffff00); 
-                    currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false);
-                    bullet.body.setVelocityX(-600); bullet.dmg = 15; enemyProjectiles.add(bullet); 
-                    currentScene.time.delayedCall(2000, () => { if(bullet.active) bullet.destroy(); });
-                });
-            }
-            currentScene.time.delayedCall(1000, () => { 
-                if(!bossDefeated) { 
-                    boss.anims.play('boss_walk', true); 
-                    boss.body.setVelocityX(-20); 
-                } 
-            });
-        } else {
-            boss.anims.play('boss_slam', true); 
-            let targetX = player.x;
-            let reticle = currentScene.add.circle(targetX, 380, 60, 0xff0000, 0.4); 
-            currentScene.tweens.add({ targets: reticle, alpha: 0.8, duration: 800, yoyo: true, repeat: 0 });
-            
-            currentScene.time.delayedCall(1000, () => {
-                if(!boss.active) return; reticle.destroy();
-                let explosion = currentScene.add.circle(targetX, 380, 70, 0xff7700, 0.8); 
-                currentScene.physics.add.existing(explosion); explosion.body.setAllowGravity(false);
-                if (Phaser.Geom.Intersects.RectangleToRectangle(explosion.getBounds(), player.getBounds())) { playerTakeDamage(40, boss.x); }
-                currentScene.tweens.add({ targets: explosion, alpha: 0, duration: 300, onComplete: () => explosion.destroy() });
+            currentScene.time.delayedCall(400, () => { // Wait for the muzzle flash in the animation
+                if(!boss.active) return;
                 
-                currentScene.time.delayedCall(500, () => { 
-                    if(!bossDefeated) { 
-                        boss.anims.play('boss_walk', true); 
-                        boss.body.setVelocityX(-20); 
-                    } 
-                });
+                // Fire a 5-shot spread of massive 20x20 orange plasma balls
+                for (let i = -2; i <= 2; i++) {
+                    let bullet = currentScene.add.rectangle(boss.x - 110, boss.y - 20, 20, 20, 0xff5500); 
+                    currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false);
+                    
+                    // Math to spread them like a real shotgun blast
+                    let angle = Math.PI + (i * 0.15); 
+                    currentScene.physics.velocityFromRotation(angle, 700, bullet.body.velocity);
+                    bullet.rotation = angle;
+                    bullet.dmg = 20; 
+                    enemyProjectiles.add(bullet); 
+                    
+                    // Extra long lifespan so they travel across the screen
+                    currentScene.time.delayedCall(3000, () => { if(bullet.active) bullet.destroy(); });
+                }
+            });
+            
+            currentScene.time.delayedCall(1200, () => { 
+                if(!bossDefeated) { boss.anims.play('boss_walk', true); boss.body.setVelocityX(-20); } 
+            });
+            
+        } else {
+            // ATTACK 2: THE SHOCKWAVE STOMP (Forces player to jump!)
+            boss.anims.play('boss_slam', true); 
+            
+            currentScene.time.delayedCall(600, () => { // Triggers exactly when his fist hits the ground
+                if(!boss.active) return; 
+                
+                currentScene.cameras.main.shake(200, 0.01); // Subtle screen shake for impact!
+                
+                // Massive cyan shockwave racing along the floor
+                let shockwave = currentScene.add.rectangle(boss.x - 80, 370, 40, 60, 0x00ffff); 
+                currentScene.physics.add.existing(shockwave); shockwave.body.setAllowGravity(false);
+                shockwave.body.setVelocityX(-500); 
+                shockwave.dmg = 35; // Heavy damage if you don't jump it!
+                enemyProjectiles.add(shockwave);
+                
+                currentScene.time.delayedCall(3000, () => { if(shockwave.active) shockwave.destroy(); });
+            });
+            
+            currentScene.time.delayedCall(1200, () => { 
+                if(!bossDefeated) { boss.anims.play('boss_walk', true); boss.body.setVelocityX(-20); } 
             });
         }
     }
