@@ -75,7 +75,7 @@
     let comboStep = 0, isAttacking = false, inputBuffered = false, canCancel = false;
     let attackActiveTimer, attackRecoveryTimer;
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
-    let isFiring = false; // Auto-Aim Flag
+    let isFiring = false; 
     
     // --- ARENA VARS ---
     let enemiesGroup, enemyProjectiles, spawnTimer;
@@ -96,6 +96,9 @@
 
     function create() {
         currentScene = this; 
+        
+        // MULTI-TOUCH FIX INJECTED HERE
+        this.input.addPointer(2);
         
         this.physics.world.setBounds(0, 0, 800, 400);
         this.physics.world.setBoundsCollision(true, true, true, false); 
@@ -125,7 +128,6 @@
         player.setScale(2);
         player.setCollideWorldBounds(true);
 
-        // Character + Enemy Universal Dictionary
         const charKeys = ['vanguard', 'recon', 'heavy', 'grunt'];
         charKeys.forEach(char => {
             this.anims.create({ key: `${char}_unarmed_idle`, frames: this.anims.generateFrameNumbers(char, { start: 50, end: 50 }), frameRate: 4, repeat: -1 });
@@ -157,19 +159,17 @@
         centerMsgText = this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0);
         uiElements.push(centerMsgText);
 
-        // CONTROLS (Left Stick Only)
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        // AUTO-AIM FIRE BUTTON
         const btnFire = this.add.circle(670, 300, 45, 0xff0000).setAlpha(0.6).setInteractive(); uiElements.push(btnFire);
         const btnFireT = this.add.text(670, 300, 'FIRE', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnFireT);
         btnFire.on('pointerdown', () => { isFiring = true; });
         btnFire.on('pointerup', () => { isFiring = false; });
         btnFire.on('pointerout', () => { isFiring = false; });
 
-        // New Jump button placement
-        const btnJump = this.add.circle(730, 360, 25, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
-        const btnJumpT = this.add.text(730, 360, 'JMP', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
+        // --- MASSIVE JUMP BUTTON WITH ENHANCED SENSITIVITY ---
+        const btnJump = this.add.circle(710, 360, 45, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
+        const btnJumpT = this.add.text(710, 360, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
         btnJump.on('pointerdown', () => { 
             if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { 
                 player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); 
@@ -215,8 +215,6 @@
         });
 
         applyCharacterLoadout();
-
-        // --- ENDLESS SPAWNER ---
         startSpawner();
     }
 
@@ -327,7 +325,7 @@
                     let heavyStun = activeWeapon.stun > 0 ? activeWeapon.stun * 2 : 0.5;
                     dealDamageToEnemy(enemy, activeWeapon.damage * 2.5, activeWeapon.pierce, heavyStun);
                     enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
-                    if(enemy.active && !enemy.enemyData.isBoss) enemy.body.setVelocityX(facingDirection === 0 ? 300 : -300);
+                    if(enemy.active) enemy.body.setVelocityX(facingDirection === 0 ? 300 : -300);
                 }
             });
             attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
@@ -363,7 +361,7 @@
                 if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds()) && enemy.enemyData.state !== 'dead') {
                     dealDamageToEnemy(enemy, activeWeapon.damage * (step === 3 ? 2 : 1), activeWeapon.pierce, activeWeapon.stun);
                     enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
-                    if(step === 3 && enemy.active && !enemy.enemyData.isBoss) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150);
+                    if(step === 3 && enemy.active) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150);
                 }
             });
         });
