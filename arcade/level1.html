@@ -90,9 +90,10 @@
         this.load.spritesheet('vanguard', 'assets/vanguard.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('recon', 'assets/recon.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
-        
-        // Updated exact filename here!
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
+        
+        // --- NEW GOLIATH SPRITESHEET LOADED WITH EXACT PIXEL MATH ---
+        this.load.spritesheet('boss', 'assets/goliath1.png', { frameWidth: 192, frameHeight: 256 });
     }
 
     function create() {
@@ -119,7 +120,6 @@
         enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup();
 
-        // --- LEVEL DESIGN ---
         platforms.add(this.add.tileSprite(400, 390, 800, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(600, 300, 150, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(1050, 250, 200, 32, 'floorTile')); 
@@ -129,7 +129,6 @@
         platforms.add(this.add.tileSprite(1800, 280, 150, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(2000, 220, 150, 32, 'floorTile'));
         
-        // Boss Arena
         platforms.add(this.add.tileSprite(2800, 390, 800, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2650, 260, 150, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(2950, 260, 150, 32, 'floorTile'));
@@ -141,9 +140,10 @@
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
-        // --- GOLIATH BOSS SETUP (Still a block for now) ---
-        boss = this.add.rectangle(3100, 300, 80, 150, 0x444444); 
-        this.physics.add.existing(boss);
+        // --- GOLIATH BOSS FULLY ANIMATED SETUP ---
+        boss = this.physics.add.sprite(3100, 240, 'boss'); // Updated to use the sprite sheet!
+        boss.setScale(1.2); 
+        boss.setFlipX(true); // Flips him so he faces left towards the player
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
         boss.body.setAllowGravity(false); 
@@ -151,13 +151,7 @@
         boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
 
-        // --- PLAYER SETUP ---
-        player = this.physics.add.sprite(100, 200, activeCharDef.spriteKey); 
-        player.setScale(2);
-        player.setCollideWorldBounds(true);
-        this.cameras.main.startFollow(player, true, 0.1, 0.1);
-
-        // --- UNIVERSAL ANIMATION LOOP ---
+        // --- HERO & GRUNT ANIMATIONS ---
         const charKeys = ['vanguard', 'recon', 'heavy', 'grunt'];
         charKeys.forEach(char => {
             this.anims.create({ key: `${char}_unarmed_idle`, frames: this.anims.generateFrameNumbers(char, { start: 50, end: 50 }), frameRate: 4, repeat: -1 });
@@ -167,6 +161,16 @@
             this.anims.create({ key: `${char}_whip_stand`, frames: this.anims.generateFrameNumbers(char, { start: 117, end: 124 }), frameRate: 15 });
             this.anims.create({ key: `${char}_die`, frames: this.anims.generateFrameNumbers(char, { start: 125, end: 129 }), frameRate: 8, repeat: 0 });
         });
+
+        // --- GOLIATH ANIMATIONS ---
+        this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 8, repeat: -1 });
+        this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 12, repeat: 0 });
+        this.anims.create({ key: 'boss_die', frames: this.anims.generateFrameNumbers('boss', { start: 24, end: 31 }), frameRate: 8, repeat: 0 });
+
+        player = this.physics.add.sprite(100, 200, activeCharDef.spriteKey); 
+        player.setScale(2);
+        player.setCollideWorldBounds(true);
+        this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, 0xffffff).setAlpha(0);
         this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
@@ -460,14 +464,6 @@
         }
     }
 
-    function destroyEnemy(enemy) {
-        if (!enemy.active) return;
-        if (enemy.enemyData.bars) enemy.enemyData.bars.destroy();
-        if (enemy.enemyData.hitbox) enemy.enemyData.hitbox.destroy();
-        if (enemy.enemyData.isBoss) { bossDefeated = true; bossHpBar.clear(); if(bossAIEvent) bossAIEvent.remove(); showCenterMessage("SECTOR CLEARED!", '#00ff00'); bossWall.body.checkCollision.none = true; bossWall.setAlpha(0); currentScene.time.delayedCall(4000, () => { window.location.href = 'debrief.html?status=win'; }); }
-        enemy.destroy();
-    }
-
     function triggerEnemyDeath(enemy) {
         enemy.enemyData.state = 'dead';
         enemy.body.enable = false; 
@@ -478,6 +474,7 @@
         currentScene.tweens.add({ targets: enemy, alpha: 0, delay: 1500, duration: 1000, onComplete: () => enemy.destroy() });
     }
 
+    // GOLIATH DEATH LOGIC INTEGRATED HERE
     function dealDamageToEnemy(enemy, dmg, piercePercent, stunDuration) {
         if (!enemy.active || enemy.enemyData.state === 'dead') return;
         let data = enemy.enemyData; let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg;
@@ -489,7 +486,19 @@
         }
         if (data.hp <= 0) { 
             score += data.isBoss ? 1000 : 10; scoreText.setText('SCORE: ' + score); 
-            if (data.isBoss) { destroyEnemy(enemy); } else { triggerEnemyDeath(enemy); } 
+            if (data.isBoss) { 
+                bossDefeated = true; 
+                if(bossAIEvent) bossAIEvent.remove(); 
+                showCenterMessage("SECTOR CLEARED!", '#00ff00'); 
+                bossWall.body.checkCollision.none = true; bossWall.setAlpha(0);
+                
+                // Plays the massive exploding death animation!
+                enemy.anims.play('boss_die', true);
+                
+                currentScene.time.delayedCall(4000, () => { window.location.href = 'debrief.html?status=win'; });
+            } else { 
+                triggerEnemyDeath(enemy); 
+            } 
         }
     }
 
@@ -506,34 +515,48 @@
         });
     }
     
-    // --- BOSS AI LOGIC ---
+    // --- UPDATED BOSS AI LOGIC TO USE ANIMATIONS ---
     function triggerBoss() {
         bossActive = true; boss.enemyData.state = 'active'; currentScene.cameras.main.stopFollow(); currentScene.cameras.main.pan(2800, 200, 1000, 'Sine.easeInOut');
+        
+        // Start playing the walking animation
+        boss.anims.play('boss_walk', true);
+
         currentScene.time.delayedCall(1000, () => { currentScene.cameras.main.setBounds(2400, 0, 800, 400); bossWall.body.checkCollision.none = false; showCenterMessage("WARNING: GOLIATH MECH", '#ff0000'); bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runBossPattern, loop: true }); });
     }
 
     function runBossPattern() {
         if (!boss.active || bossDefeated || playerHealth <= 0) return;
         let attackType = Phaser.Math.Between(1, 2);
+        
+        // Triggers the shooting animation
+        boss.anims.play('boss_shoot', true);
+
         if (attackType === 1) {
-            boss.fillColor = 0xffff00; 
+            boss.setTint(0xffff00); 
             currentScene.time.delayedCall(500, () => {
-                if(!boss.active) return; boss.fillColor = 0x444444;
+                if(!boss.active) return; boss.clearTint();
                 for (let i = 0; i < 5; i++) {
                     currentScene.time.delayedCall(i * 150, () => {
-                        let bullet = currentScene.add.rectangle(boss.x - 50, 360, 16, 6, 0xffff00); currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false);
+                        let bullet = currentScene.add.rectangle(boss.x - 50, 260, 16, 6, 0xffff00); currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false);
                         bullet.body.setVelocityX(-500); bullet.dmg = 15; enemyProjectiles.add(bullet); currentScene.time.delayedCall(2000, () => { if(bullet.active) bullet.destroy(); });
                     });
                 }
+                
+                // Return to walking animation after attack
+                currentScene.time.delayedCall(1000, () => { if(!bossDefeated) boss.anims.play('boss_walk', true); });
             });
         } else {
-            boss.fillColor = 0xffffff; let targetX = player.x;
+            boss.setTint(0xffffff); let targetX = player.x;
             let reticle = currentScene.add.circle(targetX, 380, 60, 0xff0000, 0.4); currentScene.tweens.add({ targets: reticle, alpha: 0.8, duration: 800, yoyo: true, repeat: 0 });
             currentScene.time.delayedCall(1000, () => {
-                if(!boss.active) return; boss.fillColor = 0x444444; reticle.destroy();
+                if(!boss.active) return; boss.clearTint(); reticle.destroy();
                 let explosion = currentScene.add.circle(targetX, 380, 70, 0xff7700, 0.8); currentScene.physics.add.existing(explosion); explosion.body.setAllowGravity(false);
                 if (Phaser.Geom.Intersects.RectangleToRectangle(explosion.getBounds(), player.getBounds())) { playerTakeDamage(40, boss.x); }
                 currentScene.tweens.add({ targets: explosion, alpha: 0, duration: 300, onComplete: () => explosion.destroy() });
+                
+                // Return to walking animation after attack
+                currentScene.time.delayedCall(500, () => { if(!bossDefeated) boss.anims.play('boss_walk', true); });
             });
         }
     }
@@ -562,7 +585,7 @@
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (data.isBoss) return; 
-            if (enemy.y > 450) { destroyEnemy(enemy); return; }
+            if (enemy.y > 450) { if (enemy.active) enemy.destroy(); return; }
             if (data.state === 'dead') return; 
 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
