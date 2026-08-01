@@ -39,7 +39,6 @@
     };
     let weaponKeys = ['Knife', 'Sword', 'Whip'];
     
-    // Unlimited Ammo Armory (Shotgun range & speed massively buffed!)
     const gunArmory = {
         'Pistol':   { name: 'Service Pistol', damage: 15, fireRate: 300, speed: 900, count: 1, color: 0xcccccc, lifespan: 1000 },
         'Shotgun':  { name: 'Pump Shotgun',   damage: 10, fireRate: 800, speed: 850, count: 5, color: 0xffaa00, lifespan: 450 }, 
@@ -99,7 +98,6 @@
     function create() {
         currentScene = this; 
         
-        // Multi-touch tracking fixed
         this.input.addPointer(2);
         
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
@@ -136,21 +134,21 @@
         platforms.add(this.add.tileSprite(2650, 260, 150, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(2950, 260, 150, 32, 'floorTile'));
 
-        bossWall = this.add.rectangle(2400, 200, 20, 400, 0x00ffff, 0.4);
+        // --- CYAN LINE FIXED: Alpha set to 0 so it is completely invisible ---
+        bossWall = this.add.rectangle(2400, 200, 20, 400, 0x00ffff, 0);
         this.physics.add.existing(bossWall, true);
         bossWall.body.checkCollision.none = true; 
 
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
-        // --- GOLIATH BOSS FIX: Safely inside the world bounds and deep rendered ---
         boss = this.physics.add.sprite(3000, 100, 'boss'); 
         boss.setScale(1.2); 
         boss.setFlipX(true);
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
-        boss.body.setAllowGravity(true); // Gravity pulls him down nicely
-        boss.setDepth(15); // Forces him above the background
+        boss.body.setAllowGravity(true); 
+        boss.setDepth(15); 
         boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
 
@@ -164,9 +162,10 @@
             this.anims.create({ key: `${char}_die`, frames: this.anims.generateFrameNumbers(char, { start: 125, end: 129 }), frameRate: 8, repeat: 0 });
         });
 
-        this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 8, repeat: -1 });
-        this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 12, repeat: 0 });
-        this.anims.create({ key: 'boss_die', frames: this.anims.generateFrameNumbers('boss', { start: 24, end: 31 }), frameRate: 8, repeat: 0 });
+        // --- CHOPPY MOVEMENT FIXED: Smoothed out animation frame rates ---
+        this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 12, repeat: -1 });
+        this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 14, repeat: 0 });
+        this.anims.create({ key: 'boss_die', frames: this.anims.generateFrameNumbers('boss', { start: 24, end: 31 }), frameRate: 10, repeat: 0 });
 
         player = this.physics.add.sprite(100, 200, activeCharDef.spriteKey); 
         player.setScale(2);
@@ -180,7 +179,7 @@
         bossHpBar = this.add.graphics().setScrollFactor(0).setDepth(20);
 
         this.physics.add.collider(player, platforms);
-        this.physics.add.collider(boss, platforms); // Boss hits the floor
+        this.physics.add.collider(boss, platforms); 
         this.physics.add.collider(player, bossWall); 
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
@@ -450,7 +449,7 @@
             currentScene.physics.velocityFromRotation(currentAngle, activeGun.speed, bullet.body.velocity); bullet.rotation = currentAngle;
             currentScene.physics.add.overlap(bullet, enemiesGroup, (b, enemy) => {
                 if (enemy.enemyData.state !== 'dead') {
-                    b.destroy(); dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); enemy.setTint(activeGun.color); 
+                    b.destroy(); dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); enemy.setTint(enemy.enemyData.isBoss ? 0xffffff : activeGun.color); 
                     currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
                 }
             });
@@ -484,6 +483,7 @@
                 if(bossAIEvent) bossAIEvent.remove(); 
                 showCenterMessage("SECTOR CLEARED!", '#00ff00'); 
                 bossWall.body.checkCollision.none = true; bossWall.setAlpha(0);
+                enemy.body.setVelocityX(0);
                 enemy.anims.play('boss_die', true);
                 currentScene.time.delayedCall(4000, () => { window.location.href = 'debrief.html?status=win'; });
             } else { 
@@ -505,22 +505,16 @@
         });
     }
     
-    // --- GOLIATH BOSS FIX: Dynamic Movement Setup ---
     function triggerBoss() {
         bossActive = true; boss.enemyData.state = 'active'; currentScene.cameras.main.stopFollow(); currentScene.cameras.main.pan(2800, 200, 1000, 'Sine.easeInOut');
         boss.anims.play('boss_walk', true);
-        
-        // Starts marching toward you!
         boss.body.setVelocityX(-40); 
-        
         currentScene.time.delayedCall(1000, () => { currentScene.cameras.main.setBounds(2400, 0, 800, 400); bossWall.body.checkCollision.none = false; showCenterMessage("WARNING: GOLIATH MECH", '#ff0000'); bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runBossPattern, loop: true }); });
     }
 
     function runBossPattern() {
         if (!boss.active || bossDefeated || playerHealth <= 0) return;
         let attackType = Phaser.Math.Between(1, 2);
-        
-        // Stops moving to take his shot
         boss.body.setVelocityX(0); 
         boss.anims.play('boss_shoot', true);
 
@@ -537,7 +531,7 @@
                 currentScene.time.delayedCall(1000, () => { 
                     if(!bossDefeated) { 
                         boss.anims.play('boss_walk', true); 
-                        boss.body.setVelocityX(-40); // Resumes march
+                        boss.body.setVelocityX(-40); 
                     } 
                 });
             });
@@ -552,7 +546,7 @@
                 currentScene.time.delayedCall(500, () => { 
                     if(!bossDefeated) { 
                         boss.anims.play('boss_walk', true); 
-                        boss.body.setVelocityX(-40); // Resumes march
+                        boss.body.setVelocityX(-40); 
                     } 
                 });
             });
