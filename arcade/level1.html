@@ -52,7 +52,6 @@
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
     let activeOrdnance = ordnanceArmory['Frag'];
 
-    // --- ROSTER MANAGER ---
     let savedRoster = localStorage.getItem('nt_roster');
     const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
         { name: "Vanguard", spriteKey: 'vanguard', color: 0x00aaff, melee: 'Whip',  gun: 'Shotgun' },
@@ -67,7 +66,6 @@
     let lastFiredTime = 0;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
-    // --- COMBAT FLAGS ---
     let specialCharge = 0, specialReady = false, meleeHitbox;
     const specialMax = 100;
     let specialButton, specialGraphics;
@@ -76,7 +74,6 @@
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
     let isFiring = false; 
     
-    // --- LEVEL & BOSS VARS ---
     let enemiesGroup, enemyProjectiles;
     const WORLD_WIDTH = 3200; 
     let boss, bossActive = false, bossDefeated = false, bossHpBar, bossWall, bossAIEvent;
@@ -93,8 +90,8 @@
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // --- CACHE BREAK FIX: Pointing to goliath2.png ---
-        this.load.spritesheet('boss', 'assets/goliath2.png', { frameWidth: 192, frameHeight: 256 });
+        // --- LOOKING FOR YOUR NEW GOLIATH3.PNG EXPORT ---
+        this.load.spritesheet('boss', 'assets/goliath3.png', { frameWidth: 192, frameHeight: 256 });
     }
 
     function create() {
@@ -163,11 +160,11 @@
             this.anims.create({ key: `${char}_die`, frames: this.anims.generateFrameNumbers(char, { start: 125, end: 129 }), frameRate: 8, repeat: 0 });
         });
 
-        // --- NEW SLAM ANIMATION ADDED FOR ATTACK SYNC ---
-        this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 12, repeat: -1 });
-        this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 14, repeat: 0 });
-        this.anims.create({ key: 'boss_slam', frames: this.anims.generateFrameNumbers('boss', { start: 16, end: 23 }), frameRate: 10, repeat: 0 });
-        this.anims.create({ key: 'boss_die', frames: this.anims.generateFrameNumbers('boss', { start: 24, end: 31 }), frameRate: 10, repeat: 0 });
+        // --- TWITCHY ANIMATION FIX: Frame rates dropped for heavy, deliberate stomps ---
+        this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 6, repeat: -1 });
+        this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 10, repeat: 0 });
+        this.anims.create({ key: 'boss_slam', frames: this.anims.generateFrameNumbers('boss', { start: 16, end: 23 }), frameRate: 8, repeat: 0 });
+        this.anims.create({ key: 'boss_die', frames: this.anims.generateFrameNumbers('boss', { start: 24, end: 31 }), frameRate: 8, repeat: 0 });
 
         player = this.physics.add.sprite(100, 200, activeCharDef.spriteKey); 
         player.setScale(2);
@@ -510,11 +507,13 @@
     function triggerBoss() {
         bossActive = true; boss.enemyData.state = 'active'; currentScene.cameras.main.stopFollow(); currentScene.cameras.main.pan(2800, 200, 1000, 'Sine.easeInOut');
         boss.anims.play('boss_walk', true);
-        boss.body.setVelocityX(-40); 
+        
+        // --- MOVEMENT FIX: Slower, heavy velocity to match the frame rate ---
+        boss.body.setVelocityX(-20); 
+        
         currentScene.time.delayedCall(1000, () => { currentScene.cameras.main.setBounds(2400, 0, 800, 400); bossWall.body.checkCollision.none = false; showCenterMessage("WARNING: GOLIATH MECH", '#ff0000'); bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runBossPattern, loop: true }); });
     }
 
-    // --- FULLY SYNCED BOSS FIRING LOGIC ---
     function runBossPattern() {
         if (!boss.active || bossDefeated || playerHealth <= 0) return;
         let attackType = Phaser.Math.Between(1, 2);
@@ -523,12 +522,9 @@
         if (attackType === 1) {
             boss.anims.play('boss_shoot', true);
             
-            // Syncs the lasers to fire EXACTLY during the massive muzzle flash
             for (let i = 0; i < 4; i++) {
                 currentScene.time.delayedCall(200 + (i * 100), () => {
                     if(!boss.active) return;
-                    
-                    // Coordinates mathematically bound to the barrel of his gun
                     let bullet = currentScene.add.rectangle(boss.x - 110, boss.y - 20, 24, 6, 0xffff00); 
                     currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false);
                     bullet.body.setVelocityX(-600); bullet.dmg = 15; enemyProjectiles.add(bullet); 
@@ -538,11 +534,10 @@
             currentScene.time.delayedCall(1000, () => { 
                 if(!bossDefeated) { 
                     boss.anims.play('boss_walk', true); 
-                    boss.body.setVelocityX(-40); 
+                    boss.body.setVelocityX(-20); 
                 } 
             });
         } else {
-            // New slam animation for his massive explosive attack!
             boss.anims.play('boss_slam', true); 
             let targetX = player.x;
             let reticle = currentScene.add.circle(targetX, 380, 60, 0xff0000, 0.4); 
@@ -558,7 +553,7 @@
                 currentScene.time.delayedCall(500, () => { 
                     if(!bossDefeated) { 
                         boss.anims.play('boss_walk', true); 
-                        boss.body.setVelocityX(-40); 
+                        boss.body.setVelocityX(-20); 
                     } 
                 });
             });
