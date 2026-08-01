@@ -17,8 +17,7 @@
     const config = {
         type: Phaser.AUTO,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 400 },
-        // --- DEBUG MODE ENABLED HERE ---
-        physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: true } },
+        physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: false } },
         scene: { preload: preload, create: create, update: update },
         backgroundColor: '#121a12' 
     };
@@ -135,19 +134,13 @@
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
-        // --- NEW BOSS HITBOX ATTEMPT ---
+        // --- BOSS RESET ---
         boss = this.physics.add.sprite(3000, 100, 'boss'); 
         boss.setScale(1.2); 
         boss.setFlipX(true);
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
         boss.body.setAllowGravity(true); 
-        
-        // I aggressively shrunk the physical box and pushed it down.
-        // If this is wrong, the neon pink box will show us EXACTLY how to fix it!
-        boss.body.setSize(60, 160); 
-        boss.body.setOffset(66, 90); 
-        
         boss.setDepth(15); 
         boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
