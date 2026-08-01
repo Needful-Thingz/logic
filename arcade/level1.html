@@ -61,8 +61,7 @@
     let playerHealth = 100, jumps = 0, playerHealthBar; 
     let currentWeaponIndex = 0, activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
     let currentGunIndex = 1, activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
-    let lastFiredTime = 0;
-    let currentOrdnanceAmmo = 3, lastTossedTime = 0;
+    let lastFiredTime = 0, currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
     let specialCharge = 0, specialReady = false, meleeHitbox;
     const specialMax = 100;
@@ -87,7 +86,9 @@
         this.load.spritesheet('recon', 'assets/recon.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
-        this.load.spritesheet('boss', 'assets/goliath3.png', { frameWidth: 192, frameHeight: 256 });
+        
+        // --- THE PERFECT MATH FOR MECHASPHERE ---
+        this.load.spritesheet('boss', 'assets/mechasphere.png', { frameWidth: 160, frameHeight: 148 });
     }
 
     function create() {
@@ -134,13 +135,17 @@
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
-        // --- BOSS RESET ---
+        // --- MECHASPHERE SETUP ---
         boss = this.physics.add.sprite(3000, 100, 'boss'); 
         boss.setScale(1.2); 
-        boss.setFlipX(true);
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
         boss.body.setAllowGravity(true); 
+        
+        // Exact hitbox for the sphere
+        boss.body.setSize(120, 120); 
+        boss.body.setOffset(20, 14); 
+        
         boss.setDepth(15); 
         boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
@@ -155,10 +160,12 @@
             this.anims.create({ key: `${char}_die`, frames: this.anims.generateFrameNumbers(char, { start: 125, end: 129 }), frameRate: 8, repeat: 0 });
         });
 
-        this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 6, repeat: -1 });
-        this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 10, repeat: 0 });
-        this.anims.create({ key: 'boss_slam', frames: this.anims.generateFrameNumbers('boss', { start: 16, end: 23 }), frameRate: 8, repeat: 0 });
-        this.anims.create({ key: 'boss_die', frames: this.anims.generateFrameNumbers('boss', { start: 24, end: 31 }), frameRate: 8, repeat: 0 });
+        // --- DYNAMIC SPHERE ANIMATIONS MAPPED TO THE GRID ---
+        this.anims.create({ key: 'boss_idle', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 3 }), frameRate: 6, repeat: -1 });
+        this.anims.create({ key: 'boss_roll', frames: this.anims.generateFrameNumbers('boss', { start: 4, end: 11 }), frameRate: 12, repeat: -1 }); // Rolling
+        this.anims.create({ key: 'boss_hatch_attack', frames: this.anims.generateFrameNumbers('boss', { start: 24, end: 35 }), frameRate: 15, repeat: 0 }); // Top opening!
+        this.anims.create({ key: 'boss_slam_prep', frames: this.anims.generateFrameNumbers('boss', { start: 16, end: 19 }), frameRate: 10, repeat: -1 }); 
+        this.anims.create({ key: 'boss_die', frames: this.anims.generateFrameNumbers('boss', { start: 48, end: 55 }), frameRate: 8, repeat: 0 });
 
         player = this.physics.add.sprite(100, 200, activeCharDef.spriteKey); 
         player.setScale(2);
@@ -503,9 +510,16 @@
     
     function triggerBoss() {
         bossActive = true; boss.enemyData.state = 'active'; currentScene.cameras.main.stopFollow(); currentScene.cameras.main.pan(2800, 200, 1000, 'Sine.easeInOut');
-        boss.anims.play('boss_walk', true);
-        boss.body.setVelocityX(-20); 
-        currentScene.time.delayedCall(1000, () => { currentScene.cameras.main.setBounds(2400, 0, 800, 400); bossWall.body.checkCollision.none = false; showCenterMessage("WARNING: GOLIATH MECH", '#ff0000'); bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runBossPattern, loop: true }); });
+        
+        boss.anims.play('boss_roll', true);
+        boss.body.setVelocityX(-50); 
+        
+        currentScene.time.delayedCall(1000, () => { 
+            currentScene.cameras.main.setBounds(2400, 0, 800, 400); 
+            bossWall.body.checkCollision.none = false; 
+            showCenterMessage("WARNING: MECHASPHERE", '#ff0000'); 
+            bossAIEvent = currentScene.time.addEvent({ delay: 3500, callback: runBossPattern, loop: true }); 
+        });
     }
 
     function runBossPattern() {
@@ -514,46 +528,68 @@
         boss.body.setVelocityX(0); 
 
         if (attackType === 1) {
-            boss.anims.play('boss_shoot', true);
-            currentScene.time.delayedCall(400, () => { 
+            // ATTACK 1: THE 360-DEGREE HATCH BLAST
+            boss.anims.play('boss_hatch_attack', true);
+            
+            // Wait for the hatch to fully open
+            currentScene.time.delayedCall(600, () => { 
                 if(!boss.active) return;
                 
-                for (let i = -2; i <= 2; i++) {
-                    let bullet = currentScene.add.rectangle(boss.x - 110, boss.y - 20, 20, 20, 0xff5500); 
+                // Fire 12 massive purple spheres in a perfect circle!
+                for (let i = 0; i < 12; i++) {
+                    let bullet = currentScene.add.circle(boss.x, boss.y - 40, 10, 0xaa00ff); 
                     currentScene.physics.add.existing(bullet); 
                     enemyProjectiles.add(bullet); 
                     bullet.body.setAllowGravity(false);
                     
-                    let angle = Math.PI + (i * 0.15); 
-                    currentScene.physics.velocityFromRotation(angle, 700, bullet.body.velocity);
+                    let angle = (i * (Math.PI * 2)) / 12; 
+                    currentScene.physics.velocityFromRotation(angle, 350, bullet.body.velocity);
                     bullet.rotation = angle;
-                    bullet.dmg = 20; 
+                    bullet.dmg = 15; 
                     
-                    currentScene.time.delayedCall(3000, () => { if(bullet.active) bullet.destroy(); });
+                    currentScene.time.delayedCall(4000, () => { if(bullet.active) bullet.destroy(); });
                 }
             });
-            currentScene.time.delayedCall(1200, () => { 
-                if(!bossDefeated) { boss.anims.play('boss_walk', true); boss.body.setVelocityX(-20); } 
+            
+            currentScene.time.delayedCall(1800, () => { 
+                if(!bossDefeated) { boss.anims.play('boss_roll', true); boss.body.setVelocityX(-50); } 
             });
             
         } else {
-            boss.anims.play('boss_slam', true); 
-            currentScene.time.delayedCall(600, () => { 
+            // ATTACK 2: TRACKING DUAL-SHOCKWAVE SLAM
+            boss.anims.play('boss_slam_prep', true); 
+            boss.body.setAllowGravity(false); 
+            
+            // Hover directly over the player
+            currentScene.tweens.add({ targets: boss, x: player.x, y: 100, duration: 800, ease: 'Sine.easeInOut' });
+            
+            // Wait, then SLAM!
+            currentScene.time.delayedCall(1000, () => { 
                 if(!boss.active) return; 
-                currentScene.cameras.main.shake(200, 0.01); 
+                boss.body.setVelocityY(1200); 
                 
-                let shockwave = currentScene.add.rectangle(boss.x - 80, 360, 40, 60, 0x00ffff); 
-                currentScene.physics.add.existing(shockwave); 
-                enemyProjectiles.add(shockwave);
-                shockwave.body.setAllowGravity(false);
-                
-                shockwave.body.setVelocityX(-500); 
-                shockwave.dmg = 35; 
-                
-                currentScene.time.delayedCall(3000, () => { if(shockwave.active) shockwave.destroy(); });
+                // Wait just enough time for it to hit the floor, then spawn shockwaves
+                currentScene.time.delayedCall(350, () => {
+                    if(!boss.active) return;
+                    currentScene.cameras.main.shake(250, 0.02); 
+                    boss.body.setAllowGravity(true);
+                    
+                    // Left Shockwave
+                    let swLeft = currentScene.add.rectangle(boss.x - 40, 360, 40, 60, 0x00ffff); 
+                    currentScene.physics.add.existing(swLeft); enemyProjectiles.add(swLeft);
+                    swLeft.body.setAllowGravity(false); swLeft.body.setVelocityX(-500); swLeft.dmg = 35;
+                    
+                    // Right Shockwave
+                    let swRight = currentScene.add.rectangle(boss.x + 40, 360, 40, 60, 0x00ffff); 
+                    currentScene.physics.add.existing(swRight); enemyProjectiles.add(swRight);
+                    swRight.body.setAllowGravity(false); swRight.body.setVelocityX(500); swRight.dmg = 35;
+                    
+                    currentScene.time.delayedCall(3000, () => { if(swLeft.active) swLeft.destroy(); if(swRight.active) swRight.destroy(); });
+                });
             });
-            currentScene.time.delayedCall(1200, () => { 
-                if(!bossDefeated) { boss.anims.play('boss_walk', true); boss.body.setVelocityX(-20); } 
+            
+            currentScene.time.delayedCall(2000, () => { 
+                if(!bossDefeated) { boss.anims.play('boss_roll', true); boss.body.setVelocityX(-50); } 
             });
         }
     }
