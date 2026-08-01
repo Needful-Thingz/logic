@@ -39,7 +39,6 @@
     };
     let weaponKeys = ['Knife', 'Sword', 'Whip'];
     
-    // Unlimited Ammo Armory
     const gunArmory = {
         'Pistol':   { name: 'Service Pistol', damage: 15, fireRate: 300, speed: 900, count: 1, color: 0xcccccc, lifespan: 1000 },
         'Shotgun':  { name: 'Pump Shotgun',   damage: 10, fireRate: 800, speed: 600, count: 5, color: 0xffaa00, lifespan: 300 }, 
@@ -75,7 +74,7 @@
     let comboStep = 0, isAttacking = false, inputBuffered = false, canCancel = false;
     let attackActiveTimer, attackRecoveryTimer;
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
-    let isFiring = false; // New Auto-Aim Firing Flag
+    let isFiring = false; 
     
     // --- LEVEL & BOSS VARS ---
     let enemiesGroup, enemyProjectiles;
@@ -98,6 +97,9 @@
 
     function create() {
         currentScene = this; 
+        
+        // ADDED TO ENABLE MULTI-TOUCH FOR SIMULTANEOUS JOYSTICK, FIRE, AND JUMPING
+        this.input.addPointer(2);
         
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
         this.physics.world.setBoundsCollision(true, true, true, false); 
@@ -192,19 +194,18 @@
         centerMsgText = this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0);
         uiElements.push(centerMsgText);
 
-        // CONTROLS (Left Stick Only)
+        // CONTROLS 
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        // --- NEW AUTO-AIM FIRE BUTTON ---
         const btnFire = this.add.circle(670, 300, 45, 0xff0000).setAlpha(0.6).setInteractive(); uiElements.push(btnFire);
         const btnFireT = this.add.text(670, 300, 'FIRE', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnFireT);
         btnFire.on('pointerdown', () => { isFiring = true; });
         btnFire.on('pointerup', () => { isFiring = false; });
         btnFire.on('pointerout', () => { isFiring = false; });
 
-        // Jump button placed perfectly
-        const btnJump = this.add.circle(730, 360, 25, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
-        const btnJumpT = this.add.text(730, 360, 'JMP', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
+        // --- MASSIVE JUMP BUTTON WITH ENHANCED SENSITIVITY ---
+        const btnJump = this.add.circle(710, 360, 45, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
+        const btnJumpT = this.add.text(710, 360, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
         btnJump.on('pointerdown', () => { 
             if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { 
                 player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); 
@@ -547,16 +548,14 @@
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
             player.rotation = 0; 
             
-            // 1. Manage Movement and Animations
             if (joyStickLeft.left) { player.body.setVelocityX(-250); playAnim('run_normal'); }
             else if (joyStickLeft.right) { player.body.setVelocityX(250); playAnim('run_normal'); }
             else { player.body.setVelocityX(0); playAnim('unarmed_idle'); }
             if (player.body.touching.down) jumps = 0;
 
-            // 2. The Auto-Aim Engine
             let shootAngle = facingDirection;
             let nearestEnemy = null;
-            let minDist = 600; // Radar radius
+            let minDist = 600;
 
             if (isFiring) {
                 enemiesGroup.getChildren().forEach(enemy => {
@@ -567,33 +566,27 @@
                 });
 
                 if (nearestEnemy) {
-                    // Lock onto enemy
                     shootAngle = Phaser.Math.Angle.Between(player.x, player.y, nearestEnemy.x, nearestEnemy.y);
                     facingDirection = (nearestEnemy.x < player.x) ? Math.PI : 0;
                 } else {
-                    // Manual override via left joystick, or snap forward
                     if (joyStickLeft.force > 0) {
                         shootAngle = joyStickLeft.rotation;
                         facingDirection = Math.abs(shootAngle) > Math.PI/2 ? Math.PI : 0;
                     } 
                 }
                 
-                // Shoot with unlimited ammo
                 if (currentTime > lastFiredTime + activeGun.fireRate) {
                     shootGun(shootAngle); lastFiredTime = currentTime; 
                 }
             } else {
-                // Not firing, facing direction is purely based on movement
                 if (joyStickLeft.left) facingDirection = Math.PI;
                 else if (joyStickLeft.right) facingDirection = 0;
             }
 
-            // Apply visual flip perfectly based on aim or movement
             player.setFlipX(facingDirection === Math.PI);
 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
-        // --- ENEMY AI LOOP ---
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (data.isBoss) return; 
