@@ -24,12 +24,14 @@
 
     const game = new Phaser.Game(config);
     
-    let player, joyStickLeft, platforms;
+    // Core Entities
+    let player, joyStickLeft, joyStickRight, platforms;
     let uiElements = []; 
     let meleeText, gunText, ammoText, grenadeText, actionText, rosterText, scoreText, centerMsgText;
     let facingDirection = 0, currentScene, grenadesGroup; 
     let score = 0;
     
+    // --- ARMORY DATA ---
     const weaponArmory = {
         'Knife': { name: 'Combat Knife', damage: 28, reach: 40, pierce: 0.15, stun: 0, speed: 80, color: 0xcccccc },
         'Sword': { name: 'Broadsword', damage: 35, reach: 75, pierce: 0.50, stun: 0, speed: 150, color: 0xff3333 },
@@ -38,18 +40,19 @@
     let weaponKeys = ['Knife', 'Sword', 'Whip'];
     
     const gunArmory = {
-        'Pistol':   { name: 'Service Pistol', damage: 15, fireRate: 300, speed: 900, count: 1, color: 0xcccccc, lifespan: 1000 },
-        'Shotgun':  { name: 'Pump Shotgun',   damage: 10, fireRate: 800, speed: 850, count: 5, color: 0xffaa00, lifespan: 450 }, 
-        'Rifle':    { name: 'Assault Rifle',  damage: 8,  fireRate: 100, speed: 1200,count: 1, color: 0x00ff00, lifespan: 800 },
-        'Sniper':   { name: 'Heavy Sniper',   damage: 60, fireRate: 1200,speed: 2000,count: 1, color: 0xff00ff, lifespan: 1500 },
-        'GrenadeL': { name: 'Grenade Tube',   damage: 45, fireRate: 800, speed: 500, count: 1, color: 0xff5500, lifespan: 1200 },
-        'Rocket':   { name: 'RPG Launcher',   damage: 90, fireRate: 1000,speed: 900, count: 1, color: 0xff0000, lifespan: 2000 }
+        'Pistol':   { name: 'Service Pistol', damage: 15, fireRate: 300, speed: 900, count: 1, color: 0xcccccc, lifespan: 1000, clipSize: 12, reloadTime: 1000 },
+        'Shotgun':  { name: 'Pump Shotgun',   damage: 10, fireRate: 800, speed: 600, count: 5, color: 0xffaa00, lifespan: 300,  clipSize: 6,  reloadTime: 3000 }, 
+        'Rifle':    { name: 'Assault Rifle',  damage: 8,  fireRate: 100, speed: 1200,count: 1, color: 0x00ff00, lifespan: 800,  clipSize: 30, reloadTime: 1200 },
+        'Sniper':   { name: 'Heavy Sniper',   damage: 60, fireRate: 1200,speed: 2000,count: 1, color: 0xff00ff, lifespan: 1500, clipSize: 5,  reloadTime: 2500 },
+        'GrenadeL': { name: 'Grenade Tube',   damage: 45, fireRate: 800, speed: 500, count: 1, color: 0xff5500, lifespan: 1200, clipSize: 4,  reloadTime: 2200 },
+        'Rocket':   { name: 'RPG Launcher',   damage: 90, fireRate: 1000,speed: 900, count: 1, color: 0xff0000, lifespan: 2000, clipSize: 1,  reloadTime: 3000 }
     };
     let gunKeys = ['Pistol', 'Shotgun', 'Rifle', 'Sniper', 'GrenadeL', 'Rocket'];
     
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
     let activeOrdnance = ordnanceArmory['Frag'];
 
+    // --- ROSTER MANAGER ---
     let savedRoster = localStorage.getItem('nt_roster');
     const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
         { name: "Vanguard", spriteKey: 'vanguard', color: 0x00aaff, melee: 'Whip',  gun: 'Shotgun' },
@@ -61,17 +64,18 @@
     let playerHealth = 100, jumps = 0, playerHealthBar; 
     let currentWeaponIndex = 0, activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
     let currentGunIndex = 1, activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
-    let lastFiredTime = 0;
+    let lastFiredTime = 0, currentAmmo = activeGun.clipSize, isReloading = false, reloadTimer;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
+    // --- COMBAT FLAGS ---
     let specialCharge = 0, specialReady = false, meleeHitbox;
     const specialMax = 100;
     let specialButton, specialGraphics;
     let comboStep = 0, isAttacking = false, inputBuffered = false, canCancel = false;
     let attackActiveTimer, attackRecoveryTimer;
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
-    let isFiring = false; 
     
+    // --- LEVEL & BOSS VARS ---
     let enemiesGroup, enemyProjectiles;
     const WORLD_WIDTH = 3200; 
     let boss, bossActive = false, bossDefeated = false, bossHpBar, bossWall, bossAIEvent;
@@ -88,13 +92,12 @@
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // --- ONLY CHANGE: Updated to mechasphere.png ---
+        // --- NEW BOSS SPRITESHEET LOADED HERE ---
         this.load.spritesheet('boss', 'assets/mechasphere.png', { frameWidth: 192, frameHeight: 256 });
     }
 
     function create() {
         currentScene = this; 
-        this.input.addPointer(2);
         
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
         this.physics.world.setBoundsCollision(true, true, true, false); 
@@ -125,28 +128,30 @@
         platforms.add(this.add.tileSprite(1900, 390, 500, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(1800, 280, 150, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(2000, 220, 150, 32, 'floorTile'));
+        
         platforms.add(this.add.tileSprite(2800, 390, 800, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2650, 260, 150, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(2950, 260, 150, 32, 'floorTile'));
 
-        bossWall = this.add.rectangle(2400, 200, 20, 400, 0x00ffff, 0);
+        bossWall = this.add.rectangle(2400, 200, 20, 400, 0x00ffff, 0.4);
         this.physics.add.existing(bossWall, true);
         bossWall.body.checkCollision.none = true; 
 
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
-        // --- BOSS RESET ---
-        boss = this.physics.add.sprite(3000, 100, 'boss'); 
+        // --- GOLIATH BOSS FULLY ANIMATED SETUP ---
+        boss = this.physics.add.sprite(3100, 240, 'boss'); 
         boss.setScale(1.2); 
-        boss.setFlipX(true);
+        boss.setFlipX(true); 
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
-        boss.body.setAllowGravity(true); 
-        boss.setDepth(15); 
+        boss.body.setAllowGravity(false); 
+        boss.setDepth(5);
         boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
 
+        // --- HERO & GRUNT ANIMATIONS ---
         const charKeys = ['vanguard', 'recon', 'heavy', 'grunt'];
         charKeys.forEach(char => {
             this.anims.create({ key: `${char}_unarmed_idle`, frames: this.anims.generateFrameNumbers(char, { start: 50, end: 50 }), frameRate: 4, repeat: -1 });
@@ -157,17 +162,14 @@
             this.anims.create({ key: `${char}_die`, frames: this.anims.generateFrameNumbers(char, { start: 125, end: 129 }), frameRate: 8, repeat: 0 });
         });
 
-        this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 6, repeat: -1 });
-        this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 10, repeat: 0 });
-        this.anims.create({ key: 'boss_slam', frames: this.anims.generateFrameNumbers('boss', { start: 16, end: 23 }), frameRate: 8, repeat: 0 });
+        // --- GOLIATH ANIMATIONS ---
+        this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 8, repeat: -1 });
+        this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 12, repeat: 0 });
         this.anims.create({ key: 'boss_die', frames: this.anims.generateFrameNumbers('boss', { start: 24, end: 31 }), frameRate: 8, repeat: 0 });
 
         player = this.physics.add.sprite(100, 200, activeCharDef.spriteKey); 
         player.setScale(2);
         player.setCollideWorldBounds(true);
-        player.body.setSize(18, 37); 
-        player.body.setOffset(19, 0); 
-        
         this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, 0xffffff).setAlpha(0);
@@ -177,7 +179,6 @@
         bossHpBar = this.add.graphics().setScrollFactor(0).setDepth(20);
 
         this.physics.add.collider(player, platforms);
-        this.physics.add.collider(boss, platforms); 
         this.physics.add.collider(player, bossWall); 
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
@@ -186,7 +187,7 @@
         // --- UI SETUP ---
         meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff', backgroundColor: '#000000' }); uiElements.push(meleeText);
         gunText = this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00', backgroundColor: '#000000' }); uiElements.push(gunText);
-        ammoText = this.add.text(10, 40, `Ammo: ∞`, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }); uiElements.push(ammoText);
+        ammoText = this.add.text(10, 40, `Ammo: `, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }); uiElements.push(ammoText);
         grenadeText = this.add.text(10, 60, `Nades: `, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold', backgroundColor: '#000000' }); uiElements.push(grenadeText);
         actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5); uiElements.push(actionText);
         rosterText = this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5); uiElements.push(rosterText);
@@ -194,16 +195,12 @@
         centerMsgText = this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0);
         uiElements.push(centerMsgText);
 
+        // CONTROLS
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
+        joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        const btnFire = this.add.circle(670, 300, 45, 0xff0000).setAlpha(0.6).setInteractive(); uiElements.push(btnFire);
-        const btnFireT = this.add.text(670, 300, 'FIRE', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnFireT);
-        btnFire.on('pointerdown', () => { isFiring = true; });
-        btnFire.on('pointerup', () => { isFiring = false; });
-        btnFire.on('pointerout', () => { isFiring = false; });
-
-        const btnJump = this.add.circle(710, 360, 45, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
-        const btnJumpT = this.add.text(710, 360, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
+        const btnJump = this.add.circle(240, 320, 25, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
+        const btnJumpT = this.add.text(240, 320, 'JMP', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
         btnJump.on('pointerdown', () => { 
             if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { 
                 player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); 
@@ -228,6 +225,10 @@
         const btnTossT = this.add.text(680, 210, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnTossT);
         btnToss.on('pointerdown', tossGrenade);
 
+        const btnReload = this.add.circle(550, 240, 25, 0x4444ff).setAlpha(0.7).setInteractive(); uiElements.push(btnReload);
+        const btnReloadT = this.add.text(550, 240, 'RLD', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnReloadT);
+        btnReload.on('pointerdown', () => { if (!isReloading && !isAttacking && !isBlocking && !isDashing && !isSpawning && currentAmmo < activeGun.clipSize) reloadGun(); });
+
         const btnHeavy = this.add.circle(630, 170, 25, 0xff3300).setAlpha(0.7).setInteractive(); uiElements.push(btnHeavy);
         const btnHeavyT = this.add.text(630, 170, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnHeavyT);
         btnHeavy.on('pointerdown', () => { if (!isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
@@ -250,6 +251,7 @@
 
         uiElements.forEach(el => { if (el.setScrollFactor) el.setScrollFactor(0); });
         joyStickLeft.base.setScrollFactor(0); joyStickLeft.thumb.setScrollFactor(0);
+        joyStickRight.base.setScrollFactor(0); joyStickRight.thumb.setScrollFactor(0);
         
         applyCharacterLoadout();
     }
@@ -280,8 +282,8 @@
         
         currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
         currentGunIndex = gunKeys.indexOf(activeCharDef.gun); activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
-        playerHealth = 100; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
-        isSpawning = false;
+        playerHealth = 100; currentAmmo = activeGun.clipSize; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
+        isReloading = false; isSpawning = false;
         meleeText.setText('Melee: ' + activeWeapon.name); gunText.setText('Gun: ' + activeGun.name);
         rosterText.setText(`TEAM: ${3 - currentRosterIndex} LIVES`); actionText.setText(`${activeCharDef.name} DROPS IN!`); updateUI();
     }
@@ -434,7 +436,14 @@
         currentScene.tweens.add({ targets: blastVisual, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
     }
 
+    function reloadGun() {
+        isReloading = true; actionText.setText(`Reloading...`); ammoText.setText('RELOADING...'); ammoText.setFill('#ff0000'); 
+        reloadTimer = currentScene.time.delayedCall(activeGun.reloadTime, () => { currentAmmo = activeGun.clipSize; isReloading = false; updateUI(); actionText.setText('Ready'); });
+    }
+
     function updateUI() {
+        ammoText.setText(`Ammo: ${currentAmmo} / ${activeGun.clipSize}`);
+        if (currentAmmo === 0) ammoText.setFill('#ff0000'); else if (currentAmmo <= activeGun.clipSize * 0.25) ammoText.setFill('#ffaa00'); else ammoText.setFill('#00ffff'); 
         grenadeText.setText(`Nades: ${currentOrdnanceAmmo} / ${activeOrdnance.maxAmmo}`);
         if (currentOrdnanceAmmo === 0) grenadeText.setFill('#ff0000'); else grenadeText.setFill('#00ff00');
     }
@@ -447,7 +456,7 @@
             currentScene.physics.velocityFromRotation(currentAngle, activeGun.speed, bullet.body.velocity); bullet.rotation = currentAngle;
             currentScene.physics.add.overlap(bullet, enemiesGroup, (b, enemy) => {
                 if (enemy.enemyData.state !== 'dead') {
-                    b.destroy(); dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); enemy.setTint(enemy.enemyData.isBoss ? 0xffffff : activeGun.color); 
+                    b.destroy(); dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); enemy.setTint(activeGun.color); 
                     currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
                 }
             });
@@ -481,7 +490,6 @@
                 if(bossAIEvent) bossAIEvent.remove(); 
                 showCenterMessage("SECTOR CLEARED!", '#00ff00'); 
                 bossWall.body.checkCollision.none = true; bossWall.setAlpha(0);
-                enemy.body.setVelocityX(0);
                 enemy.anims.play('boss_die', true);
                 currentScene.time.delayedCall(4000, () => { window.location.href = 'debrief.html?status=win'; });
             } else { 
@@ -505,57 +513,41 @@
     
     function triggerBoss() {
         bossActive = true; boss.enemyData.state = 'active'; currentScene.cameras.main.stopFollow(); currentScene.cameras.main.pan(2800, 200, 1000, 'Sine.easeInOut');
+        
         boss.anims.play('boss_walk', true);
-        boss.body.setVelocityX(-20); 
+
         currentScene.time.delayedCall(1000, () => { currentScene.cameras.main.setBounds(2400, 0, 800, 400); bossWall.body.checkCollision.none = false; showCenterMessage("WARNING: GOLIATH MECH", '#ff0000'); bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runBossPattern, loop: true }); });
     }
 
     function runBossPattern() {
         if (!boss.active || bossDefeated || playerHealth <= 0) return;
         let attackType = Phaser.Math.Between(1, 2);
-        boss.body.setVelocityX(0); 
+        
+        boss.anims.play('boss_shoot', true);
 
         if (attackType === 1) {
-            boss.anims.play('boss_shoot', true);
-            currentScene.time.delayedCall(400, () => { 
-                if(!boss.active) return;
-                
-                for (let i = -2; i <= 2; i++) {
-                    let bullet = currentScene.add.rectangle(boss.x - 110, boss.y - 20, 20, 20, 0xff5500); 
-                    currentScene.physics.add.existing(bullet); 
-                    enemyProjectiles.add(bullet); 
-                    bullet.body.setAllowGravity(false);
-                    
-                    let angle = Math.PI + (i * 0.15); 
-                    currentScene.physics.velocityFromRotation(angle, 700, bullet.body.velocity);
-                    bullet.rotation = angle;
-                    bullet.dmg = 20; 
-                    
-                    currentScene.time.delayedCall(3000, () => { if(bullet.active) bullet.destroy(); });
+            boss.setTint(0xffff00); 
+            currentScene.time.delayedCall(500, () => {
+                if(!boss.active) return; boss.clearTint();
+                for (let i = 0; i < 5; i++) {
+                    currentScene.time.delayedCall(i * 150, () => {
+                        let bullet = currentScene.add.rectangle(boss.x - 50, 260, 16, 6, 0xffff00); currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false);
+                        bullet.body.setVelocityX(-500); bullet.dmg = 15; enemyProjectiles.add(bullet); currentScene.time.delayedCall(2000, () => { if(bullet.active) bullet.destroy(); });
+                    });
                 }
+                
+                currentScene.time.delayedCall(1000, () => { if(!bossDefeated) boss.anims.play('boss_walk', true); });
             });
-            currentScene.time.delayedCall(1200, () => { 
-                if(!bossDefeated) { boss.anims.play('boss_walk', true); boss.body.setVelocityX(-20); } 
-            });
-            
         } else {
-            boss.anims.play('boss_slam', true); 
-            currentScene.time.delayedCall(600, () => { 
-                if(!boss.active) return; 
-                currentScene.cameras.main.shake(200, 0.01); 
+            boss.setTint(0xffffff); let targetX = player.x;
+            let reticle = currentScene.add.circle(targetX, 380, 60, 0xff0000, 0.4); currentScene.tweens.add({ targets: reticle, alpha: 0.8, duration: 800, yoyo: true, repeat: 0 });
+            currentScene.time.delayedCall(1000, () => {
+                if(!boss.active) return; boss.clearTint(); reticle.destroy();
+                let explosion = currentScene.add.circle(targetX, 380, 70, 0xff7700, 0.8); currentScene.physics.add.existing(explosion); explosion.body.setAllowGravity(false);
+                if (Phaser.Geom.Intersects.RectangleToRectangle(explosion.getBounds(), player.getBounds())) { playerTakeDamage(40, boss.x); }
+                currentScene.tweens.add({ targets: explosion, alpha: 0, duration: 300, onComplete: () => explosion.destroy() });
                 
-                let shockwave = currentScene.add.rectangle(boss.x - 80, 360, 40, 60, 0x00ffff); 
-                currentScene.physics.add.existing(shockwave); 
-                enemyProjectiles.add(shockwave);
-                shockwave.body.setAllowGravity(false);
-                
-                shockwave.body.setVelocityX(-500); 
-                shockwave.dmg = 35; 
-                
-                currentScene.time.delayedCall(3000, () => { if(shockwave.active) shockwave.destroy(); });
-            });
-            currentScene.time.delayedCall(1200, () => { 
-                if(!bossDefeated) { boss.anims.play('boss_walk', true); boss.body.setVelocityX(-20); } 
+                currentScene.time.delayedCall(500, () => { if(!bossDefeated) boss.anims.play('boss_walk', true); });
             });
         }
     }
@@ -567,44 +559,18 @@
 
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
             player.rotation = 0; 
-            
-            if (joyStickLeft.left) { player.body.setVelocityX(-250); playAnim('run_normal'); }
-            else if (joyStickLeft.right) { player.body.setVelocityX(250); playAnim('run_normal'); }
+            if (joyStickLeft.left) { player.body.setVelocityX(-250); facingDirection = Math.PI; player.setFlipX(true); playAnim('run_normal'); }
+            else if (joyStickLeft.right) { player.body.setVelocityX(250); facingDirection = 0; player.setFlipX(false); playAnim('run_normal'); }
             else { player.body.setVelocityX(0); playAnim('unarmed_idle'); }
+            
             if (player.body.touching.down) jumps = 0;
 
-            let shootAngle = facingDirection;
-            let nearestEnemy = null;
-            let minDist = 600;
-
-            if (isFiring) {
-                enemiesGroup.getChildren().forEach(enemy => {
-                    if (enemy.active && enemy.enemyData.state !== 'dead' && enemy.y <= 450) {
-                        let dist = Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y);
-                        if (dist < minDist) { minDist = dist; nearestEnemy = enemy; }
-                    }
-                });
-
-                if (nearestEnemy) {
-                    shootAngle = Phaser.Math.Angle.Between(player.x, player.y, nearestEnemy.x, nearestEnemy.y);
-                    facingDirection = (nearestEnemy.x < player.x) ? Math.PI : 0;
-                } else {
-                    if (joyStickLeft.force > 0) {
-                        shootAngle = joyStickLeft.rotation;
-                        facingDirection = Math.abs(shootAngle) > Math.PI/2 ? Math.PI : 0;
-                    } 
+            if (joyStickRight.force > 0) {
+                if (Math.abs(joyStickRight.rotation) > Math.PI/2) { facingDirection = Math.PI; player.setFlipX(true); } else { facingDirection = 0; player.setFlipX(false); }
+                if (currentTime > lastFiredTime + activeGun.fireRate && !isReloading) {
+                    if (currentAmmo > 0) { shootGun(joyStickRight.rotation); currentAmmo--; updateUI(); lastFiredTime = currentTime; } else reloadGun();
                 }
-                
-                if (currentTime > lastFiredTime + activeGun.fireRate) {
-                    shootGun(shootAngle); lastFiredTime = currentTime; 
-                }
-            } else {
-                if (joyStickLeft.left) facingDirection = Math.PI;
-                else if (joyStickLeft.right) facingDirection = 0;
-            }
-
-            player.setFlipX(facingDirection === Math.PI);
-
+            } 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
         enemiesGroup.getChildren().forEach(enemy => {
@@ -619,6 +585,7 @@
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 if (distToPlayer < 65 && data.canAttack) {
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
+                    
                     enemy.anims.play('grunt_punch_right', true);
 
                     currentScene.time.delayedCall(400, () => {
@@ -628,27 +595,11 @@
                         currentScene.time.delayedCall(150, () => { data.hitbox.setAlpha(0); data.hitbox.setPosition(-100, -100); if (data.state !== 'dead') data.state = 'idle'; });
                     });
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
-                    
-                } else if (distToPlayer < 350 && distToPlayer > 150 && data.canAttack) {
-                    data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
-                    enemy.anims.play('grunt_punch_right', true); 
-                    
-                    currentScene.time.delayedCall(300, () => {
-                        if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return;
-                        let b = currentScene.add.rectangle(enemy.x + (enemy.x < player.x ? 30 : -30), enemy.y, 12, 4, 0xff0000);
-                        currentScene.physics.add.existing(b);
-                        enemyProjectiles.add(b);
-                        b.body.setAllowGravity(false); 
-                        b.body.setVelocityX(enemy.x < player.x ? 450 : -450);
-                        b.dmg = 15;
-                        currentScene.time.delayedCall(1500, () => { if(b.active) b.destroy(); });
-                    });
-                    currentScene.time.delayedCall(2500, () => { data.canAttack = true; });
-
-                } else if (distToPlayer < 400 && data.state !== 'attack') {
+                } else if (distToPlayer < 400 && distToPlayer >= 65 && data.state !== 'attack') {
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
                     enemy.setFlipX(dir === -1);
                     enemy.anims.play('grunt_run_normal', true);
+
                     if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
                 } else if (data.state !== 'attack') { 
                     data.state = 'idle'; enemy.body.setVelocityX(0); 
