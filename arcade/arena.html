@@ -24,14 +24,12 @@
 
     const game = new Phaser.Game(config);
     
-    // Core Entities
     let player, joyStickLeft, platforms;
     let uiElements = []; 
     let meleeText, gunText, ammoText, grenadeText, actionText, rosterText, scoreText, centerMsgText;
     let facingDirection = 0, currentScene, grenadesGroup; 
     let score = 0;
     
-    // --- ARMORY DATA ---
     const weaponArmory = {
         'Knife': { name: 'Combat Knife', damage: 28, reach: 40, pierce: 0.15, stun: 0, speed: 80, color: 0xcccccc },
         'Sword': { name: 'Broadsword', damage: 35, reach: 75, pierce: 0.50, stun: 0, speed: 150, color: 0xff3333 },
@@ -39,7 +37,6 @@
     };
     let weaponKeys = ['Knife', 'Sword', 'Whip'];
     
-    // Unlimited Ammo Armory
     const gunArmory = {
         'Pistol':   { name: 'Service Pistol', damage: 15, fireRate: 300, speed: 900, count: 1, color: 0xcccccc, lifespan: 1000 },
         'Shotgun':  { name: 'Pump Shotgun',   damage: 10, fireRate: 800, speed: 600, count: 5, color: 0xffaa00, lifespan: 300 }, 
@@ -53,7 +50,6 @@
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
     let activeOrdnance = ordnanceArmory['Frag'];
 
-    // --- ROSTER MANAGER ---
     let savedRoster = localStorage.getItem('nt_roster');
     const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
         { name: "Vanguard", spriteKey: 'vanguard', color: 0x00aaff, melee: 'Whip',  gun: 'Shotgun' },
@@ -68,7 +64,6 @@
     let lastFiredTime = 0;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
-    // --- COMBAT FLAGS ---
     let specialCharge = 0, specialReady = false, meleeHitbox;
     const specialMax = 100;
     let specialButton, specialGraphics;
@@ -77,7 +72,6 @@
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
     let isFiring = false; 
     
-    // --- ARENA VARS ---
     let enemiesGroup, enemyProjectiles, spawnTimer;
     let spawnRate = 2500; 
 
@@ -97,7 +91,6 @@
     function create() {
         currentScene = this; 
         
-        // MULTI-TOUCH FIX INJECTED HERE
         this.input.addPointer(2);
         
         this.physics.world.setBounds(0, 0, 800, 400);
@@ -127,6 +120,8 @@
         player = this.physics.add.sprite(400, 200, activeCharDef.spriteKey); 
         player.setScale(2);
         player.setCollideWorldBounds(true);
+        player.body.setSize(18, 37); 
+        player.body.setOffset(19, 0); 
 
         const charKeys = ['vanguard', 'recon', 'heavy', 'grunt'];
         charKeys.forEach(char => {
@@ -167,7 +162,6 @@
         btnFire.on('pointerup', () => { isFiring = false; });
         btnFire.on('pointerout', () => { isFiring = false; });
 
-        // --- MASSIVE JUMP BUTTON WITH ENHANCED SENSITIVITY ---
         const btnJump = this.add.circle(710, 360, 45, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
         const btnJumpT = this.add.text(710, 360, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
         btnJump.on('pointerdown', () => { 
@@ -215,6 +209,8 @@
         });
 
         applyCharacterLoadout();
+
+        // --- ENDLESS SPAWNER ---
         startSpawner();
     }
 
@@ -312,9 +308,8 @@
             let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
             meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
 
-            if (activeWeapon.name === 'Energy Whip') { 
-                drawWhipFX(true); 
-            } else {
+            if (activeWeapon.name === 'Energy Whip') { drawWhipFX(true); } 
+            else {
                 let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(10, activeWeapon.color, 1); slashGraphic.beginPath();
                 slashGraphic.arc(player.x, player.y, 50, Phaser.Math.DegToRad(facingDirection === 0 ? -90 : 270), Phaser.Math.DegToRad(90), false);
                 slashGraphic.strokePath(); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 300, onComplete: () => slashGraphic.destroy() });
@@ -325,7 +320,7 @@
                     let heavyStun = activeWeapon.stun > 0 ? activeWeapon.stun * 2 : 0.5;
                     dealDamageToEnemy(enemy, activeWeapon.damage * 2.5, activeWeapon.pierce, heavyStun);
                     enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
-                    if(enemy.active) enemy.body.setVelocityX(facingDirection === 0 ? 300 : -300);
+                    if(enemy.active && !enemy.enemyData.isBoss) enemy.body.setVelocityX(facingDirection === 0 ? 300 : -300);
                 }
             });
             attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => {
@@ -348,10 +343,8 @@
         meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
 
         currentScene.time.delayedCall(activeWeapon.speed * 0.5, () => {
-            
-            if (activeWeapon.name === 'Energy Whip') { 
-                drawWhipFX(false); 
-            } else {
+            if (activeWeapon.name === 'Energy Whip') { drawWhipFX(false); } 
+            else {
                 let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(6, activeWeapon.color, 1); slashGraphic.beginPath();
                 slashGraphic.arc(player.x, player.y, 30, Phaser.Math.DegToRad(facingDirection === 0 ? -45 : 225), Phaser.Math.DegToRad(facingDirection === 0 ? 45 : 135), false);
                 slashGraphic.strokePath(); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 200, onComplete: () => slashGraphic.destroy() });
@@ -361,7 +354,7 @@
                 if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds()) && enemy.enemyData.state !== 'dead') {
                     dealDamageToEnemy(enemy, activeWeapon.damage * (step === 3 ? 2 : 1), activeWeapon.pierce, activeWeapon.stun);
                     enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
-                    if(step === 3 && enemy.active) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150);
+                    if(step === 3 && enemy.active && !enemy.enemyData.isBoss) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150);
                 }
             });
         });
@@ -454,7 +447,7 @@
         let data = enemy.enemyData; let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg;
         if (data.armor > 0) { data.armor -= standardDmg; if (data.armor < 0) { data.hp += data.armor; data.armor = 0; } } else { data.hp -= standardDmg; }
         data.hp -= piercingDmg; spawnDamageText(enemy.x + Phaser.Math.Between(-10, 10), enemy.y - 30, Math.round(dmg), dmg >= 40, false);
-        if (stunDuration > 0) {
+        if (stunDuration > 0 && !data.isBoss) {
             data.isStunned = true; data.state = 'stunned'; enemy.setTint(0x00ffff);
             currentScene.time.delayedCall(stunDuration * 1000, () => { if(enemy.active && data.state !== 'dead') { data.isStunned = false; data.state = 'idle'; enemy.clearTint(); } });
         }
@@ -528,12 +521,11 @@
             if (data.state === 'dead') return; 
 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
-            if (distToPlayer > 800) return; 
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
+                
                 if (distToPlayer < 65 && data.canAttack) {
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
-                    
                     enemy.anims.play('grunt_punch_right', true);
 
                     currentScene.time.delayedCall(400, () => {
@@ -543,11 +535,27 @@
                         currentScene.time.delayedCall(150, () => { data.hitbox.setAlpha(0); data.hitbox.setPosition(-100, -100); if (data.state !== 'dead') data.state = 'idle'; });
                     });
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
-                } else if (distToPlayer < 400 && distToPlayer >= 65 && data.state !== 'attack') {
+                    
+                } else if (distToPlayer < 350 && distToPlayer > 150 && data.canAttack) {
+                    data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
+                    enemy.anims.play('grunt_punch_right', true); 
+                    
+                    currentScene.time.delayedCall(300, () => {
+                        if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return;
+                        let b = currentScene.add.rectangle(enemy.x + (enemy.x < player.x ? 30 : -30), enemy.y, 12, 4, 0xff0000);
+                        currentScene.physics.add.existing(b);
+                        enemyProjectiles.add(b);
+                        b.body.setAllowGravity(false); 
+                        b.body.setVelocityX(enemy.x < player.x ? 450 : -450);
+                        b.dmg = 15;
+                        currentScene.time.delayedCall(1500, () => { if(b.active) b.destroy(); });
+                    });
+                    currentScene.time.delayedCall(2500, () => { data.canAttack = true; });
+
+                } else if (distToPlayer < 400 && data.state !== 'attack') {
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
                     enemy.setFlipX(dir === -1);
                     enemy.anims.play('grunt_run_normal', true);
-
                     if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
                 } else if (data.state !== 'attack') { 
                     data.state = 'idle'; enemy.body.setVelocityX(0); 
