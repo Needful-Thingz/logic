@@ -39,7 +39,7 @@
     
     const gunArmory = {
         'Pistol':   { name: 'Service Pistol', damage: 15, fireRate: 300, speed: 900, count: 1, color: 0xcccccc, lifespan: 1000 },
-        'Shotgun':  { name: 'Pump Shotgun',   damage: 10, fireRate: 800, speed: 600, count: 5, color: 0xffaa00, lifespan: 300 }, 
+        'Shotgun':  { name: 'Pump Shotgun',   damage: 10, fireRate: 800, speed: 850, count: 5, color: 0xffaa00, lifespan: 450 }, 
         'Rifle':    { name: 'Assault Rifle',  damage: 8,  fireRate: 100, speed: 1200,count: 1, color: 0x00ff00, lifespan: 800 },
         'Sniper':   { name: 'Heavy Sniper',   damage: 60, fireRate: 1200,speed: 2000,count: 1, color: 0xff00ff, lifespan: 1500 },
         'GrenadeL': { name: 'Grenade Tube',   damage: 45, fireRate: 800, speed: 500, count: 1, color: 0xff5500, lifespan: 1200 },
@@ -91,6 +91,7 @@
     function create() {
         currentScene = this; 
         
+        // --- MULTI-TOUCH FIX ADDED BACK IN ---
         this.input.addPointer(2);
         
         this.physics.world.setBounds(0, 0, 800, 400);
@@ -120,6 +121,8 @@
         player = this.physics.add.sprite(400, 200, activeCharDef.spriteKey); 
         player.setScale(2);
         player.setCollideWorldBounds(true);
+        
+        // --- TIGHTENED HITBOX ADDED BACK IN ---
         player.body.setSize(18, 37); 
         player.body.setOffset(19, 0); 
 
@@ -209,8 +212,6 @@
         });
 
         applyCharacterLoadout();
-
-        // --- ENDLESS SPAWNER ---
         startSpawner();
     }
 
@@ -524,8 +525,9 @@
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 
-                if (distToPlayer < 65 && data.canAttack) {
+                if (distToPlayer < 75 && data.canAttack) {
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
+                    
                     enemy.anims.play('grunt_punch_right', true);
 
                     currentScene.time.delayedCall(400, () => {
@@ -536,33 +538,41 @@
                     });
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
                     
-                } else if (distToPlayer < 350 && distToPlayer > 150 && data.canAttack) {
-                    data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
-                    enemy.anims.play('grunt_punch_right', true); 
+                } else if (distToPlayer >= 100 && distToPlayer <= 350 && data.canAttack && data.state !== 'attack') {
+                    data.state = 'shoot'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
                     
-                    currentScene.time.delayedCall(300, () => {
-                        if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return;
-                        let b = currentScene.add.rectangle(enemy.x + (enemy.x < player.x ? 30 : -30), enemy.y, 12, 4, 0xff0000);
-                        currentScene.physics.add.existing(b);
-                        enemyProjectiles.add(b);
-                        b.body.setAllowGravity(false); 
-                        b.body.setVelocityX(enemy.x < player.x ? 450 : -450);
-                        b.dmg = 15;
-                        currentScene.time.delayedCall(1500, () => { if(b.active) b.destroy(); });
-                    });
-                    currentScene.time.delayedCall(2500, () => { data.canAttack = true; });
+                    let dir = (player.x > enemy.x) ? 1 : -1; 
+                    enemy.setFlipX(dir === -1);
+                    enemy.anims.play('grunt_punch_left', true);
 
-                } else if (distToPlayer < 400 && data.state !== 'attack') {
+                    currentScene.time.delayedCall(300, () => {
+                        if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return; 
+                        
+                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0xffaa00);
+                        currentScene.physics.add.existing(enemyBullet);
+                        enemyBullet.body.setAllowGravity(false);
+                        enemyBullet.body.setVelocityX(dir * 500); 
+                        enemyBullet.dmg = 10;
+                        enemyProjectiles.add(enemyBullet);
+                        
+                        currentScene.time.delayedCall(1500, () => { if(enemyBullet.active) enemyBullet.destroy(); });
+                        if (data.state !== 'dead') data.state = 'idle';
+                    });
+                    
+                    currentScene.time.delayedCall(2500, () => { data.canAttack = true; });
+                    
+                } else if (distToPlayer > 75 && data.state !== 'attack' && data.state !== 'shoot') {
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
                     enemy.setFlipX(dir === -1);
                     enemy.anims.play('grunt_run_normal', true);
+
                     if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
-                } else if (data.state !== 'attack') { 
+                } else if (data.state !== 'attack' && data.state !== 'shoot') { 
                     data.state = 'idle'; enemy.body.setVelocityX(0); 
                     enemy.anims.play('grunt_unarmed_idle', true);
                 }
             } else { 
-                if (data.state !== 'attack') { 
+                if (data.state !== 'attack' && data.state !== 'shoot') { 
                     enemy.body.setVelocityX(0); 
                     if(enemy.active && data.state !== 'dead') enemy.anims.play('grunt_unarmed_idle', true); 
                 } 
