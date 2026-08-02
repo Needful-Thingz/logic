@@ -24,7 +24,6 @@
 
     const game = new Phaser.Game(config);
     
-    // Core Entities
     let player, joyStickLeft, joyStickRight, platforms;
     let uiElements = []; 
     let meleeText, gunText, ammoText, grenadeText, actionText, rosterText, scoreText, centerMsgText;
@@ -137,7 +136,6 @@
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
-        // --- GOLIATH BOSS FULLY ANIMATED SETUP ---
         boss = this.physics.add.sprite(3100, 240, 'boss'); 
         boss.setScale(1.2); 
         boss.setFlipX(true); 
@@ -148,7 +146,6 @@
         boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
 
-        // --- HERO & GRUNT ANIMATIONS ---
         const charKeys = ['vanguard', 'recon', 'heavy', 'grunt'];
         charKeys.forEach(char => {
             this.anims.create({ key: `${char}_unarmed_idle`, frames: this.anims.generateFrameNumbers(char, { start: 50, end: 50 }), frameRate: 4, repeat: -1 });
@@ -159,7 +156,6 @@
             this.anims.create({ key: `${char}_die`, frames: this.anims.generateFrameNumbers(char, { start: 125, end: 129 }), frameRate: 8, repeat: 0 });
         });
 
-        // --- GOLIATH ANIMATIONS ---
         this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 8, repeat: -1 });
         this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 12, repeat: 0 });
         this.anims.create({ key: 'boss_die', frames: this.anims.generateFrameNumbers('boss', { start: 24, end: 31 }), frameRate: 8, repeat: 0 });
@@ -181,7 +177,7 @@
         this.physics.add.collider(grenadesGroup, platforms);
         this.physics.add.overlap(player, enemyProjectiles, (p, proj) => { proj.destroy(); playerTakeDamage(proj.dmg, proj.x); });
 
-        // --- UI SETUP (INFINITE AMMO) ---
+        // --- SCRUBBED UI ---
         meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff', backgroundColor: '#000000' }); uiElements.push(meleeText);
         gunText = this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00', backgroundColor: '#000000' }); uiElements.push(gunText);
         ammoText = this.add.text(10, 40, `Ammo: INFINITE`, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }); uiElements.push(ammoText);
@@ -192,11 +188,9 @@
         centerMsgText = this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0);
         uiElements.push(centerMsgText);
 
-        // CONTROLS
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
         joyStickRight = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 680, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xff0000).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        // Jump Button Moved to Right Side!
         const btnJump = this.add.circle(750, 330, 25, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
         const btnJumpT = this.add.text(750, 330, 'JMP', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
         btnJump.on('pointerdown', () => { 
@@ -550,7 +544,6 @@
             if (joyStickRight.force > 0) {
                 if (Math.abs(joyStickRight.rotation) > Math.PI/2) { facingDirection = Math.PI; player.setFlipX(true); } else { facingDirection = 0; player.setFlipX(false); }
                 
-                // UNLIMITED AMMO: Firing checks the gun's fireRate, but never runs out!
                 if (currentTime > lastFiredTime + activeGun.fireRate) {
                     shootGun(joyStickRight.rotation); 
                     lastFiredTime = currentTime; 
@@ -558,7 +551,6 @@
             } 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
-        // --- NEW GRUNT AI WITH SHOOTING ---
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (data.isBoss) return; 
@@ -570,7 +562,6 @@
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 
-                // CLOSE RANGE: Melee Attack
                 if (distToPlayer < 75 && data.canAttack) {
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
                     
@@ -585,20 +576,17 @@
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
                 } 
                 
-                // MID RANGE: Stop and Shoot!
                 else if (distToPlayer >= 100 && distToPlayer <= 350 && data.canAttack && data.state !== 'attack') {
                     data.state = 'shoot'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
                     
                     let dir = (player.x > enemy.x) ? 1 : -1; 
                     enemy.setFlipX(dir === -1);
                     
-                    // Plays a quick animation as recoil for shooting
                     enemy.anims.play('grunt_punch_left', true);
 
                     currentScene.time.delayedCall(300, () => {
                         if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return; 
                         
-                        // Spawns and fires the enemy bullet
                         let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0xffaa00);
                         currentScene.physics.add.existing(enemyBullet);
                         enemyBullet.body.setAllowGravity(false);
@@ -613,7 +601,6 @@
                     currentScene.time.delayedCall(2500, () => { data.canAttack = true; });
                 } 
                 
-                // LONG RANGE: Chase the Player
                 else if (distToPlayer > 75 && data.state !== 'attack' && data.state !== 'shoot') {
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
                     enemy.setFlipX(dir === -1);
@@ -622,7 +609,6 @@
                     if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
                 } 
                 
-                // WAITING
                 else if (data.state !== 'attack' && data.state !== 'shoot') { 
                     data.state = 'idle'; enemy.body.setVelocityX(0); 
                     enemy.anims.play('grunt_unarmed_idle', true);
