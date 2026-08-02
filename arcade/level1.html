@@ -83,13 +83,14 @@
         this.load.image('bg3', 'assets/bg3.png');
         this.load.image('floorTile', 'assets/bg4.png');
 
+        // Lowercase names enforced to prevent invisible heroes on GitHub
         this.load.spritesheet('vanguard', 'assets/vanguard.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('recon', 'assets/recon.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // Swapped to mechasphere.png!
-        this.load.spritesheet('boss', 'assets/mechasphere.png', { frameWidth: 192, frameHeight: 256 });
+        // The mathematically perfect 160x160 cookie cutter!
+        this.load.spritesheet('boss', 'assets/mechasphere.png', { frameWidth: 160, frameHeight: 160 });
     }
 
     function create() {
