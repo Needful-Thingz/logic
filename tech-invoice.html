@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Invoice | Needful Thingz</title>
+    <style>
+        /* --- CORE LAYOUT & THEMING --- */
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: #1a202c; 
+            margin: 0; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .app-container { 
+            background: white; 
+            width: 100%; 
+            max-width: 450px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+            overflow: hidden; 
+            padding-bottom: 20px;
+        }
+        
+        /* --- HEADER --- */
+        .header { 
+            background: #006fba; 
+            color: white; 
+            padding: 20px; 
+            text-align: center; 
+        }
+        .header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; text-transform: uppercase; }
+        .header p { margin: 5px 0 0 0; font-size: 12px; opacity: 0.9; }
+
+        /* --- CONTENT & SECTIONS --- */
+        .content { padding: 20px; }
+        .section-title { 
+            font-size: 13px; 
+            color: #718096; 
+            text-transform: uppercase; 
+            font-weight: 700; 
+            margin-bottom: 10px; 
+            border-bottom: 2px solid #edf2f7; 
+            padding-bottom: 5px; 
+        }
+
+        /* --- TICKET INFO --- */
+        .job-details {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #4a5568;
+        }
+        .job-details strong { color: #2d3748; }
+
+        /* --- INVOICE LINE ITEMS --- */
+        .line-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label { font-size: 11px; font-weight: bold; color: #718096; margin-bottom: 3px; }
+        .input-group input { 
+            padding: 10px; 
+            border: 1px solid #cbd5e0; 
+            border-radius: 6px; 
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .currency-input { position: relative; }
+        .currency-input::before {
+            content: "$";
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+            font-weight: bold;
+        }
+        .currency-input input { padding-left: 25px; width: 100%; box-sizing: border-box; }
+
+        /* --- TOTALS BOX --- */
+        .totals-box {
+            background: #ebf8ff;
+            border: 2px solid #3182ce;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+        .grand-total {
+            font-size: 20px;
+            font-weight: 900;
+            color: #2b6cb0;
+            border-top: 2px solid #90cdf4;
+            padding-top: 10px;
+            margin-top: 5px;
+        }
+
+        /* --- SIGNATURE & SUBMIT --- */
+        .signature-box {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            height: 100px;
+            background: #f7fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a0aec0;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .submit-btn { 
+            background: #48bb78; 
+            color: white; 
+            border: none; 
+            padding: 15px 20px; 
+            width: 100%; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            text-transform: uppercase;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .submit-btn:active { transform: translateY(2px); box-shadow: none; }
+        
+        .back-nav { text-align: center; margin-top: 15px; }
+        .back-nav a { color: #718096; text-decoration: none; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <h1>Field Invoice</h1>
+        <p>Closeout & Billing</p>
+    </div>
+
+    <div class="content">
+        <div class="section-title">Ticket Information</div>
+        <div class="job-details">
+            <strong>Customer:</strong> Smith Residence<br>
+            <strong>System:</strong> Trane 3.0 Ton Split<br>
+            <strong>Resolution:</strong> Replaced Dual Capacitor & Cleared Drain.
+        </div>
+
+        <div class="section-title">Billing Items</div>
+        
+        <div class="line-item">
+            <div class="input-group">
+                <label>Diagnostic / Trip Fee</label>
+                <input type="text" value="Standard Diagnostic" readonly style="background:#edf2f7; color:#718096;">
+            </div>
+            <div class="input-group currency-input">
+                <label>Amount</label>
+                <input type="number" id="diag-fee" value="89.00" oninput="calculateTotal()">
+            </div>
+        </div>
+
+        <div class="line-item">
+            <div class="input-group">
+                <label>Parts</label>
+                <input type="text" placeholder="e.g. 45/5 MFD Capacitor">
+            </div>
+            <div class="input-group currency-input">
+                <label>Amount</label>
+                <input type="number" id="parts-fee" placeholder="0.00" oninput="calculateTotal()">
+            </div>
+        </div>
+
+        <div class="line-item">
+            <div class="input-group">
+                <label>Labor</label>
+                <input type="text" placeholder="e.g. 1.5 Hours">
+            </div>
+            <div class="input-group currency-input">
+                <label>Amount</label>
+                <input type="number" id="labor-fee" placeholder="0.00" oninput="calculateTotal()">
+            </div>
+        </div>
+
+        <div class="totals-box">
+            <div class="total-row">
+                <span>Subtotal:</span>
+                <span id="subtotal-display">$89.00</span>
+            </div>
+            <div class="total-row">
+                <span>Tax (8.25%):</span>
+                <span id="tax-display">$7.34</span>
+            </div>
+            <div class="total-row grand-total">
+                <span>Total Due:</span>
+                <span id="total-display">$96.34</span>
+            </div>
+        </div>
+
+        <div class="section-title">Customer Approval</div>
+        <div class="signature-box">
+            [ Customer Signature Pad ]
+        </div>
+
+        <button class="submit-btn" onclick="alert('Invoice successfully saved and pushed to the Office Portal!')">Complete & Push to Office</button>
+        
+        <div class="back-nav">
+            <a href="index.html">← Cancel & Return to Hub</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function calculateTotal() {
+        // Get values from inputs, default to 0 if empty
+        var diag = parseFloat(document.getElementById('diag-fee').value) || 0;
+        var parts = parseFloat(document.getElementById('parts-fee').value) || 0;
+        var labor = parseFloat(document.getElementById('labor-fee').value) || 0;
+
+        // Calculate Subtotal
+        var subtotal = diag + parts + labor;
+        
+        // Calculate Tax (Assuming 8.25% standard rate)
+        var taxRate = 0.0825;
+        var tax = subtotal * taxRate;
+        
+        // Calculate Grand Total
+        var grandTotal = subtotal + tax;
+
+        // Update the display with 2 decimal places
+        document.getElementById('subtotal-display').innerText = "$" + subtotal.toFixed(2);
+        document.getElementById('tax-display').innerText = "$" + tax.toFixed(2);
+        document.getElementById('total-display').innerText = "$" + grandTotal.toFixed(2);
+    }
+</script>
+
+</body>
+</html>
