@@ -21,8 +21,26 @@
         }
 
         /* --- LAYOUT --- */
-        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
-        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #1a202c; 
+            margin: 0; 
+            padding: 10px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 20px; 
+        }
+        .card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 450px; 
+            min-height: 600px; 
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); 
+            box-sizing: border-box;
+        }
         
         /* --- MENU GRID --- */
         .trade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 10px; }
@@ -43,7 +61,35 @@
         .trade-icon { font-size: 35px; margin-bottom: 10px; display: block; }
         .trade-name { font-weight: 800; font-size: 13px; display: block; text-transform: uppercase; }
 
-        .footer { text-align: center; font-size: 11px; color: #a0aec0; margin-top: 40px; }
+        /* --- NEW ADMIN & COMPLIANCE GRID --- */
+        .admin-divider { 
+            text-align: center; 
+            font-size: 12px; 
+            font-weight: bold; 
+            color: #718096; 
+            text-transform: uppercase; 
+            margin: 15px 10px 10px 10px; 
+            letter-spacing: 1px; 
+            border-bottom: 1px solid #e2e8f0; 
+            padding-bottom: 5px; 
+        }
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 10px 10px 10px; }
+        .admin-box { 
+            background: #f7fafc; 
+            border: 2px solid #e2e8f0; 
+            padding: 15px; 
+            border-radius: 12px; 
+            text-align: center; 
+            text-decoration: none; 
+            color: #2d3748; 
+            display: block; 
+            transition: 0.2s; 
+        }
+        .admin-box:hover { border-color: #4a5568; background: #edf2f7; transform: translateY(-2px); }
+        .highlight-box { border-color: #fc8181; background: #fff5f5; }
+        .highlight-box:hover { border-color: #e53e3e; background: #fed7d7; }
+
+        .footer { text-align: center; font-size: 11px; color: #a0aec0; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -95,14 +141,27 @@
         </a>
     </div>
 
+    <div class="admin-divider">Enterprise Management</div>
+    <div class="admin-grid">
+        <a href="office-portal.html" class="admin-box">
+            <span class="trade-icon">🏢</span>
+            <span class="trade-name">Office Portal</span>
+        </a>
+        <a href="kill-clipboard.html" class="admin-box highlight-box">
+            <span class="trade-icon">📎</span>
+            <span class="trade-name" style="font-size: 11px;">Kill The Clipboard</span>
+            <span style="display:block; font-size:9px; color:#c53030; margin-top:4px;">(Compliance / W9)</span>
+        </a>
+    </div>
+
     <div class="footer">
         © 2026 Needful Thingz. All Trades Logic™ Suite.<br>
         <span style="color: #006fba;">Lead Tech Logic™ Enterprise System</span>
     </div>
 </div>
 
-<section style="background-color: #f4f4f4; padding: 40px 20px; margin-top: 50px; border-top: 4px solid #0056b3;">
-    <div style="max-width: 800px; margin: 0 auto; font-family: Arial, sans-serif;">
+<section style="background-color: #f4f4f4; padding: 40px 20px; border-top: 4px solid #0056b3; width: 100%; max-width: 800px; border-radius: 8px; box-sizing: border-box;">
+    <div style="margin: 0 auto; font-family: Arial, sans-serif;">
         <h2 style="color: #333; text-transform: uppercase; letter-spacing: 1px;">About the Architect</h2>
         
         <h3 style="color: #0056b3; margin-top: 10px;">W. Dalton Smith</h3>
@@ -128,7 +187,7 @@
     </div>
 </section>
 
-<div style="margin-top: 40px; padding: 20px; background-color: #f4f4f9; border-radius: 8px; border: 1px solid #ddd;">
+<div style="padding: 20px; background-color: #f4f4f9; border-radius: 8px; border: 1px solid #ddd; width: 100%; max-width: 800px; box-sizing: border-box;">
     <h2 style="color: #333;">The Guided Logic Architecture Suite</h2>
     <p style="font-size: 16px; color: #555;"><em>A proprietary, 8-module framework designed for complex data orchestration, hyper-efficient state management, and enterprise-level scalability.</em></p>
     <ul style="line-height: 1.8; color: #444;">
@@ -141,7 +200,6 @@
         <li><strong>Module 07: Scalability Handler</strong> - Load-balancing architecture designed to handle high-volume, enterprise traffic.</li>
         <li><strong>Module 08: Adaptive Analytics</strong> - Real-time system monitoring and performance tracking for continuous logic optimization.</li>
     </ul>
-</div></body>
+</div>
+</body>
 </html>
-
-
