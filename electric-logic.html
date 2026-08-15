@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Electrical Logic</title>
+    <title>Electrical Field Reference | Needful Thingz</title>
     <style>
-        /* --- BRANDING --- */
+        /* --- BRANDING & LOGO --- */
         .logo-container {
             text-align: center;
             margin: -20px -20px 20px -20px;
@@ -13,72 +14,84 @@
             padding: 15px 0;
             border-bottom: 3px solid #006fba;
         }
-        .logo-img {
-            max-width: 85%;
-            height: auto;
-            display: block;
-            margin: 0 auto;
-        }
+        .logo-img { max-width: 85%; height: auto; display: block; margin: 0 auto; }
 
         /* --- LAYOUT --- */
-        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
-        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
-        h3 { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); box-sizing: border-box;}
+        
+        .header-title { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; margin-top: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 1px;}
+        .sub-text { font-size: 12px; color: #718096; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 0.5px; }
 
-        /* --- MENU BUTTONS --- */
+        /* --- MENU ITEMS --- */
         .menu-item { 
-            background: #fffaf0; 
-            border: 1px solid #ecc94b; 
-            color: #744210;
-            padding: 12px; 
-            margin-bottom: 8px; 
+            background: #f7fafc; 
+            border: 1px solid #cbd5e0; 
+            color: #2d3748; 
+            padding: 15px; 
+            margin-bottom: 10px; 
             border-radius: 8px; 
             cursor: pointer; 
+            font-weight: 600; 
             font-size: 14px; 
-            font-weight: bold; 
             transition: 0.2s;
         }
-        .menu-item:hover { background: #fefcbf; transform: translateX(5px); }
+        .menu-item:hover { background: #ebf8ff; border-color: #3182ce; color: #2b6cb0; transform: translateX(5px); }
 
-        /* --- LOGIC BUTTONS --- */
-        .btn-group { margin-top: 25px; display: flex; gap: 10px; }
-        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; color: white; }
-        .btn-yes { background: #38a169; }
-        .btn-no { background: #dd6b20; }
-        
-        /* --- RESULTS --- */
-        .result { background: #fffaf0; border-left: 6px solid #ecc94b; padding: 20px; margin-top: 20px; border-radius: 8px; display: none; }
-        .nav-btn { width: 100%; background: #718096; margin-top: 10px; }
+        /* --- FLOW CONTENT --- */
+        .flow-title { font-size: 18px; color: #006fba; margin-top: 0; text-transform: uppercase; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
+        .flow-step { font-size: 15px; color: #4a5568; line-height: 1.5; margin-top: 15px; }
+
+        /* --- BUTTONS --- */
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; color: white; transition: 0.2s; font-size: 14px; text-transform: uppercase; }
+        .btn-yes { background: #48bb78; } 
+        .btn-yes:hover { background: #38a169; }
+        .btn-no { background: #e53e3e; }
+        .btn-no:hover { background: #c53030; }
+
+        /* --- RESULTS BOX --- */
+        .result { background: #f0fff4; border-left: 5px solid #48bb78; padding: 15px; margin-top: 20px; display: none; border-radius: 0 8px 8px 0; }
+        .result strong { display: block; color: #276749; margin-bottom: 8px; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+        .result-text { color: #2d3748; font-size: 14px; line-height: 1.5; margin: 0; }
+
+        /* --- NAV BUTTONS --- */
+        .nav-btn { width: 100%; margin-top: 15px; padding: 15px; }
+        .btn-back { background: #718096; }
+        .btn-back:hover { background: #4a5568; }
+        .btn-hub { background: #2d3748; border-top: 1px solid #4a5568;}
+        .btn-hub:hover { background: #1a202c; }
+
         .hidden { display: none; }
     </style>
 </head>
 <body>
 <div class="card">
     <div class="logo-container">
-        <img src="nt-logo.png" alt="Needful Thingz Tech & Logic" class="logo-img">
+        <img src="nt-logo.png" alt="Needful Thingz Enterprise" class="logo-img">
     </div>
 
     <div id="homeMenu">
-        <h3>Electrical Diagnostics</h3>
-        <p style="font-size:12px; color:gray; margin-bottom:15px;">Select the reported symptom:</p>
-        
-        <div class="menu-item" onclick="startFlow('gfci')">1. GFCI Tripped / Partial Power</div>
-        <div class="menu-item" onclick="startFlow('flicker')">2. Flickering Lights (House-wide)</div>
-        <div class="menu-item" onclick="startFlow('breaker')">3. Breaker Trips Immediately</div>
-        <div class="menu-item" onclick="startFlow('overload')">4. Breaker Trips After Minutes</div>
-        <div class="menu-item" onclick="startFlow('burn')">5. Burning Smell at Outlet</div>
-        <div class="menu-item" onclick="startFlow('phase')">6. Dead Half of House (Lost Phase)</div>
-        <div class="menu-item" onclick="startFlow('buzz')">7. Buzzing/Humming Panel</div>
-        <div class="menu-item" onclick="startFlow('afci')">8. AFCI Nuisance Tripping</div>
-        <div class="menu-item" onclick="startFlow('shock')">9. Shock from Appliance (Grounding)</div>
+        <h3 class="header-title">Electrical Field Reference</h3>
+        <div class="sub-text">Quick-Access Symptom Database:</div>
+
+        <div class="menu-item" onclick="startFlow('gfci')">01. GFCI Tripped / Partial Power</div>
+        <div class="menu-item" onclick="startFlow('flicker')">02. Flickering Lights (House-wide)</div>
+        <div class="menu-item" onclick="startFlow('breaker')">03. Breaker Trips Immediately</div>
+        <div class="menu-item" onclick="startFlow('overload')">04. Breaker Trips After Minutes</div>
+        <div class="menu-item" onclick="startFlow('burn')">05. Burning Smell at Outlet</div>
+        <div class="menu-item" onclick="startFlow('phase')">06. Dead Half of House (Lost Phase)</div>
+        <div class="menu-item" onclick="startFlow('buzz')">07. Buzzing/Humming Panel</div>
+        <div class="menu-item" onclick="startFlow('afci')">08. AFCI Nuisance Tripping</div>
+        <div class="menu-item" onclick="startFlow('shock')">09. Shock from Appliance (Grounding)</div>
         <div class="menu-item" onclick="startFlow('dead')">10. Dead Outlet/Switch (No Trip)</div>
 
-        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:20px;">Main Enterprise Menu</button>
+        <button class="nav-btn btn-hub" onclick="window.location.href='index.html'">Enterprise Hub</button>
     </div>
 
     <div id="flow-gfci" class="hidden">
-        <h3>GFCI Troubleshooting</h3>
-        <p><strong>Step 1:</strong> Unplug ALL devices on this circuit. Does the GFCI reset now?</p>
+        <h3 class="flow-title">GFCI Troubleshooting</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Unplug ALL devices on this circuit. Does the GFCI reset now?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('DEVICE FAULT: One of the appliances has a ground fault. Plug them in one by one to find the culprit.')">YES</button>
             <button class="btn-no" onclick="showRes('WIRING FAULT: The issue is in the wiring or the GFCI outlet itself needs replacement.')">NO</button>
@@ -86,8 +99,8 @@
     </div>
 
     <div id="flow-flicker" class="hidden">
-        <h3>Flickering Lights</h3>
-        <p><strong>Step 1:</strong> Do the lights get brighter/dimmer when a heavy load (AC/Dryer) turns on?</p>
+        <h3 class="flow-title">Flickering Lights</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Do the lights get brighter/dimmer when a heavy load (AC/Dryer) turns on?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('LOOSE NEUTRAL: Critical Issue. Check neutral lug at the panel and meter base immediately.')">YES</button>
             <button class="btn-no" onclick="showRes('LOOSE BULB/SWITCH: Check for loose bulb or failing dimmer switch.')">NO</button>
@@ -95,8 +108,8 @@
     </div>
 
     <div id="flow-breaker" class="hidden">
-        <h3>Dead Short (Instant Trip)</h3>
-        <p><strong>Step 1:</strong> Did this happen immediately after plugging something in or turning on a switch?</p>
+        <h3 class="flow-title">Dead Short (Instant Trip)</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Did this happen immediately after plugging something in or turning on a switch?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('DEVICE SHORT: Unplug that specific device. If it persists, replace the outlet.')">YES</button>
             <button class="btn-no" onclick="showRes('WIRING SHORT: The hot wire is touching ground somewhere. Isolate circuit.')">NO</button>
@@ -104,8 +117,8 @@
     </div>
 
     <div id="flow-overload" class="hidden">
-        <h3>Circuit Overload (Delayed Trip)</h3>
-        <p><strong>Step 1:</strong> Are there multiple high-draw devices (Heater, Microwave, Hairdryer) on this circuit?</p>
+        <h3 class="flow-title">Circuit Overload</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Are there multiple high-draw devices (Heater, Microwave, Hairdryer) on this circuit?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('OVERLOAD: Total amperage exceeds breaker rating. Move one appliance to a different circuit.')">YES</button>
             <button class="btn-no" onclick="showRes('WEAK BREAKER: Use an amp-clamp. If draw is low but it trips, replace the breaker.')">NO</button>
@@ -113,8 +126,8 @@
     </div>
 
     <div id="flow-burn" class="hidden">
-        <h3>Burning Smell / Arcing</h3>
-        <p><strong>Step 1:</strong> Is the face of the outlet warm or discolored (brown/black)?</p>
+        <h3 class="flow-title">Burning Smell / Arcing</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Is the face of the outlet warm or discolored (brown/black)?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('ARCING TERMINAL: Loose wire connection on the side screws. Replace device immediately.')">YES</button>
             <button class="btn-no" onclick="showRes('DEVICE INTERNAL: If smell persists, kill power and inspect wires in the box.')">NO</button>
@@ -122,8 +135,8 @@
     </div>
 
     <div id="flow-phase" class="hidden">
-        <h3>Lost Phase (Partial Power)</h3>
-        <p><strong>Step 1:</strong> Do 240V appliances (Stove/Dryer) work, but half the 120V lights are off?</p>
+        <h3 class="flow-title">Lost Phase</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Do 240V appliances (Stove/Dryer) work, but half the 120V lights are off?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('LOST LEG: You have lost one phase. Check Main Breaker voltage. If OK at main, call Utility Co.')">YES</button>
             <button class="btn-no" onclick="showRes('MAIN BREAKER: If 240V is also dead, the Main Breaker has tripped or failed.')">NO</button>
@@ -131,8 +144,8 @@
     </div>
 
     <div id="flow-buzz" class="hidden">
-        <h3>Buzzing Panel</h3>
-        <p><strong>Step 1:</strong> Can you isolate the sound to a specific breaker?</p>
+        <h3 class="flow-title">Buzzing Panel</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Can you isolate the sound to a specific breaker?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('FAILING BREAKER: The contacts are arcing inside. Replace breaker.')">YES</button>
             <button class="btn-no" onclick="showRes('LOOSE CONTACT: Check all neutral and ground screws on the bus bar for tightness.')">NO</button>
@@ -140,8 +153,8 @@
     </div>
 
     <div id="flow-afci" class="hidden">
-        <h3>AFCI Tripping</h3>
-        <p><strong>Step 1:</strong> Does it trip immediately when a specific device (Vacuum/Treadmill) starts?</p>
+        <h3 class="flow-title">AFCI Nuisance Trip</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Does it trip immediately when a specific device (Vacuum/Treadmill) starts?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('MOTOR NOISE: Older brushed motors confuse AFCI breakers. Test device on non-AFCI circuit.')">YES</button>
             <button class="btn-no" onclick="showRes('TRUE ARC: There is a loose connection in the circuit. Check all receptacles.')">NO</button>
@@ -149,8 +162,8 @@
     </div>
 
     <div id="flow-shock" class="hidden">
-        <h3>Shock from Appliance</h3>
-        <p><strong>Step 1:</strong> Does the shock happen when touching the metal casing of the appliance?</p>
+        <h3 class="flow-title">Appliance Shock</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Does the shock happen when touching the metal casing of the appliance?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('GROUND FAULT: The appliance has an internal short to the case, and the ground wire is missing/broken.')">YES</button>
             <button class="btn-no" onclick="showRes('STATIC: If it is a single snap, it is static. If continuous tingle, check grounding.')">NO</button>
@@ -158,8 +171,8 @@
     </div>
 
     <div id="flow-dead" class="hidden">
-        <h3>Dead Outlet (No Trip)</h3>
-        <p><strong>Step 1:</strong> Is this outlet switched (controlled by a wall switch)?</p>
+        <h3 class="flow-title">Dead Outlet (No Trip)</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Is this outlet switched (controlled by a wall switch)?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('SWITCH CHECK: Check the wall switch and the tab on the side of the outlet.')">YES</button>
             <button class="btn-no" onclick="showRes('BACKSTAB FAIL: Check for loose "backstabbed" wires in upstream outlets.')">NO</button>
@@ -167,10 +180,10 @@
     </div>
 
     <div id="resBox" class="result">
-        <strong>Lead Tech Recommendation:</strong>
-        <p id="resText"></p>
-        <button class="nav-btn" onclick="location.reload()">Back to Electrical Menu</button>
-        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748;">Main Enterprise Menu</button>
+        <strong>Field Data / Spec:</strong>
+        <p id="resText" class="result-text"></p>
+        <button class="nav-btn btn-back" onclick="location.reload()">Back to Reference List</button>
+        <button class="nav-btn btn-hub" onclick="window.location.href='index.html'">Enterprise Hub</button>
     </div>
 </div>
 
@@ -181,10 +194,7 @@
     }
     
     function showRes(t) { 
-        // Hide all flows
         document.querySelectorAll("[id^='flow-']").forEach(f => f.classList.add('hidden')); 
-        // Show result
-        document.getElementById('resBox').classList.remove('hidden'); 
         document.getElementById('resBox').style.display = "block";
         document.getElementById('resText').innerText = t; 
     }
