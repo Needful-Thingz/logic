@@ -1,57 +1,97 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solar Logic</title>
+    <title>Solar Field Reference | Needful Thingz</title>
     <style>
-        /* BRANDING */
-        .logo-container { text-align: center; margin: -20px -20px 20px -20px; background: #ffffff; border-radius: 20px 20px 0 0; padding: 15px 0; border-bottom: 3px solid #006fba; }
+        /* --- BRANDING & LOGO --- */
+        .logo-container {
+            text-align: center;
+            margin: -20px -20px 20px -20px;
+            background: #ffffff;
+            border-radius: 20px 20px 0 0;
+            padding: 15px 0;
+            border-bottom: 3px solid #006fba;
+        }
         .logo-img { max-width: 85%; height: auto; display: block; margin: 0 auto; }
+
+        /* --- LAYOUT --- */
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); box-sizing: border-box;}
         
-        /* LAYOUT */
-        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; justify-content: center; }
-        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
-        h3 { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
-        
-        /* MENU ITEMS */
-        .menu-item { background: #fffff0; border: 1px solid #d69e2e; color: #744210; padding: 12px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; }
-        .menu-item:hover { background: #faf089; }
-        
-        /* BUTTONS */
+        .header-title { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; margin-top: 0; font-size: 20px; text-transform: uppercase; letter-spacing: 1px;}
+        .sub-text { font-size: 12px; color: #718096; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 0.5px; }
+
+        /* --- MENU ITEMS --- */
+        .menu-item { 
+            background: #f7fafc; 
+            border: 1px solid #cbd5e0; 
+            color: #2d3748; 
+            padding: 15px; 
+            margin-bottom: 10px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 14px; 
+            transition: 0.2s;
+        }
+        .menu-item:hover { background: #ebf8ff; border-color: #3182ce; color: #2b6cb0; transform: translateX(5px); }
+
+        /* --- FLOW CONTENT --- */
+        .flow-title { font-size: 18px; color: #006fba; margin-top: 0; text-transform: uppercase; border-bottom: 2px solid #edf2f7; padding-bottom: 10px; }
+        .flow-step { font-size: 15px; color: #4a5568; line-height: 1.5; margin-top: 15px; }
+
+        /* --- BUTTONS --- */
         .btn-group { display: flex; gap: 10px; margin-top: 20px; }
-        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; color: white; }
-        .btn-yes { background: #48bb78; } .btn-no { background: #f56565; }
-        
-        .result { background: #fffaf0; border-left: 5px solid #d69e2e; padding: 15px; margin-top: 20px; display: none; }
-        .nav-btn { width: 100%; background: #718096; margin-top: 10px; }
+        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex-grow: 1; color: white; transition: 0.2s; font-size: 14px; text-transform: uppercase; }
+        .btn-yes { background: #48bb78; } 
+        .btn-yes:hover { background: #38a169; }
+        .btn-no { background: #e53e3e; }
+        .btn-no:hover { background: #c53030; }
+
+        /* --- RESULTS BOX --- */
+        .result { background: #f0fff4; border-left: 5px solid #48bb78; padding: 15px; margin-top: 20px; display: none; border-radius: 0 8px 8px 0; }
+        .result strong { display: block; color: #276749; margin-bottom: 8px; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+        .result-text { color: #2d3748; font-size: 14px; line-height: 1.5; margin: 0; }
+
+        /* --- NAV BUTTONS --- */
+        .nav-btn { width: 100%; margin-top: 15px; padding: 15px; }
+        .btn-back { background: #718096; }
+        .btn-back:hover { background: #4a5568; }
+        .btn-hub { background: #2d3748; border-top: 1px solid #4a5568;}
+        .btn-hub:hover { background: #1a202c; }
+
         .hidden { display: none; }
     </style>
 </head>
 <body>
 <div class="card">
-    <div class="logo-container"><img src="nt-logo.png" class="logo-img"></div>
-    
+    <div class="logo-container">
+        <img src="nt-logo.png" alt="Needful Thingz Enterprise" class="logo-img">
+    </div>
+
     <div id="homeMenu">
-        <h3>Solar & Battery Logic</h3>
-        <p style="font-size:12px; color:gray;">Select the system error:</p>
-        
-        <div class="menu-item" onclick="startFlow('inverter')">1. Inverter Screen Blank / Off</div>
-        <div class="menu-item" onclick="startFlow('lowprod')">2. Low Production (Sunny Day)</div>
-        <div class="menu-item" onclick="startFlow('grid')">3. System Not Exporting to Grid</div>
-        <div class="menu-item" onclick="startFlow('battery')">4. Battery Not Charging</div>
-        <div class="menu-item" onclick="startFlow('micro')">5. Microinverter Reporting Error</div>
-        <div class="menu-item" onclick="startFlow('ground')">6. Ground Fault (Isolation ISO)</div>
-        <div class="menu-item" onclick="startFlow('app')">7. App Shows "No Data"</div>
-        <div class="menu-item" onclick="startFlow('clean')">8. Panels Dirty / Bird Debris</div>
-        <div class="menu-item" onclick="startFlow('conduit')">9. Conduit/Wire Damage on Roof</div>
+        <h3 class="header-title">Solar Field Reference</h3>
+        <div class="sub-text">Quick-Access Symptom Database:</div>
+
+        <div class="menu-item" onclick="startFlow('inverter')">01. Inverter Screen Blank / Off</div>
+        <div class="menu-item" onclick="startFlow('lowprod')">02. Low Production (Sunny Day)</div>
+        <div class="menu-item" onclick="startFlow('grid')">03. System Not Exporting to Grid</div>
+        <div class="menu-item" onclick="startFlow('battery')">04. Battery Not Charging</div>
+        <div class="menu-item" onclick="startFlow('micro')">05. Microinverter Reporting Error</div>
+        <div class="menu-item" onclick="startFlow('ground')">06. Ground Fault (Isolation ISO)</div>
+        <div class="menu-item" onclick="startFlow('app')">07. App Shows "No Data"</div>
+        <div class="menu-item" onclick="startFlow('clean')">08. Panels Dirty / Bird Debris</div>
+        <div class="menu-item" onclick="startFlow('conduit')">09. Conduit/Wire Damage on Roof</div>
         <div class="menu-item" onclick="startFlow('arc')">10. Arc Fault Error (AFCI)</div>
 
-        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748; margin-top:20px;">Main Enterprise Menu</button>
+        <button class="nav-btn btn-hub" onclick="window.location.href='index.html'">Enterprise Hub</button>
     </div>
 
     <div id="flow-inverter" class="hidden">
-        <h3>Inverter Dead</h3>
-        <p><strong>Step 1:</strong> Is the AC Disconnect (Lever on wall) in the ON position?</p>
+        <h3 class="flow-title">Inverter Dead</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Is the AC Disconnect (Lever on wall) in the ON position?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('DC SWITCH: Check the DC dial on the inverter itself. Turn it to ON.')">YES</button>
             <button class="btn-no" onclick="showRes('BREAKER: Check the solar breaker in the main panel. Reset it.')">NO</button>
@@ -59,8 +99,8 @@
     </div>
 
     <div id="flow-lowprod" class="hidden">
-        <h3>Low Production</h3>
-        <p><strong>Step 1:</strong> Is there shading from a new tree or obstacle?</p>
+        <h3 class="flow-title">Low Production</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Is there shading from a new tree or obstacle?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('SHADING: Trim vegetation. Even small shade kills string inverter output.')">YES</button>
             <button class="btn-no" onclick="showRes('DIRT/SOIL: Inspect panels for heavy dust or bird droppings. Clean with water only.')">NO</button>
@@ -68,8 +108,8 @@
     </div>
 
     <div id="flow-grid" class="hidden">
-        <h3>Not Exporting</h3>
-        <p><strong>Step 1:</strong> Is the Utility Meter showing an error or blank?</p>
+        <h3 class="flow-title">Not Exporting</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Is the Utility Meter showing an error or blank?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('UTILITY SIDE: The grid voltage may be out of range. Call Utility Co.')">YES</button>
             <button class="btn-no" onclick="showRes('PROFILE: The inverter Grid Profile settings may be wrong. Call Tech Support.')">NO</button>
@@ -77,17 +117,17 @@
     </div>
 
     <div id="flow-battery" class="hidden">
-        <h3>Battery Issue</h3>
-        <p><strong>Step 1:</strong> Is the battery switch/breaker in the ON position?</p>
+        <h3 class="flow-title">Battery Issue</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Is the battery switch/breaker in the ON position?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('COMM ERROR: Check the communication cable between inverter and battery.')">YES</button>
-            <button class="btn-no" onclick="showRes('WAKE UP: Turn breaker ON. Some batteries need a "jump start" if fully drained.')">NO</button>
+            <button class="btn-no" onclick="showRes('WAKE UP: Turn breaker ON. Some batteries need a &quot;jump start&quot; if fully drained.')">NO</button>
         </div>
     </div>
 
     <div id="flow-micro" class="hidden">
-        <h3>Microinverter Fail</h3>
-        <p><strong>Step 1:</strong> Is only ONE specific panel showing 0 production?</p>
+        <h3 class="flow-title">Microinverter Fail</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Is only ONE specific panel showing 0 production?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('PANEL/MICRO: Inspect that specific panel connection on the roof. Likely loose plug.')">YES</button>
             <button class="btn-no" onclick="showRes('GATEWAY: If ALL are down, reboot the Envoy/Gateway monitoring box.')">NO</button>
@@ -95,17 +135,17 @@
     </div>
 
     <div id="flow-ground" class="hidden">
-        <h3>Ground Fault (ISO)</h3>
-        <p><strong>Step 1:</strong> Did it rain recently?</p>
+        <h3 class="flow-title">Ground Fault (ISO)</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Did it rain recently?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('MOISTURE INGRESS: Water got into a connector or J-box. Wait to dry or inspect roof.')">YES</button>
-            <button class="btn-no" onclick="showRes('WIRE NICK: A wire is touching the racking rail. visual inspection required.')">NO</button>
+            <button class="btn-no" onclick="showRes('WIRE NICK: A wire is touching the racking rail. Visual inspection required.')">NO</button>
         </div>
     </div>
 
     <div id="flow-app" class="hidden">
-        <h3>App Offline</h3>
-        <p><strong>Step 1:</strong> Did you change your home WiFi password recently?</p>
+        <h3 class="flow-title">App Offline</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Did you change your home WiFi password recently?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('RECONNECT: You must update the WiFi credentials on the Solar Gateway device.')">YES</button>
             <button class="btn-no" onclick="showRes('ETHERNET: Check if the ethernet cable to your router is unplugged.')">NO</button>
@@ -113,8 +153,8 @@
     </div>
 
     <div id="flow-clean" class="hidden">
-        <h3>Dirty Panels</h3>
-        <p><strong>Step 1:</strong> Is there hard water or cement dust on them?</p>
+        <h3 class="flow-title">Dirty Panels</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Is there hard water or cement dust on them?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('PROFESSIONAL CLEAN: Cement/Paint requires special solvents. Do not scrape.')">YES</button>
             <button class="btn-no" onclick="showRes('RINSE: Use de-ionized water or hose in early morning. No soap.')">NO</button>
@@ -122,8 +162,8 @@
     </div>
 
     <div id="flow-conduit" class="hidden">
-        <h3>Roof Damage</h3>
-        <p><strong>Step 1:</strong> Are wires hanging down touching the roof?</p>
+        <h3 class="flow-title">Roof Damage</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Are wires hanging down touching the roof?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('CLIP FAIL: Re-secure wires with UV-rated metal clips immediately.')">YES</button>
             <button class="btn-no" onclick="showRes('SQUIRRELS: Check for chew marks on conduit. Repair wires and install critter guard.')">NO</button>
@@ -131,8 +171,8 @@
     </div>
 
     <div id="flow-arc" class="hidden">
-        <h3>Arc Fault (AFCI)</h3>
-        <p><strong>Step 1:</strong> Does the error return immediately after reset?</p>
+        <h3 class="flow-title">Arc Fault (AFCI)</h3>
+        <p class="flow-step"><strong>Primary Indicator:</strong> Does the error return immediately after reset?</p>
         <div class="btn-group">
             <button class="btn-yes" onclick="showRes('TRUE ARC: Do not bypass. Locate loose connection or burnt connector on roof.')">YES</button>
             <button class="btn-no" onclick="showRes('FIRMWARE: Update inverter firmware. Sometimes this is a false alarm.')">NO</button>
@@ -140,10 +180,10 @@
     </div>
 
     <div id="resBox" class="result">
-        <strong>Recommendation:</strong>
-        <p id="resText"></p>
-        <button class="nav-btn" onclick="location.reload()">Back to Solar Menu</button>
-        <button class="nav-btn" onclick="window.location.href='index.html'" style="background:#2d3748;">Main Menu</button>
+        <strong>Field Data / Spec:</strong>
+        <p id="resText" class="result-text"></p>
+        <button class="nav-btn btn-back" onclick="location.reload()">Back to Reference List</button>
+        <button class="nav-btn btn-hub" onclick="window.location.href='index.html'">Enterprise Hub</button>
     </div>
 </div>
 
@@ -152,6 +192,7 @@
         document.getElementById('homeMenu').classList.add('hidden'); 
         document.getElementById('flow-'+fId).classList.remove('hidden'); 
     }
+    
     function showRes(t) { 
         document.querySelectorAll("[id^='flow-']").forEach(f => f.classList.add('hidden')); 
         document.getElementById('resBox').style.display = "block";
