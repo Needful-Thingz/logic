@@ -7,7 +7,7 @@
         /* --- BRANDING & LOGO --- */
         .logo-container {
             text-align: center;
-            margin: -20px -20px 20px -20px; /* Pulls to top edges */
+            margin: -20px -20px 20px -20px;
             background: #ffffff;
             border-radius: 20px 20px 0 0;
             padding: 15px 0;
@@ -45,16 +45,15 @@
         /* --- MENU GRID --- */
         .trade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 10px; }
         
-        /* This makes the buttons clickable links */
         .trade-box { 
             background: #f7fafc; 
             border: 2px solid #e2e8f0; 
             padding: 20px; 
             border-radius: 12px; 
             text-align: center; 
-            text-decoration: none; /* Removes underline from links */
+            text-decoration: none; 
             color: #2d3748;
-            display: block; /* Makes the whole box clickable */
+            display: block; 
             transition: 0.2s; 
         }
         .trade-box:hover { border-color: #3182ce; background: #ebf8ff; transform: translateY(-2px); }
@@ -85,9 +84,20 @@
             display: block; 
             transition: 0.2s; 
         }
-        .admin-box:hover { border-color: #4a5568; background: #edf2f7; transform: translateY(-2px); }
-        .highlight-box { border-color: #fc8181; background: #fff5f5; }
-        .highlight-box:hover { border-color: #e53e3e; background: #fed7d7; }
+        .admin-box:hover { transform: translateY(-2px); }
+        
+        /* Specific Button Themes */
+        .box-office { border-color: #e2e8f0; }
+        .box-office:hover { border-color: #4a5568; background: #edf2f7; }
+        
+        .box-invoice { border-color: #48bb78; background: #f0fff4; }
+        .box-invoice:hover { border-color: #2f855a; background: #c6f6d5; }
+
+        .box-clipboard { border-color: #fc8181; background: #fff5f5; }
+        .box-clipboard:hover { border-color: #e53e3e; background: #fed7d7; }
+
+        .box-licenses { border-color: #b794f4; background: #faf5ff; }
+        .box-licenses:hover { border-color: #805ad5; background: #e9d8fd; }
 
         .footer { text-align: center; font-size: 11px; color: #a0aec0; margin-top: 20px; }
     </style>
@@ -141,17 +151,32 @@
         </a>
     </div>
 
-    <div class="admin-divider">Enterprise Management</div>
+    <div class="admin-divider">Field & Enterprise Management</div>
     <div class="admin-grid">
-        <a href="office-portal.html" class="admin-box">
+        
+        <a href="office-portal.html" class="admin-box box-office">
             <span class="trade-icon">🏢</span>
             <span class="trade-name">Office Portal</span>
         </a>
-        <a href="kill-clipboard.html" class="admin-box highlight-box">
+
+        <a href="tech-invoice.html" class="admin-box box-invoice">
+            <span class="trade-icon">💵</span>
+            <span class="trade-name">Field Invoice</span>
+            <span style="display:block; font-size:9px; color:#2f855a; margin-top:4px;">(Billing & Closeout)</span>
+        </a>
+
+        <a href="kill-clipboard.html" class="admin-box box-clipboard">
             <span class="trade-icon">📎</span>
             <span class="trade-name" style="font-size: 11px;">Kill The Clipboard</span>
-            <span style="display:block; font-size:9px; color:#c53030; margin-top:4px;">(Compliance / W9)</span>
+            <span style="display:block; font-size:9px; color:#c53030; margin-top:4px;">(W-9 / Insurance)</span>
         </a>
+
+        <a href="kill-clipboard.html" class="admin-box box-licenses">
+            <span class="trade-icon">📜</span>
+            <span class="trade-name">Master Licenses</span>
+            <span style="display:block; font-size:9px; color:#553c9a; margin-top:4px;">(State & Local Certs)</span>
+        </a>
+
     </div>
 
     <div class="footer">
