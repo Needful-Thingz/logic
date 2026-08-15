@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Binder | Needful Thingz</title>
+    <style>
+        /* --- CORE LAYOUT & THEMING --- */
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: #1a202c; 
+            margin: 0; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .app-container { 
+            background: white; 
+            width: 100%; 
+            max-width: 450px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+            overflow: hidden; 
+        }
+        
+        /* --- HEADER --- */
+        .header { 
+            background: #c53030; /* Compliance Red */
+            color: white; 
+            padding: 20px; 
+            text-align: center; 
+        }
+        .header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; text-transform: uppercase; }
+        .header p { margin: 5px 0 0 0; font-size: 12px; opacity: 0.9; }
+
+        /* --- CONTENT AREA --- */
+        .content { padding: 20px; }
+        .section-title { 
+            font-size: 13px; 
+            color: #718096; 
+            text-transform: uppercase; 
+            font-weight: 700; 
+            margin-bottom: 10px; 
+            border-bottom: 2px solid #edf2f7; 
+            padding-bottom: 5px; 
+        }
+
+        /* --- QUICK-COPY DATA BLOCKS --- */
+        .data-grid { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 10px; 
+            margin-bottom: 25px; 
+        }
+        .data-card { 
+            background: #f7fafc; 
+            border: 1px solid #e2e8f0; 
+            padding: 15px; 
+            border-radius: 8px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .data-label { font-size: 12px; color: #4a5568; font-weight: bold; }
+        .data-value { font-size: 16px; color: #2d3748; font-family: monospace; font-weight: bold; }
+        .copy-btn { 
+            background: #e2e8f0; 
+            border: none; 
+            padding: 6px 12px; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            color: #4a5568; 
+            cursor: pointer; 
+            transition: 0.2s; 
+        }
+        .copy-btn:hover { background: #cbd5e0; }
+        .copy-btn:active { background: #48bb78; color: white; }
+
+        /* --- DOCUMENT BUTTONS --- */
+        .doc-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+        .doc-btn { 
+            display: flex; 
+            align-items: center; 
+            background: #ffffff; 
+            border: 2px solid #e2e8f0; 
+            padding: 15px; 
+            border-radius: 10px; 
+            text-decoration: none; 
+            color: #2d3748; 
+            transition: 0.2s; 
+        }
+        .doc-btn:hover { border-color: #3182ce; background: #ebf8ff; }
+        .doc-icon { font-size: 24px; margin-right: 15px; }
+        .doc-text { flex-grow: 1; }
+        .doc-title { display: block; font-weight: bold; font-size: 15px; }
+        .doc-sub { display: block; font-size: 11px; color: #718096; margin-top: 2px; }
+        .share-icon { font-size: 18px; color: #a0aec0; }
+
+        /* --- FOOTER & NAVIGATION --- */
+        .back-nav { 
+            background: #f7fafc; 
+            padding: 15px; 
+            text-align: center; 
+            border-top: 1px solid #e2e8f0; 
+        }
+        .back-btn { 
+            display: inline-block; 
+            background: #2d3748; 
+            color: white; 
+            text-decoration: none; 
+            padding: 10px 20px; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            font-weight: bold; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <h1>Digital Clipboard</h1>
+        <p>Enterprise Compliance & Licensing</p>
+    </div>
+
+    <div class="content">
+        <div class="section-title">Quick Reference</div>
+        <div class="data-grid">
+            <div class="data-card">
+                <div>
+                    <div class="data-label">Federal EIN / Tax ID</div>
+                    <div class="data-value" id="ein-number">XX-XXXXXXX</div>
+                </div>
+                <button class="copy-btn" onclick="copyToClipboard('ein-number', this)">COPY</button>
+            </div>
+            
+            <div class="data-card">
+                <div>
+                    <div class="data-label">Master HVAC License</div>
+                    <div class="data-value" id="hvac-license">HVAC-1234567</div>
+                </div>
+                <button class="copy-btn" onclick="copyToClipboard('hvac-license', this)">COPY</button>
+            </div>
+        </div>
+
+        <div class="section-title">Official Documents</div>
+        <div class="doc-list">
+            <a href="docs/Needful-Thingz-W9.pdf" target="_blank" class="doc-btn">
+                <span class="doc-icon">📄</span>
+                <span class="doc-text">
+                    <span class="doc-title">Company W-9</span>
+                    <span class="doc-sub">Taxpayer Identification Form (2026)</span>
+                </span>
+                <span class="share-icon">📤</span>
+            </a>
+
+            <a href="docs/Needful-Thingz-COI.pdf" target="_blank" class="doc-btn">
+                <span class="doc-icon">🛡️</span>
+                <span class="doc-text">
+                    <span class="doc-title">Cert. of Insurance (COI)</span>
+                    <span class="doc-sub">$2M General Liability / Work Comp</span>
+                </span>
+                <span class="share-icon">📤</span>
+            </a>
+
+            <a href="docs/Needful-Thingz-Licenses.pdf" target="_blank" class="doc-btn">
+                <span class="doc-icon">📜</span>
+                <span class="doc-text">
+                    <span class="doc-title">State Trade Licenses</span>
+                    <span class="doc-sub">Mechanical, Electrical, Plumbing</span>
+                </span>
+                <span class="share-icon">📤</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="back-nav">
+        <a href="index.html" class="back-btn">← Back to Enterprise Hub</a>
+    </div>
+</div>
+
+<script>
+    function copyToClipboard(elementId, buttonElement) {
+        // Get the text from the specific element
+        var textToCopy = document.getElementById(elementId).innerText;
+        
+        // Use the modern clipboard API
+        navigator.clipboard.writeText(textToCopy).then(function() {
+            // Visual feedback for the tech
+            var originalText = buttonElement.innerText;
+            buttonElement.innerText = "COPIED!";
+            buttonElement.style.background = "#48bb78";
+            buttonElement.style.color = "white";
+            
+            // Reset button after 2 seconds
+            setTimeout(function() {
+                buttonElement.innerText = originalText;
+                buttonElement.style.background = "";
+                buttonElement.style.color = "";
+            }, 2000);
+        }).catch(function(err) {
+            console.error('Could not copy text: ', err);
+            alert("Failed to copy. Please select manually.");
+        });
+    }
+</script>
+
+</body>
+</html>
