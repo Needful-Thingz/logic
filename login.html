@@ -1,5 +1,153 @@
-// ==========================================
-    // PASTE YOUR SUPABASE KEYS HERE
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Login | Needful Thingz</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* --- BRANDING & LAYOUT --- */
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: #1a202c; 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        .login-card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 16px; 
+            width: 100%; 
+            max-width: 400px; 
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); 
+        }
+        .logo-container {
+            text-align: center;
+            margin: -30px -30px 20px -30px;
+            background: #ffffff;
+            border-radius: 16px 16px 0 0;
+            padding: 20px 0;
+            border-bottom: 4px solid #006fba;
+        }
+        .logo-img { max-width: 80%; height: auto; }
+        
+        .title { text-align: center; color: #2d3748; text-transform: uppercase; font-size: 18px; margin-bottom: 5px; letter-spacing: 1px; }
+        .sub-title { text-align: center; color: #718096; font-size: 12px; margin-bottom: 25px; }
+
+        /* --- FORMS --- */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 12px; font-weight: bold; color: #4a5568; margin-bottom: 8px; text-transform: uppercase; }
+        .form-group input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 8px; 
+            box-sizing: border-box;
+            font-size: 15px;
+            transition: 0.2s;
+        }
+        .form-group input:focus { border-color: #3182ce; outline: none; }
+        
+        .submit-btn { 
+            background: #2d3748; 
+            color: white; 
+            border: none; 
+            padding: 15px; 
+            width: 100%; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .submit-btn:hover { background: #4a5568; }
+        .submit-btn:active { transform: translateY(2px); }
+
+        #error-msg {
+            color: #e53e3e;
+            background: #fff5f5;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 15px;
+            display: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="logo-container">
+        <img src="nt-logo.png" alt="Needful Thingz Enterprise" class="logo-img">
+    </div>
+    
+    <div class="title">Enterprise Auth</div>
+    <div class="sub-title">Secure Fleet Access System</div>
+
+    <div class="form-group">
+        <label>Technician Email</label>
+        <input type="email" id="email" placeholder="tech@company.com" autocomplete="email">
+    </div>
+
+    <div class="form-group">
+        <label>Secure Password</label>
+        <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <button class="submit-btn" id="loginBtn">Initialize Session</button>
+    <div id="error-msg"></div>
+</div>
+
+<script>
     // ==========================================
-    const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';
-    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+    // YOUR SUPABASE KEYS (DO NOT CHANGE THESE)
+    // ==========================================
+    const SUPABASE_URL = 'https://zndgwxlnwftschvwwvob.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
+    
+    // Initialize Database Connection
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Login Action
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const errorMsg = document.getElementById('error-msg');
+        const loginBtn = document.getElementById('loginBtn');
+
+        // Reset UI
+        errorMsg.style.display = 'none';
+        loginBtn.innerText = 'Authenticating...';
+        loginBtn.style.opacity = '0.7';
+
+        // Ping Supabase Auth Server
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+        });
+
+        if (error) {
+            // Access Denied
+            errorMsg.innerText = "ACCESS DENIED: " + error.message;
+            errorMsg.style.display = 'block';
+            loginBtn.innerText = 'Initialize Session';
+            loginBtn.style.opacity = '1';
+        } else {
+            // Access Granted -> Push to Hub
+            window.location.href = 'index.html';
+        }
+    });
+</script>
+</body>
+</html>
