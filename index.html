@@ -1,4 +1,4 @@
-+<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -224,5 +224,21 @@
         <li><strong>Module 06: Data Orchestration</strong> - Secure routing protocols keeping customer data safe and accessible only to authorized personnel.</li>
     </ul>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const SUPABASE_URL = 'https://zndgwxlnwftschvwwvob.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function enforceSecurity() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            // User has no digital ID badge. Kick them to the login page.
+            window.location.replace('login.html');
+        }
+    }
+    enforceSecurity();
+</script>
 </body>
 </html>
