@@ -116,8 +116,8 @@
     const SUPABASE_URL = 'https://zndgwxlnwftschvwwvob.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
     
-    // Initialize Database Connection
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Fix: Rename the variable so it doesn't collide with the global Supabase library
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Login Action
     document.getElementById('loginBtn').addEventListener('click', async () => {
@@ -131,21 +131,28 @@
         loginBtn.innerText = 'Authenticating...';
         loginBtn.style.opacity = '0.7';
 
-        // Ping Supabase Auth Server
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: password,
-        });
+        try {
+            // Ping Supabase Auth Server
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
 
-        if (error) {
-            // Access Denied
-            errorMsg.innerText = "ACCESS DENIED: " + error.message;
+            if (error) {
+                // Access Denied
+                errorMsg.innerText = "ACCESS DENIED: " + error.message;
+                errorMsg.style.display = 'block';
+                loginBtn.innerText = 'Initialize Session';
+                loginBtn.style.opacity = '1';
+            } else {
+                // Access Granted -> Push to Hub
+                window.location.href = 'index.html';
+            }
+        } catch (err) {
+            errorMsg.innerText = "SYSTEM ERROR: " + err.message;
             errorMsg.style.display = 'block';
             loginBtn.innerText = 'Initialize Session';
             loginBtn.style.opacity = '1';
-        } else {
-            // Access Granted -> Push to Hub
-            window.location.href = 'index.html';
         }
     });
 </script>
