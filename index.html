@@ -5,85 +5,25 @@
     <title>Needful Thingz Enterprise</title>
     <style>
         /* --- BRANDING & LOGO --- */
-        .logo-container {
-            text-align: center;
-            margin: -20px -20px 20px -20px;
-            background: #ffffff;
-            border-radius: 20px 20px 0 0;
-            padding: 15px 0;
-            border-bottom: 3px solid #006fba;
-        }
-        .logo-img {
-            max-width: 85%;
-            height: auto;
-            display: block;
-            margin: 0 auto;
-        }
+        .logo-container { text-align: center; margin: -20px -20px 20px -20px; background: #ffffff; border-radius: 20px 20px 0 0; padding: 15px 0; border-bottom: 3px solid #006fba; }
+        .logo-img { max-width: 85%; height: auto; display: block; margin: 0 auto; }
 
         /* --- LAYOUT --- */
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background: #1a202c; 
-            margin: 0; 
-            padding: 10px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            gap: 20px; 
-        }
-        .card { 
-            background: white; 
-            padding: 20px; 
-            border-radius: 20px; 
-            width: 100%; 
-            max-width: 450px; 
-            min-height: 600px; 
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); 
-            box-sizing: border-box;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); box-sizing: border-box; }
         
         /* --- MENU GRID --- */
         .trade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 10px; }
         
-        .trade-box { 
-            background: #f7fafc; 
-            border: 2px solid #e2e8f0; 
-            padding: 20px; 
-            border-radius: 12px; 
-            text-align: center; 
-            text-decoration: none; 
-            color: #2d3748;
-            display: block; 
-            transition: 0.2s; 
-        }
+        .trade-box { background: #f7fafc; border: 2px solid #e2e8f0; padding: 20px; border-radius: 12px; text-align: center; text-decoration: none; color: #2d3748; display: block; transition: 0.2s; }
         .trade-box:hover { border-color: #3182ce; background: #ebf8ff; transform: translateY(-2px); }
         .trade-icon { font-size: 35px; margin-bottom: 10px; display: block; }
         .trade-name { font-weight: 800; font-size: 13px; display: block; text-transform: uppercase; }
 
-        /* --- NEW ADMIN & COMPLIANCE GRID --- */
-        .admin-divider { 
-            text-align: center; 
-            font-size: 12px; 
-            font-weight: bold; 
-            color: #718096; 
-            text-transform: uppercase; 
-            margin: 15px 10px 10px 10px; 
-            letter-spacing: 1px; 
-            border-bottom: 1px solid #e2e8f0; 
-            padding-bottom: 5px; 
-        }
+        /* --- ADMIN & COMPLIANCE GRID --- */
+        .admin-divider { text-align: center; font-size: 12px; font-weight: bold; color: #718096; text-transform: uppercase; margin: 15px 10px 10px 10px; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
         .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 10px 10px 10px; }
-        .admin-box { 
-            background: #f7fafc; 
-            border: 2px solid #e2e8f0; 
-            padding: 15px; 
-            border-radius: 12px; 
-            text-align: center; 
-            text-decoration: none; 
-            color: #2d3748; 
-            display: block; 
-            transition: 0.2s; 
-        }
+        .admin-box { background: #f7fafc; border: 2px solid #e2e8f0; padding: 15px; border-radius: 12px; text-align: center; text-decoration: none; color: #2d3748; display: block; transition: 0.2s; }
         .admin-box:hover { transform: translateY(-2px); }
         
         /* Specific Button Themes */
@@ -99,9 +39,12 @@
         .box-licenses { border-color: #b794f4; background: #faf5ff; }
         .box-licenses:hover { border-color: #805ad5; background: #e9d8fd; }
 
-        /* LEDGER CSS ADDED HERE */
-        .box-ledger { border-color: #38a169; background: #f0fff4; grid-column: span 2; }
+        .box-ledger { border-color: #38a169; background: #f0fff4; }
         .box-ledger:hover { border-color: #276749; background: #c6f6d5; }
+
+        /* NEW SETTINGS BUTTON */
+        .box-settings { border-color: #805ad5; background: #faf5ff; }
+        .box-settings:hover { border-color: #553c9a; background: #e9d8fd; }
 
         .footer { text-align: center; font-size: 11px; color: #a0aec0; margin-top: 20px; }
     </style>
@@ -114,77 +57,46 @@
     </div>
 
     <div class="trade-grid">
-        <a href="hvac-logic.html" class="trade-box">
-            <span class="trade-icon">❄️</span>
-            <span class="trade-name">HVAC</span>
-        </a>
-
-        <a href="electric-logic.html" class="trade-box">
-            <span class="trade-icon">⚡</span>
-            <span class="trade-name">Electrical</span>
-        </a>
-
-        <a href="plumbing-logic.html" class="trade-box">
-            <span class="trade-icon">🚰</span>
-            <span class="trade-name">Plumbing</span>
-        </a>
-
-        <a href="kitchen-logic.html" class="trade-box">
-            <span class="trade-icon">🧊</span>
-            <span class="trade-name">Kitchen</span>
-        </a>
-
-        <a href="solar-logic.html" class="trade-box">
-            <span class="trade-icon">☀️</span>
-            <span class="trade-name">Solar</span>
-        </a>
-
-        <a href="smarthome-logic.html" class="trade-box">
-            <span class="trade-icon">🏠</span>
-            <span class="trade-name">Smart Home</span>
-        </a>
-        
-        <a href="gc-logic.html" class="trade-box">
-            <span class="trade-icon">🔨</span>
-            <span class="trade-name">General</span>
-        </a>
-
-        <a href="land-logic.html" class="trade-box">
-            <span class="trade-icon">🌳</span>
-            <span class="trade-name">Landscape</span>
-        </a>
+        <a href="hvac-logic.html" class="trade-box"><span class="trade-icon">❄️</span><span class="trade-name">HVAC</span></a>
+        <a href="electric-logic.html" class="trade-box"><span class="trade-icon">⚡</span><span class="trade-name">Electrical</span></a>
+        <a href="plumbing-logic.html" class="trade-box"><span class="trade-icon">🚰</span><span class="trade-name">Plumbing</span></a>
+        <a href="kitchen-logic.html" class="trade-box"><span class="trade-icon">🧊</span><span class="trade-name">Kitchen</span></a>
+        <a href="solar-logic.html" class="trade-box"><span class="trade-icon">☀️</span><span class="trade-name">Solar</span></a>
+        <a href="smarthome-logic.html" class="trade-box"><span class="trade-icon">🏠</span><span class="trade-name">Smart Home</span></a>
+        <a href="gc-logic.html" class="trade-box"><span class="trade-icon">🔨</span><span class="trade-name">General</span></a>
+        <a href="land-logic.html" class="trade-box"><span class="trade-icon">🌳</span><span class="trade-name">Landscape</span></a>
     </div>
 
     <div class="admin-divider">Field & Enterprise Management</div>
     <div class="admin-grid">
         
         <a href="office-portal.html" class="admin-box box-office">
-            <span class="trade-icon">🏢</span>
-            <span class="trade-name">Office Portal</span>
+            <span class="trade-icon">🏢</span><span class="trade-name">Office Portal</span>
         </a>
 
         <a href="tech-invoice.html" class="admin-box box-invoice">
-            <span class="trade-icon">💵</span>
-            <span class="trade-name">Field Invoice</span>
+            <span class="trade-icon">💵</span><span class="trade-name">Field Invoice</span>
             <span style="display:block; font-size:9px; color:#2f855a; margin-top:4px;">(Billing & Closeout)</span>
         </a>
 
         <a href="kill-clipboard.html" class="admin-box box-clipboard">
-            <span class="trade-icon">📎</span>
-            <span class="trade-name" style="font-size: 11px;">Kill The Clipboard</span>
+            <span class="trade-icon">📎</span><span class="trade-name" style="font-size: 11px;">Kill The Clipboard</span>
             <span style="display:block; font-size:9px; color:#c53030; margin-top:4px;">(W-9 / Insurance)</span>
         </a>
 
         <a href="kill-clipboard.html" class="admin-box box-licenses">
-            <span class="trade-icon">📜</span>
-            <span class="trade-name">Master Licenses</span>
+            <span class="trade-icon">📜</span><span class="trade-name">Master Licenses</span>
             <span style="display:block; font-size:9px; color:#553c9a; margin-top:4px;">(State & Local Certs)</span>
         </a>
 
         <a href="company-ledger.html" class="admin-box box-ledger">
-            <span class="trade-icon">📊</span>
-            <span class="trade-name">Company Ledger</span>
-            <span style="display:block; font-size:9px; color:#276749; margin-top:4px;">(Archived Financials & Audits)</span>
+            <span class="trade-icon">📊</span><span class="trade-name">Company Ledger</span>
+            <span style="display:block; font-size:9px; color:#276749; margin-top:4px;">(Archived Financials)</span>
+        </a>
+
+        <a href="enterprise-settings.html" class="admin-box box-settings">
+            <span class="trade-icon">⚙️</span><span class="trade-name">Settings</span>
+            <span style="display:block; font-size:9px; color:#6b46c1; margin-top:4px;">(Security & Config)</span>
         </a>
 
     </div>
@@ -198,27 +110,13 @@
 <section style="background-color: #f4f4f4; padding: 40px 20px; border-top: 4px solid #0056b3; width: 100%; max-width: 800px; border-radius: 8px; box-sizing: border-box;">
     <div style="margin: 0 auto; font-family: Arial, sans-serif;">
         <h2 style="color: #333; text-transform: uppercase; letter-spacing: 1px;">From The Field, For The Field</h2>
-        
         <h3 style="color: #0056b3; margin-top: 10px;">W. Dalton Smith</h3>
         <p style="font-style: italic; color: #666;">Solution Architect | HVAC Systems Specialist</p>
-        
         <hr style="border: 0; height: 1px; background: #ccc; margin: 20px 0;">
-
-        <p style="line-height: 1.6; color: #444;">
-            I spent over 10 years in the field. I know exactly what it feels like to be on a roof at 2:00 PM in July trying to read smeared ink on a battered clipboard, or calling the office for the third time because a customer's service history wasn't logged correctly. 
-        </p>
-
-        <p style="line-height: 1.6; color: #444;">
-            The real bottleneck in the trades isn't turning wrenches—it's the massive amount of <strong>Operational Drag</strong>. Lost paperwork, missing licenses, and messy billing slow technicians down and cost the business money.
-        </p>
-
-        <p style="line-height: 1.6; color: #444;">
-            I built <strong>Needful Thingz Enterprise</strong> to solve this. Our mandate is simple: <strong>Kill The Clipboard.</strong> We digitize compliance, automate field math, streamline dispatch, and organize the entire company portfolio so you can get the administrative BS out of the way and focus on the job.
-        </p>
-        
-        <p style="font-weight: bold; color: #0056b3; margin-top: 20px;">
-            We don't just fix machines; we engineer the operations that keep the company moving.
-        </p>
+        <p style="line-height: 1.6; color: #444;">I spent over 10 years in the field. I know exactly what it feels like to be on a roof at 2:00 PM in July trying to read smeared ink on a battered clipboard, or calling the office for the third time because a customer's service history wasn't logged correctly.</p>
+        <p style="line-height: 1.6; color: #444;">The real bottleneck in the trades isn't turning wrenches—it's the massive amount of <strong>Operational Drag</strong>. Lost paperwork, missing licenses, and messy billing slow technicians down and cost the business money.</p>
+        <p style="line-height: 1.6; color: #444;">I built <strong>Needful Thingz Enterprise</strong> to solve this. Our mandate is simple: <strong>Kill The Clipboard.</strong> We digitize compliance, automate field math, streamline dispatch, and organize the entire company portfolio so you can get the administrative BS out of the way and focus on the job.</p>
+        <p style="font-weight: bold; color: #0056b3; margin-top: 20px;">We don't just fix machines; we engineer the operations that keep the company moving.</p>
     </div>
 </section>
 
@@ -242,21 +140,14 @@
 
     async function enforceSecurity() {
         try {
-            console.log("1. Security guard waking up...");
             const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            
-            console.log("2. Checking database for ID badge...");
             const { data, error } = await supabaseClient.auth.getSession();
             
             if (error || !data.session) {
-                console.log("3. No badge found! Kicking user out...");
-                window.location.href = 'login.html'; // Force redirect
-            } else {
-                console.log("3. Badge found. Access granted.");
+                window.location.href = 'login.html'; 
             }
         } catch (err) {
             console.error("CRITICAL ERROR IN SECURITY SYSTEM:", err);
-            // If the script crashes for ANY reason, lock the doors anyway.
             window.location.href = 'login.html'; 
         }
     }
