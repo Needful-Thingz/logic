@@ -105,7 +105,7 @@
         }
         .submit-btn:hover { background: #0056b3; }
 
-        /* --- ACTIVE TICKETS --- */
+        /* --- TICKETS --- */
         .ticket-card {
             background: white;
             border-left: 4px solid #c53030;
@@ -116,6 +116,8 @@
         }
         .ticket-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; color: #2d3748; }
         .ticket-sub { font-size: 12px; color: #718096; margin-top: 4px; line-height: 1.4; }
+        
+        .money-badge { background: #c6f6d5; color: #276749; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
 
         /* --- DOCUMENT ADMIN --- */
         .doc-admin-card {
@@ -129,16 +131,7 @@
         }
         .doc-admin-card:hover { border-color: #3182ce; background: #ebf8ff; }
         .doc-title { font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px; }
-        .upload-btn {
-            background: #edf2f7;
-            border: 1px solid #cbd5e0;
-            padding: 5px 10px;
-            font-size: 11px;
-            border-radius: 4px;
-            cursor: pointer;
-            color: #4a5568;
-            font-weight: bold;
-        }
+        .upload-btn { background: #edf2f7; border: 1px solid #cbd5e0; padding: 5px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; color: #4a5568; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -194,7 +187,7 @@
 
                 <div class="form-group">
                     <label>Reported Symptom / Failure</label>
-                    <textarea id="symptom" rows="3" required placeholder="Customer states unit is blowing warm air and making a buzzing sound outside..."></textarea>
+                    <textarea id="symptom" rows="3" required placeholder="Customer states unit is blowing warm air..."></textarea>
                 </div>
 
                 <button type="submit" class="submit-btn" id="submitBtn">Dispatch to Tech</button>
@@ -204,17 +197,22 @@
         <div>
             <div class="panel" style="margin-bottom: 20px;">
                 <h2 class="panel-title">Active Field Tickets</h2>
-                
                 <div id="ticketFeed">
                     <div style="text-align:center; color:#718096; font-size:12px;">Loading board...</div>
                 </div>
+            </div>
 
+            <div class="panel" style="margin-bottom: 20px;">
+                <h2 class="panel-title">Ready for Billing</h2>
+                <div id="billingFeed">
+                    <div style="text-align:center; color:#718096; font-size:12px;">Checking for completed jobs...</div>
+                </div>
             </div>
 
             <div class="panel">
                 <h2 class="panel-title">Compliance Document Admin</h2>
                 <p style="font-size: 11px; color: #718096; margin-top: -10px; margin-bottom: 15px;">
-                    Documents updated here sync automatically to the Tech's "Kill The Clipboard" field app.
+                    Documents updated here sync automatically to the field apps.
                 </p>
 
                 <div class="doc-admin-card">
@@ -248,52 +246,76 @@
         if (error || !session) {
             window.location.href = 'login.html'; 
         } else {
-            loadTickets(); // User is valid, load the board!
+            loadTickets(); 
         }
     }
     enforceSecurity();
 
-    // 2. FETCH DATA: Pull active tickets to the right-side board
+    // 2. FETCH DATA: Pull tickets from the vault
     async function loadTickets() {
-        const feed = document.getElementById('ticketFeed');
-        
-        const { data: tickets, error } = await supabaseClient
+        // --- A. GET OPEN TICKETS ---
+        const activeFeed = document.getElementById('ticketFeed');
+        const { data: openTickets, error: openError } = await supabaseClient
             .from('dispatch_tickets')
             .select('*')
+            .eq('status', 'open') // ONLY FETCH ACTIVE ONES
             .order('created_at', { ascending: false });
 
-        if (error) {
-            feed.innerHTML = `<div style="color:red; font-size:12px;">Error: ${error.message}</div>`;
-            return;
+        if (openError) {
+            activeFeed.innerHTML = `<div style="color:red; font-size:12px;">Error: ${openError.message}</div>`;
+        } else if (openTickets.length === 0) {
+            activeFeed.innerHTML = `<div style="text-align:center; color:#718096; font-size:12px; font-style:italic;">Board is clear.</div>`;
+        } else {
+            activeFeed.innerHTML = '';
+            openTickets.forEach(ticket => {
+                let color = '#c53030'; 
+                if (ticket.system_type.includes('Heat Pump')) color = '#dd6b20'; 
+                if (ticket.system_type.includes('Package')) color = '#3182ce'; 
+
+                activeFeed.innerHTML += `
+                    <div class="ticket-card" style="border-color: ${color};">
+                        <div class="ticket-header">
+                            <span>${ticket.customer_name}</span> 
+                            <span style="color:${color}; font-size:11px; text-transform:uppercase;">${ticket.system_type}</span>
+                        </div>
+                        <div class="ticket-sub">
+                            <strong>📍 ${ticket.address}</strong><br>
+                            <strong>Issue:</strong> ${ticket.symptom}
+                        </div>
+                    </div>
+                `;
+            });
         }
 
-        if (tickets.length === 0) {
-            feed.innerHTML = `<div style="text-align:center; color:#718096; font-size:12px; font-style:italic;">Board is clear. No active tickets.</div>`;
-            return;
+        // --- B. GET COMPLETED TICKETS (READY FOR BILLING) ---
+        const billingFeed = document.getElementById('billingFeed');
+        const { data: closedTickets, error: closedError } = await supabaseClient
+            .from('dispatch_tickets')
+            .select('*')
+            .eq('status', 'completed') // ONLY FETCH CLOSED ONES
+            .order('created_at', { ascending: false });
+
+        if (closedError) {
+            billingFeed.innerHTML = `<div style="color:red; font-size:12px;">Error: ${closedError.message}</div>`;
+        } else if (closedTickets.length === 0) {
+            billingFeed.innerHTML = `<div style="text-align:center; color:#718096; font-size:12px; font-style:italic;">No billing pending.</div>`;
+        } else {
+            billingFeed.innerHTML = '';
+            closedTickets.forEach(ticket => {
+                billingFeed.innerHTML += `
+                    <div class="ticket-card" style="border-color: #38a169; background: #f0fff4;">
+                        <div class="ticket-header">
+                            <span>${ticket.customer_name}</span> 
+                            <span class="money-badge">$${parseFloat(ticket.total_price).toFixed(2)}</span>
+                        </div>
+                        <div class="ticket-sub" style="color: #2f855a;">
+                            <strong>Labor:</strong> ${ticket.labor_hours} hrs | <strong>Parts:</strong> ${ticket.materials_used || 'None'}<br>
+                            <strong>Notes:</strong> ${ticket.tech_notes}
+                        </div>
+                    </div>
+                `;
+            });
         }
-
-        // Draw tickets using your exact CSS styling!
-        feed.innerHTML = '';
-        tickets.forEach(ticket => {
-            // Pick a color based on system type
-            let color = '#c53030'; // Default red
-            if (ticket.system_type.includes('Heat Pump')) color = '#dd6b20'; // Orange
-            if (ticket.system_type.includes('Package')) color = '#3182ce'; // Blue
-
-            feed.innerHTML += `
-                <div class="ticket-card" style="border-color: ${color};">
-                    <div class="ticket-header">
-                        <span>${ticket.customer_name}</span> 
-                        <span style="color:${color}; font-size:11px; text-transform:uppercase;">${ticket.system_type}</span>
-                    </div>
-                    <div class="ticket-sub">
-                        <strong>📍 ${ticket.address}</strong><br>
-                        <strong>Issue:</strong> ${ticket.symptom}<br>
-                        <strong>Equip:</strong> ${ticket.manufacturer || 'N/A'} | ${ticket.tonnage || 'N/A'} | Age: ${ticket.system_age || 'N/A'}
-                    </div>
-                </div>
-            `;
-        });
     }
 
     // 3. PUSH DATA: Send form to Database
@@ -304,7 +326,6 @@
         btn.innerText = 'TRANSMITTING...';
         btn.style.opacity = '0.7';
 
-        // Gather all inputs
         const newTicket = {
             customer_name: document.getElementById('customer_name').value,
             address: document.getElementById('address').value,
@@ -312,18 +333,17 @@
             tonnage: document.getElementById('tonnage').value,
             manufacturer: document.getElementById('manufacturer').value,
             system_age: document.getElementById('system_age').value,
-            symptom: document.getElementById('symptom').value
+            symptom: document.getElementById('symptom').value,
+            status: 'open' // Explicitly set it as open
         };
 
-        const { error } = await supabaseClient
-            .from('dispatch_tickets')
-            .insert([newTicket]);
+        const { error } = await supabaseClient.from('dispatch_tickets').insert([newTicket]);
 
         if (error) {
             alert("DISPATCH FAILED: " + error.message);
         } else {
             document.getElementById('dispatchForm').reset();
-            loadTickets(); // Instantly refresh the right-side board
+            loadTickets(); 
         }
         
         btn.innerText = 'DISPATCH TO TECH';
