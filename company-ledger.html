@@ -37,7 +37,9 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background: #edf2f7; color: #4a5568; font-size: 12px; text-transform: uppercase; padding: 12px 15px; text-align: left; border-bottom: 2px solid #cbd5e0; }
         td { padding: 15px; border-bottom: 1px solid #e2e8f0; color: #2d3748; font-size: 14px; }
-        tr:hover { background: #f7fafc; }
+        
+        tr.clickable-row { cursor: pointer; transition: 0.2s; }
+        tr.clickable-row:hover { background: #ebf8ff; } 
         
         .badge { font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; }
         .badge-hvac { background: #fed7d7; color: #c53030; }
@@ -47,8 +49,21 @@
 
         .price-cell { font-weight: bold; color: #276749; font-size: 15px; }
         .notes-cell { font-size: 12px; color: #718096; max-width: 250px; line-height: 1.4; }
-        
         .empty-state { text-align: center; padding: 40px; color: #a0aec0; font-size: 16px; font-style: italic; }
+
+        /* --- MODAL (POP-UP) STYLING --- */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px rgba(0,0,0,0.2); }
+        .modal-header { font-size: 18px; font-weight: bold; color: #2d3748; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 12px; font-weight: bold; color: #4a5568; margin-bottom: 5px; text-transform: uppercase; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-save { background: #38a169; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; flex: 1; cursor: pointer; }
+        .btn-close { background: #e2e8f0; color: #4a5568; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -75,7 +90,7 @@
     </div>
 
     <div class="search-container">
-        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by Customer Name or Address... (A-Z)">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by Customer Name or Address... (Admin PIN Required to Edit)">
     </div>
 
     <div class="table-wrapper">
@@ -97,12 +112,49 @@
     </div>
 </div>
 
+<div id="editModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header" id="modalCustomerName">Edit Archived Invoice</div>
+        
+        <div class="form-group">
+            <label>Tech Notes (Audited)</label>
+            <textarea id="edit_notes" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Parts & Materials Billed</label>
+            <textarea id="edit_materials" rows="2"></textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Labor Hours</label>
+                <input type="number" id="edit_labor" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>Total Price ($)</label>
+                <input type="number" id="edit_price" step="0.01" style="font-weight:bold; color:#276749;">
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-save" onclick="saveInvoiceChanges()">Save Permanent Updates</button>
+            <button class="btn-close" onclick="closeEditModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const SUPABASE_URL = 'https://zndgwxlnwftschvwwvob.supabase.co'; 
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let masterLedgerData = []; // Store the data globally so we can search it instantly
+    // ==========================================
+    // 🔐 YOUR MASTER ADMIN PIN IS RIGHT HERE
+    // Change "7777" to whatever secret PIN you want
+    // ==========================================
+    const MASTER_ADMIN_PIN = "7777"; 
+
+    let masterLedgerData = []; 
+    let currentlyEditingId = null;
 
     // 1. SECURITY BOUNCER
     async function enforceSecurity() {
@@ -112,21 +164,20 @@
     }
     enforceSecurity();
 
-    // 2. FETCH ARCHIVED DATA (ALPHABETICAL)
+    // 2. FETCH ARCHIVED DATA
     async function loadLedger() {
-        // Fetch ONLY archived tickets, and order them by Customer Name (A-Z)
         const { data, error } = await supabaseClient
             .from('dispatch_tickets')
             .select('*')
             .eq('status', 'archived')
-            .order('customer_name', { ascending: true }); // <--- ALPHABETICAL SORTING MAGIC
+            .order('customer_name', { ascending: true });
 
         if (error) {
-            document.getElementById('ledgerBody').innerHTML = `<tr><td colspan="6" class="empty-state" style="color:red;">Error loading ledger: ${error.message}</td></tr>`;
+            document.getElementById('ledgerBody').innerHTML = `<tr><td colspan="6" class="empty-state" style="color:red;">Error: ${error.message}</td></tr>`;
             return;
         }
 
-        masterLedgerData = data; // Save to global memory
+        masterLedgerData = data; 
         renderTable(masterLedgerData);
         updateDashboard(masterLedgerData);
     }
@@ -142,7 +193,6 @@
 
         tbody.innerHTML = '';
         tickets.forEach(ticket => {
-            // Assign badge colors based on trade
             let badgeClass = 'badge-general';
             if (ticket.system_type.toLowerCase().includes('ac') || ticket.system_type.toLowerCase().includes('heat') || ticket.system_type.toLowerCase().includes('split')) badgeClass = 'badge-hvac';
             if (ticket.system_type.toLowerCase().includes('plumb')) badgeClass = 'badge-plumb';
@@ -151,7 +201,7 @@
             const formattedPrice = parseFloat(ticket.total_price || 0).toFixed(2);
 
             tbody.innerHTML += `
-                <tr>
+                <tr class="clickable-row" onclick="openEditModal('${ticket.id}')" title="Click to Edit (Requires PIN)">
                     <td style="font-weight:bold;">${ticket.customer_name}</td>
                     <td>${ticket.address}</td>
                     <td><span class="badge ${badgeClass}">${ticket.system_type}</span></td>
@@ -166,11 +216,7 @@
     // 4. UPDATE REVENUE DASHBOARD
     function updateDashboard(tickets) {
         let totalRevenue = 0;
-        
-        tickets.forEach(ticket => {
-            totalRevenue += parseFloat(ticket.total_price || 0);
-        });
-
+        tickets.forEach(ticket => { totalRevenue += parseFloat(ticket.total_price || 0); });
         const jobCount = tickets.length;
         const avgTicket = jobCount > 0 ? (totalRevenue / jobCount) : 0;
 
@@ -182,17 +228,58 @@
     // 5. INSTANT SEARCH LOGIC
     document.getElementById('searchInput').addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
-        
-        // Filter the master list
         const filteredData = masterLedgerData.filter(ticket => {
-            const nameMatch = ticket.customer_name && ticket.customer_name.toLowerCase().includes(searchTerm);
-            const addressMatch = ticket.address && ticket.address.toLowerCase().includes(searchTerm);
-            return nameMatch || addressMatch;
+            return (ticket.customer_name && ticket.customer_name.toLowerCase().includes(searchTerm)) || 
+                   (ticket.address && ticket.address.toLowerCase().includes(searchTerm));
         });
-
-        // Re-draw the table with only the matches
         renderTable(filteredData);
     });
+
+    // ==========================================
+    // 🛡️ MODAL AUDIT LOGIC (WITH PIN SECURITY)
+    // ==========================================
+    function openEditModal(ticketId) {
+        // --- SECURITY CHECK TRIGGERED ---
+        const userPin = prompt("🔐 ADMIN ACCESS REQUIRED\n\nPlease enter the Master PIN to modify financial archives:");
+        
+        if (userPin !== MASTER_ADMIN_PIN) {
+            alert("❌ ACCESS DENIED: Incorrect PIN.");
+            return; // Stops the code dead right here. The modal will not open.
+        }
+        // ---------------------------------
+
+        currentlyEditingId = ticketId;
+        const ticket = masterLedgerData.find(t => t.id === ticketId);
+        
+        document.getElementById('modalCustomerName').innerText = "Edit Record: " + ticket.customer_name;
+        document.getElementById('edit_notes').value = ticket.tech_notes || '';
+        document.getElementById('edit_materials').value = ticket.materials_used || '';
+        document.getElementById('edit_labor').value = ticket.labor_hours || '';
+        document.getElementById('edit_price').value = ticket.total_price || '';
+
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+        currentlyEditingId = null;
+    }
+
+    async function saveInvoiceChanges() {
+        if(!currentlyEditingId) return;
+
+        const updatedData = {
+            tech_notes: document.getElementById('edit_notes').value,
+            materials_used: document.getElementById('edit_materials').value,
+            labor_hours: document.getElementById('edit_labor').value,
+            total_price: document.getElementById('edit_price').value
+        };
+
+        await supabaseClient.from('dispatch_tickets').update(updatedData).eq('id', currentlyEditingId);
+        
+        closeEditModal();
+        loadLedger(); 
+    }
 </script>
 
 </body>
