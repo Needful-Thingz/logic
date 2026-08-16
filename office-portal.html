@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Office Portal | Needful Thingz</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         /* --- CORE LAYOUT & THEMING --- */
         body { 
@@ -112,9 +115,9 @@
             margin-bottom: 10px;
         }
         .ticket-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; color: #2d3748; }
-        .ticket-sub { font-size: 12px; color: #718096; margin-top: 4px; }
+        .ticket-sub { font-size: 12px; color: #718096; margin-top: 4px; line-height: 1.4; }
 
-        /* --- DOCUMENT ADMIN (Your Request) --- */
+        /* --- DOCUMENT ADMIN --- */
         .doc-admin-card {
             background: white;
             border: 1px dashed #a0aec0;
@@ -151,64 +154,61 @@
         <div class="panel">
             <h2 class="panel-title">Create Dispatch Ticket</h2>
             
-            <div class="form-group">
-                <label>Customer Name</label>
-                <input type="text" placeholder="e.g. John Doe">
-            </div>
-            
-            <div class="form-group">
-                <label>Service Address</label>
-                <input type="text" placeholder="1234 Main St, City, State">
-            </div>
-
-            <div class="form-row">
+            <form id="dispatchForm">
                 <div class="form-group">
-                    <label>System Type</label>
-                    <select>
-                        <option>AC / Furnace Split</option>
-                        <option>Heat Pump</option>
-                        <option>Mini-Split</option>
-                        <option>Package Unit</option>
-                    </select>
+                    <label>Customer Name</label>
+                    <input type="text" id="customer_name" required placeholder="e.g. John Doe">
                 </div>
+                
                 <div class="form-group">
-                    <label>Tonnage / Size</label>
-                    <input type="text" placeholder="e.g. 3.0 Ton">
+                    <label>Service Address</label>
+                    <input type="text" id="address" required placeholder="1234 Main St, City, State">
                 </div>
-            </div>
 
-            <div class="form-row">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>System Type</label>
+                        <select id="system_type">
+                            <option value="AC / Furnace Split">AC / Furnace Split</option>
+                            <option value="Heat Pump">Heat Pump</option>
+                            <option value="Mini-Split">Mini-Split</option>
+                            <option value="Package Unit">Package Unit</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tonnage / Size</label>
+                        <input type="text" id="tonnage" placeholder="e.g. 3.0 Ton">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Manufacturer</label>
+                        <input type="text" id="manufacturer" placeholder="e.g. Trane, Carrier">
+                    </div>
+                    <div class="form-group">
+                        <label>System Age</label>
+                        <input type="text" id="system_age" placeholder="e.g. 2018 (8 yrs)">
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label>Manufacturer</label>
-                    <input type="text" placeholder="e.g. Trane, Carrier">
+                    <label>Reported Symptom / Failure</label>
+                    <textarea id="symptom" rows="3" required placeholder="Customer states unit is blowing warm air and making a buzzing sound outside..."></textarea>
                 </div>
-                <div class="form-group">
-                    <label>System Age</label>
-                    <input type="text" placeholder="e.g. 2018 (8 yrs)">
-                </div>
-            </div>
 
-            <div class="form-group">
-                <label>Reported Symptom / Failure</label>
-                <textarea rows="3" placeholder="Customer states unit is blowing warm air and making a buzzing sound outside..."></textarea>
-            </div>
-
-            <button class="submit-btn" onclick="alert('Ticket successfully pushed to Technician Field App!')">Dispatch to Tech</button>
+                <button type="submit" class="submit-btn" id="submitBtn">Dispatch to Tech</button>
+            </form>
         </div>
 
         <div>
             <div class="panel" style="margin-bottom: 20px;">
                 <h2 class="panel-title">Active Field Tickets</h2>
                 
-                <div class="ticket-card">
-                    <div class="ticket-header"><span>Smith Residence</span> <span style="color:#c53030;">HVAC</span></div>
-                    <div class="ticket-sub">No Cool - Tech: Dalton S. (En Route)</div>
+                <div id="ticketFeed">
+                    <div style="text-align:center; color:#718096; font-size:12px;">Loading board...</div>
                 </div>
 
-                <div class="ticket-card" style="border-color: #3182ce;">
-                    <div class="ticket-header"><span>Johnson Commercial</span> <span style="color:#3182ce;">PLUMB</span></div>
-                    <div class="ticket-sub">Water Heater Leak - Tech: Mike T. (On Site)</div>
-                </div>
             </div>
 
             <div class="panel">
@@ -236,6 +236,100 @@
 
     </div>
 </div>
+
+<script>
+    const SUPABASE_URL = 'https://zndgwxlnwftschvwwvob.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // 1. SECURITY BOUNCER
+    async function enforceSecurity() {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error || !session) {
+            window.location.href = 'login.html'; 
+        } else {
+            loadTickets(); // User is valid, load the board!
+        }
+    }
+    enforceSecurity();
+
+    // 2. FETCH DATA: Pull active tickets to the right-side board
+    async function loadTickets() {
+        const feed = document.getElementById('ticketFeed');
+        
+        const { data: tickets, error } = await supabaseClient
+            .from('dispatch_tickets')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            feed.innerHTML = `<div style="color:red; font-size:12px;">Error: ${error.message}</div>`;
+            return;
+        }
+
+        if (tickets.length === 0) {
+            feed.innerHTML = `<div style="text-align:center; color:#718096; font-size:12px; font-style:italic;">Board is clear. No active tickets.</div>`;
+            return;
+        }
+
+        // Draw tickets using your exact CSS styling!
+        feed.innerHTML = '';
+        tickets.forEach(ticket => {
+            // Pick a color based on system type
+            let color = '#c53030'; // Default red
+            if (ticket.system_type.includes('Heat Pump')) color = '#dd6b20'; // Orange
+            if (ticket.system_type.includes('Package')) color = '#3182ce'; // Blue
+
+            feed.innerHTML += `
+                <div class="ticket-card" style="border-color: ${color};">
+                    <div class="ticket-header">
+                        <span>${ticket.customer_name}</span> 
+                        <span style="color:${color}; font-size:11px; text-transform:uppercase;">${ticket.system_type}</span>
+                    </div>
+                    <div class="ticket-sub">
+                        <strong>📍 ${ticket.address}</strong><br>
+                        <strong>Issue:</strong> ${ticket.symptom}<br>
+                        <strong>Equip:</strong> ${ticket.manufacturer || 'N/A'} | ${ticket.tonnage || 'N/A'} | Age: ${ticket.system_age || 'N/A'}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // 3. PUSH DATA: Send form to Database
+    document.getElementById('dispatchForm').addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        
+        const btn = document.getElementById('submitBtn');
+        btn.innerText = 'TRANSMITTING...';
+        btn.style.opacity = '0.7';
+
+        // Gather all inputs
+        const newTicket = {
+            customer_name: document.getElementById('customer_name').value,
+            address: document.getElementById('address').value,
+            system_type: document.getElementById('system_type').value,
+            tonnage: document.getElementById('tonnage').value,
+            manufacturer: document.getElementById('manufacturer').value,
+            system_age: document.getElementById('system_age').value,
+            symptom: document.getElementById('symptom').value
+        };
+
+        const { error } = await supabaseClient
+            .from('dispatch_tickets')
+            .insert([newTicket]);
+
+        if (error) {
+            alert("DISPATCH FAILED: " + error.message);
+        } else {
+            document.getElementById('dispatchForm').reset();
+            loadTickets(); // Instantly refresh the right-side board
+        }
+        
+        btn.innerText = 'DISPATCH TO TECH';
+        btn.style.opacity = '1';
+    });
+</script>
 
 </body>
 </html>
