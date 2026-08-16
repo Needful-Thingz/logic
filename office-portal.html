@@ -9,126 +9,52 @@
 
     <style>
         /* --- CORE LAYOUT & THEMING --- */
-        body { 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            background: #e2e8f0; 
-            margin: 0; 
-            padding: 20px; 
-            display: flex; 
-            justify-content: center;
-        }
-        .dashboard-container { 
-            background: #ffffff; 
-            width: 100%; 
-            max-width: 1000px; 
-            border-radius: 16px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
-            overflow: hidden; 
-        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #e2e8f0; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .dashboard-container { background: #ffffff; width: 100%; max-width: 1000px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; }
 
         /* --- HEADER --- */
-        .header { 
-            background: #2d3748; 
-            color: white; 
-            padding: 20px 30px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            border-bottom: 4px solid #006fba;
-        }
+        .header { background: #2d3748; color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #006fba; }
         .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
-        .back-btn { 
-            background: #4a5568; 
-            color: white; 
-            text-decoration: none; 
-            padding: 8px 15px; 
-            border-radius: 6px; 
-            font-size: 13px; 
-            font-weight: bold; 
-            transition: 0.2s;
-        }
+        .back-btn { background: #4a5568; color: white; text-decoration: none; padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: bold; transition: 0.2s; }
         .back-btn:hover { background: #718096; }
 
         /* --- GRID LAYOUT --- */
-        .grid-wrapper {
-            display: grid;
-            grid-template-columns: 1.5fr 1fr;
-            gap: 20px;
-            padding: 20px;
-        }
-        @media (max-width: 768px) {
-            .grid-wrapper { grid-template-columns: 1fr; }
-        }
+        .grid-wrapper { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; padding: 20px; }
+        @media (max-width: 768px) { .grid-wrapper { grid-template-columns: 1fr; } }
 
         /* --- PANEL STYLING --- */
-        .panel { 
-            background: #f7fafc; 
-            border: 1px solid #e2e8f0; 
-            border-radius: 10px; 
-            padding: 20px; 
-        }
-        .panel-title { 
-            font-size: 16px; 
-            color: #2d3748; 
-            font-weight: 800; 
-            text-transform: uppercase; 
-            border-bottom: 2px solid #cbd5e0; 
-            padding-bottom: 10px; 
-            margin-top: 0;
-            margin-bottom: 15px;
-        }
+        .panel { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; }
+        .panel-title { font-size: 16px; color: #2d3748; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #cbd5e0; padding-bottom: 10px; margin-top: 0; margin-bottom: 15px; }
 
         /* --- FORMS --- */
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-size: 12px; font-weight: bold; color: #4a5568; margin-bottom: 5px; text-transform: uppercase; }
-        .form-group input, .form-group select, .form-group textarea { 
-            width: 100%; 
-            padding: 10px; 
-            border: 1px solid #cbd5e0; 
-            border-radius: 6px; 
-            box-sizing: border-box;
-            font-family: inherit;
-        }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .submit-btn { 
-            background: #006fba; 
-            color: white; 
-            border: none; 
-            padding: 12px 20px; 
-            width: 100%; 
-            border-radius: 6px; 
-            font-size: 16px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.2s;
-            text-transform: uppercase;
-        }
+        .submit-btn { background: #006fba; color: white; border: none; padding: 12px 20px; width: 100%; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
         .submit-btn:hover { background: #0056b3; }
 
         /* --- TICKETS --- */
-        .ticket-card {
-            background: white;
-            border-left: 4px solid #c53030;
-            padding: 12px;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 10px;
-        }
+        .ticket-card { background: white; border-left: 4px solid #c53030; padding: 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; }
         .ticket-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; color: #2d3748; }
         .ticket-sub { font-size: 12px; color: #718096; margin-top: 4px; line-height: 1.4; }
         
-        .money-badge { background: #c6f6d5; color: #276749; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+        .billing-card { cursor: pointer; transition: 0.2s; border-color: #38a169; background: #f0fff4; }
+        .billing-card:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); border-color: #2f855a; }
+        .money-badge { background: #c6f6d5; color: #276749; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+
+        /* --- MODAL (POP-UP) STYLING --- */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 20px 25px rgba(0,0,0,0.2); }
+        .modal-header { font-size: 18px; font-weight: bold; color: #2d3748; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-save { background: #38a169; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; flex: 1; cursor: pointer; }
+        .btn-archive { background: #718096; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; flex: 1; cursor: pointer; }
+        .btn-close { background: #e2e8f0; color: #4a5568; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
         /* --- DOCUMENT ADMIN --- */
-        .doc-admin-card {
-            background: white;
-            border: 1px dashed #a0aec0;
-            padding: 15px;
-            border-radius: 6px;
-            text-align: center;
-            margin-bottom: 10px;
-            transition: 0.2s;
-        }
+        .doc-admin-card { background: white; border: 1px dashed #a0aec0; padding: 15px; border-radius: 6px; text-align: center; margin-bottom: 10px; transition: 0.2s; }
         .doc-admin-card:hover { border-color: #3182ce; background: #ebf8ff; }
         .doc-title { font-weight: bold; font-size: 13px; color: #2d3748; display: block; margin-bottom: 5px; }
         .upload-btn { background: #edf2f7; border: 1px solid #cbd5e0; padding: 5px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; color: #4a5568; font-weight: bold; }
@@ -148,48 +74,17 @@
             <h2 class="panel-title">Create Dispatch Ticket</h2>
             
             <form id="dispatchForm">
-                <div class="form-group">
-                    <label>Customer Name</label>
-                    <input type="text" id="customer_name" required placeholder="e.g. John Doe">
-                </div>
-                
-                <div class="form-group">
-                    <label>Service Address</label>
-                    <input type="text" id="address" required placeholder="1234 Main St, City, State">
-                </div>
-
+                <div class="form-group"><label>Customer Name</label><input type="text" id="customer_name" required placeholder="e.g. John Doe"></div>
+                <div class="form-group"><label>Service Address</label><input type="text" id="address" required placeholder="1234 Main St, City, State"></div>
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>System Type</label>
-                        <select id="system_type">
-                            <option value="AC / Furnace Split">AC / Furnace Split</option>
-                            <option value="Heat Pump">Heat Pump</option>
-                            <option value="Mini-Split">Mini-Split</option>
-                            <option value="Package Unit">Package Unit</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Tonnage / Size</label>
-                        <input type="text" id="tonnage" placeholder="e.g. 3.0 Ton">
-                    </div>
+                    <div class="form-group"><label>System Type</label><select id="system_type"><option>AC / Furnace Split</option><option>Heat Pump</option><option>Mini-Split</option><option>Package Unit</option></select></div>
+                    <div class="form-group"><label>Tonnage / Size</label><input type="text" id="tonnage" placeholder="e.g. 3.0 Ton"></div>
                 </div>
-
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>Manufacturer</label>
-                        <input type="text" id="manufacturer" placeholder="e.g. Trane, Carrier">
-                    </div>
-                    <div class="form-group">
-                        <label>System Age</label>
-                        <input type="text" id="system_age" placeholder="e.g. 2018 (8 yrs)">
-                    </div>
+                    <div class="form-group"><label>Manufacturer</label><input type="text" id="manufacturer" placeholder="e.g. Trane"></div>
+                    <div class="form-group"><label>System Age</label><input type="text" id="system_age" placeholder="e.g. 2018"></div>
                 </div>
-
-                <div class="form-group">
-                    <label>Reported Symptom / Failure</label>
-                    <textarea id="symptom" rows="3" required placeholder="Customer states unit is blowing warm air..."></textarea>
-                </div>
-
+                <div class="form-group"><label>Reported Symptom / Failure</label><textarea id="symptom" rows="3" required placeholder="Unit is blowing warm air..."></textarea></div>
                 <button type="submit" class="submit-btn" id="submitBtn">Dispatch to Tech</button>
             </form>
         </div>
@@ -197,41 +92,51 @@
         <div>
             <div class="panel" style="margin-bottom: 20px;">
                 <h2 class="panel-title">Active Field Tickets</h2>
-                <div id="ticketFeed">
-                    <div style="text-align:center; color:#718096; font-size:12px;">Loading board...</div>
-                </div>
+                <div id="ticketFeed"><div style="text-align:center; color:#718096; font-size:12px;">Loading board...</div></div>
             </div>
 
             <div class="panel" style="margin-bottom: 20px;">
-                <h2 class="panel-title">Ready for Billing</h2>
-                <div id="billingFeed">
-                    <div style="text-align:center; color:#718096; font-size:12px;">Checking for completed jobs...</div>
-                </div>
+                <h2 class="panel-title">Ready for Billing <span style="font-size:10px; color:#718096; text-transform:none;">(Click to Edit)</span></h2>
+                <div id="billingFeed"><div style="text-align:center; color:#718096; font-size:12px;">Checking for completed jobs...</div></div>
             </div>
 
             <div class="panel">
                 <h2 class="panel-title">Compliance Document Admin</h2>
-                <p style="font-size: 11px; color: #718096; margin-top: -10px; margin-bottom: 15px;">
-                    Documents updated here sync automatically to the field apps.
-                </p>
+                <div class="doc-admin-card"><span class="doc-title">Enterprise W-9 Form</span><button class="upload-btn">Replace File (PDF)</button></div>
+                <div class="doc-admin-card"><span class="doc-title">Certificate of Liability</span><button class="upload-btn">Replace File (PDF)</button></div>
+            </div>
+        </div>
+    </div>
+</div>
 
-                <div class="doc-admin-card">
-                    <span class="doc-title">Enterprise W-9 Form</span>
-                    <button class="upload-btn">Replace File (PDF)</button>
-                </div>
-
-                <div class="doc-admin-card">
-                    <span class="doc-title">Certificate of Liability (COI)</span>
-                    <button class="upload-btn">Replace File (PDF)</button>
-                </div>
-
-                <div class="doc-admin-card">
-                    <span class="doc-title">Master Trade Licenses</span>
-                    <button class="upload-btn">Replace File (PDF)</button>
-                </div>
+<div id="editModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header" id="modalCustomerName">Edit Invoice: John Doe</div>
+        
+        <div class="form-group">
+            <label>Tech Notes (Audited)</label>
+            <textarea id="edit_notes" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Parts & Materials Billed</label>
+            <textarea id="edit_materials" rows="2"></textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Labor Hours</label>
+                <input type="number" id="edit_labor" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>Total Price ($)</label>
+                <input type="number" id="edit_price" step="0.01" style="font-weight:bold; color:#276749;">
             </div>
         </div>
 
+        <div class="btn-group">
+            <button class="btn-save" onclick="saveInvoiceChanges()">Save Updates</button>
+            <button class="btn-archive" onclick="archiveInvoice()">Mark as Billed (Archive)</button>
+            <button class="btn-close" onclick="closeEditModal()">Cancel</button>
+        </div>
     </div>
 </div>
 
@@ -240,30 +145,24 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    let globalCompletedTickets = []; // Stores the data so the modal can read it
+    let currentlyEditingId = null;   // Remembers which ticket is open in the modal
+
     // 1. SECURITY BOUNCER
     async function enforceSecurity() {
         const { data: { session }, error } = await supabaseClient.auth.getSession();
-        if (error || !session) {
-            window.location.href = 'login.html'; 
-        } else {
-            loadTickets(); 
-        }
+        if (error || !session) window.location.href = 'login.html'; 
+        else loadTickets(); 
     }
     enforceSecurity();
 
-    // 2. FETCH DATA: Pull tickets from the vault
+    // 2. FETCH DATA
     async function loadTickets() {
         // --- A. GET OPEN TICKETS ---
         const activeFeed = document.getElementById('ticketFeed');
-        const { data: openTickets, error: openError } = await supabaseClient
-            .from('dispatch_tickets')
-            .select('*')
-            .eq('status', 'open') // ONLY FETCH ACTIVE ONES
-            .order('created_at', { ascending: false });
+        const { data: openTickets } = await supabaseClient.from('dispatch_tickets').select('*').eq('status', 'open').order('created_at', { ascending: false });
 
-        if (openError) {
-            activeFeed.innerHTML = `<div style="color:red; font-size:12px;">Error: ${openError.message}</div>`;
-        } else if (openTickets.length === 0) {
+        if (!openTickets || openTickets.length === 0) {
             activeFeed.innerHTML = `<div style="text-align:center; color:#718096; font-size:12px; font-style:italic;">Board is clear.</div>`;
         } else {
             activeFeed.innerHTML = '';
@@ -271,84 +170,113 @@
                 let color = '#c53030'; 
                 if (ticket.system_type.includes('Heat Pump')) color = '#dd6b20'; 
                 if (ticket.system_type.includes('Package')) color = '#3182ce'; 
-
                 activeFeed.innerHTML += `
                     <div class="ticket-card" style="border-color: ${color};">
-                        <div class="ticket-header">
-                            <span>${ticket.customer_name}</span> 
-                            <span style="color:${color}; font-size:11px; text-transform:uppercase;">${ticket.system_type}</span>
-                        </div>
-                        <div class="ticket-sub">
-                            <strong>📍 ${ticket.address}</strong><br>
-                            <strong>Issue:</strong> ${ticket.symptom}
-                        </div>
-                    </div>
-                `;
+                        <div class="ticket-header"><span>${ticket.customer_name}</span> <span style="color:${color}; font-size:11px; text-transform:uppercase;">${ticket.system_type}</span></div>
+                        <div class="ticket-sub"><strong>📍 ${ticket.address}</strong><br><strong>Issue:</strong> ${ticket.symptom}</div>
+                    </div>`;
             });
         }
 
         // --- B. GET COMPLETED TICKETS (READY FOR BILLING) ---
         const billingFeed = document.getElementById('billingFeed');
-        const { data: closedTickets, error: closedError } = await supabaseClient
-            .from('dispatch_tickets')
-            .select('*')
-            .eq('status', 'completed') // ONLY FETCH CLOSED ONES
-            .order('created_at', { ascending: false });
+        const { data: closedTickets } = await supabaseClient.from('dispatch_tickets').select('*').eq('status', 'completed').order('created_at', { ascending: false });
 
-        if (closedError) {
-            billingFeed.innerHTML = `<div style="color:red; font-size:12px;">Error: ${closedError.message}</div>`;
-        } else if (closedTickets.length === 0) {
+        if (!closedTickets || closedTickets.length === 0) {
             billingFeed.innerHTML = `<div style="text-align:center; color:#718096; font-size:12px; font-style:italic;">No billing pending.</div>`;
         } else {
+            globalCompletedTickets = closedTickets; // Save to global memory for the Modal
             billingFeed.innerHTML = '';
             closedTickets.forEach(ticket => {
+                // Notice the onclick function added to this card!
                 billingFeed.innerHTML += `
-                    <div class="ticket-card" style="border-color: #38a169; background: #f0fff4;">
+                    <div class="ticket-card billing-card" onclick="openEditModal('${ticket.id}')">
                         <div class="ticket-header">
                             <span>${ticket.customer_name}</span> 
-                            <span class="money-badge">$${parseFloat(ticket.total_price).toFixed(2)}</span>
+                            <span class="money-badge">$${parseFloat(ticket.total_price || 0).toFixed(2)}</span>
                         </div>
                         <div class="ticket-sub" style="color: #2f855a;">
                             <strong>Labor:</strong> ${ticket.labor_hours} hrs | <strong>Parts:</strong> ${ticket.materials_used || 'None'}<br>
                             <strong>Notes:</strong> ${ticket.tech_notes}
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
         }
     }
 
-    // 3. PUSH DATA: Send form to Database
+    // 3. PUSH NEW DISPATCH
     document.getElementById('dispatchForm').addEventListener('submit', async (e) => {
         e.preventDefault(); 
-        
         const btn = document.getElementById('submitBtn');
-        btn.innerText = 'TRANSMITTING...';
-        btn.style.opacity = '0.7';
+        btn.innerText = 'TRANSMITTING...'; btn.style.opacity = '0.7';
 
         const newTicket = {
-            customer_name: document.getElementById('customer_name').value,
-            address: document.getElementById('address').value,
-            system_type: document.getElementById('system_type').value,
-            tonnage: document.getElementById('tonnage').value,
-            manufacturer: document.getElementById('manufacturer').value,
-            system_age: document.getElementById('system_age').value,
-            symptom: document.getElementById('symptom').value,
-            status: 'open' // Explicitly set it as open
+            customer_name: document.getElementById('customer_name').value, address: document.getElementById('address').value,
+            system_type: document.getElementById('system_type').value, tonnage: document.getElementById('tonnage').value,
+            manufacturer: document.getElementById('manufacturer').value, system_age: document.getElementById('system_age').value,
+            symptom: document.getElementById('symptom').value, status: 'open'
         };
 
-        const { error } = await supabaseClient.from('dispatch_tickets').insert([newTicket]);
+        await supabaseClient.from('dispatch_tickets').insert([newTicket]);
+        document.getElementById('dispatchForm').reset();
+        loadTickets(); 
+        btn.innerText = 'DISPATCH TO TECH'; btn.style.opacity = '1';
+    });
 
-        if (error) {
-            alert("DISPATCH FAILED: " + error.message);
-        } else {
-            document.getElementById('dispatchForm').reset();
+    // ==========================================
+    // MODAL AUDIT LOGIC (NEW SECTION)
+    // ==========================================
+
+    function openEditModal(ticketId) {
+        currentlyEditingId = ticketId;
+        
+        // Find the specific ticket data from our global memory
+        const ticket = globalCompletedTickets.find(t => t.id === ticketId);
+        
+        // Fill the pop-up form with the Tech's data
+        document.getElementById('modalCustomerName').innerText = "Audit Invoice: " + ticket.customer_name;
+        document.getElementById('edit_notes').value = ticket.tech_notes || '';
+        document.getElementById('edit_materials').value = ticket.materials_used || '';
+        document.getElementById('edit_labor').value = ticket.labor_hours || '';
+        document.getElementById('edit_price').value = ticket.total_price || '';
+
+        // Show the Modal
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+        currentlyEditingId = null;
+    }
+
+    async function saveInvoiceChanges() {
+        if(!currentlyEditingId) return;
+
+        // Grab the corrected data from the modal
+        const updatedData = {
+            tech_notes: document.getElementById('edit_notes').value,
+            materials_used: document.getElementById('edit_materials').value,
+            labor_hours: document.getElementById('edit_labor').value,
+            total_price: document.getElementById('edit_price').value
+        };
+
+        // Push corrections to the vault
+        await supabaseClient.from('dispatch_tickets').update(updatedData).eq('id', currentlyEditingId);
+        
+        closeEditModal();
+        loadTickets(); // Refresh the board to show changes!
+    }
+
+    async function archiveInvoice() {
+        if(!currentlyEditingId) return;
+        
+        // Change status to 'archived' so it disappears from the billing board completely
+        if(confirm("Are you sure you want to mark this as billed and archive it?")) {
+            await supabaseClient.from('dispatch_tickets').update({ status: 'archived' }).eq('id', currentlyEditingId);
+            closeEditModal();
             loadTickets(); 
         }
-        
-        btn.innerText = 'DISPATCH TO TECH';
-        btn.style.opacity = '1';
-    });
+    }
 </script>
 
 </body>
