@@ -147,24 +147,38 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ==========================================
-    // 🔐 YOUR MASTER ADMIN PIN IS RIGHT HERE
-    // Change "7777" to whatever secret PIN you want
-    // ==========================================
-    const MASTER_ADMIN_PIN = "7777"; 
-
+    // Dynamic PIN Variable (No longer hardcoded!)
+    let MASTER_ADMIN_PIN = "7777"; // Temporary fallback
     let masterLedgerData = []; 
     let currentlyEditingId = null;
 
-    // 1. SECURITY BOUNCER
+    // 1. SECURITY BOUNCER & LOAD SETTINGS
     async function enforceSecurity() {
         const { data: { session }, error } = await supabaseClient.auth.getSession();
-        if (error || !session) window.location.href = 'login.html'; 
-        else loadLedger(); 
+        if (error || !session) {
+            window.location.href = 'login.html'; 
+        } else {
+            await fetchCompanySettings(); // <-- NEW: Fetch the PIN first!
+            loadLedger(); 
+        }
     }
     enforceSecurity();
 
-    // 2. FETCH ARCHIVED DATA
+    // 2. FETCH SETTINGS FROM DATABASE
+    async function fetchCompanySettings() {
+        const { data, error } = await supabaseClient
+            .from('company_settings')
+            .select('admin_pin')
+            .eq('id', 1) // Assuming Needful Thingz is Company ID #1
+            .single();
+
+        if (data && data.admin_pin) {
+            MASTER_ADMIN_PIN = data.admin_pin; // Override the fallback with the live PIN
+            console.log("Secure Vault PIN Loaded.");
+        }
+    }
+
+    // 3. FETCH ARCHIVED DATA
     async function loadLedger() {
         const { data, error } = await supabaseClient
             .from('dispatch_tickets')
@@ -182,7 +196,7 @@
         updateDashboard(masterLedgerData);
     }
 
-    // 3. RENDER THE TABLE
+    // 4. RENDER THE TABLE
     function renderTable(tickets) {
         const tbody = document.getElementById('ledgerBody');
         
@@ -213,7 +227,7 @@
         });
     }
 
-    // 4. UPDATE REVENUE DASHBOARD
+    // 5. UPDATE REVENUE DASHBOARD
     function updateDashboard(tickets) {
         let totalRevenue = 0;
         tickets.forEach(ticket => { totalRevenue += parseFloat(ticket.total_price || 0); });
@@ -225,7 +239,7 @@
         document.getElementById('avgTicket').innerText = "$" + avgTicket.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
-    // 5. INSTANT SEARCH LOGIC
+    // 6. INSTANT SEARCH LOGIC
     document.getElementById('searchInput').addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const filteredData = masterLedgerData.filter(ticket => {
@@ -236,17 +250,15 @@
     });
 
     // ==========================================
-    // 🛡️ MODAL AUDIT LOGIC (WITH PIN SECURITY)
+    // 🛡️ MODAL AUDIT LOGIC (WITH DATABASE PIN SECURITY)
     // ==========================================
     function openEditModal(ticketId) {
-        // --- SECURITY CHECK TRIGGERED ---
         const userPin = prompt("🔐 ADMIN ACCESS REQUIRED\n\nPlease enter the Master PIN to modify financial archives:");
         
         if (userPin !== MASTER_ADMIN_PIN) {
             alert("❌ ACCESS DENIED: Incorrect PIN.");
-            return; // Stops the code dead right here. The modal will not open.
+            return; 
         }
-        // ---------------------------------
 
         currentlyEditingId = ticketId;
         const ticket = masterLedgerData.find(t => t.id === ticketId);
