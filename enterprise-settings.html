@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Settings | Needful Thingz</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* --- CORE LAYOUT & THEMING --- */
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #e2e8f0; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .dashboard-container { background: #ffffff; width: 100%; max-width: 800px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; margin-bottom: 30px; }
+
+        /* --- HEADER --- */
+        .header { background: #1a202c; color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #805ad5; }
+        .header h1 { margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        .back-btn { background: #4a5568; color: white; text-decoration: none; padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: bold; transition: 0.2s; }
+        .back-btn:hover { background: #718096; }
+
+        /* --- SETTINGS PANELS --- */
+        .settings-wrapper { padding: 30px; }
+        .settings-section { background: #f7fafc; border: 1px solid #e2e8f0; padding: 25px; border-radius: 10px; margin-bottom: 25px; }
+        .section-title { font-size: 16px; color: #2d3748; font-weight: 800; text-transform: uppercase; border-bottom: 2px solid #cbd5e0; padding-bottom: 10px; margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+
+        /* --- FORMS --- */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 13px; font-weight: bold; color: #4a5568; margin-bottom: 8px; text-transform: uppercase; }
+        .form-group input { width: 100%; padding: 12px; border: 2px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-size: 16px; font-family: inherit; transition: 0.2s; }
+        .form-group input:focus { outline: none; border-color: #805ad5; background: #faf5ff; }
+        
+        .helper-text { font-size: 11px; color: #718096; margin-top: 5px; display: block; }
+
+        .btn-save { background: #805ad5; color: white; border: none; padding: 15px 20px; width: 100%; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-save:hover { background: #6b46c1; }
+
+        /* Loading / Success States */
+        #statusMessage { text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 15px; padding: 10px; border-radius: 6px; display: none; }
+        .status-success { background: #c6f6d5; color: #276749; border: 1px solid #9ae6b4; }
+        .status-error { background: #fed7d7; color: #c53030; border: 1px solid #feb2b2; }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <div class="header">
+        <h1>⚙️ Enterprise Settings</h1>
+        <a href="index.html" class="back-btn">← Back to Hub</a>
+    </div>
+
+    <div class="settings-wrapper">
+        <div id="statusMessage"></div>
+
+        <form id="settingsForm">
+            <div class="settings-section">
+                <h2 class="section-title">🏢 Company Profile</h2>
+                <div class="form-group">
+                    <label>Registered Company Name</label>
+                    <input type="text" id="company_name" required placeholder="Loading...">
+                    <span class="helper-text">This name will appear on official invoices and customer-facing documents.</span>
+                </div>
+            </div>
+
+            <div class="settings-section" style="border-color: #feb2b2; background: #fff5f5;">
+                <h2 class="section-title" style="color: #c53030; border-color: #fc8181;">🔐 Security & Access Control</h2>
+                <div class="form-group">
+                    <label style="color: #c53030;">Master Admin PIN</label>
+                    <input type="password" id="admin_pin" required placeholder="Loading..." maxlength="10">
+                    <span class="helper-text">Used to unlock the Company Ledger, edit archived financials, and change global settings. Keep this secure.</span>
+                </div>
+                
+                <div style="font-size: 12px; font-weight: bold; color: #4a5568; margin-top: -10px; cursor: pointer;" onclick="togglePinVisibility()">
+                    👁️ Show / Hide PIN
+                </div>
+            </div>
+
+            <button type="submit" class="btn-save" id="saveBtn">Save Global Settings</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // SUPABASE CONNECTION
+    // ==========================================
+    const SUPABASE_URL = 'https://zndgwxlnwftschvwwvob.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // 1. SECURITY BOUNCER
+    async function enforceSecurity() {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error || !session) {
+            window.location.href = 'login.html'; 
+        } else {
+            loadSettings(); // User is valid, pull the settings!
+        }
+    }
+    enforceSecurity();
+
+    // 2. FETCH CURRENT SETTINGS FROM VAULT
+    async function loadSettings() {
+        const { data, error } = await supabaseClient
+            .from('company_settings')
+            .select('*')
+            .eq('id', 1)
+            .single();
+
+        if (error) {
+            showStatus("Error loading settings: " + error.message, "error");
+        } else if (data) {
+            document.getElementById('company_name').value = data.company_name;
+            document.getElementById('admin_pin').value = data.admin_pin;
+        }
+    }
+
+    // 3. SAVE NEW SETTINGS TO VAULT
+    document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+        
+        const btn = document.getElementById('saveBtn');
+        btn.innerText = 'SAVING TO VAULT...';
+        btn.style.opacity = '0.7';
+
+        const updatedSettings = {
+            company_name: document.getElementById('company_name').value,
+            admin_pin: document.getElementById('admin_pin').value
+        };
+
+        // Push updates to Company ID #1
+        const { error } = await supabaseClient
+            .from('company_settings')
+            .update(updatedSettings)
+            .eq('id', 1);
+
+        if (error) {
+            showStatus("Failed to save: " + error.message, "error");
+        } else {
+            showStatus("✅ Enterprise settings successfully updated!", "success");
+        }
+        
+        btn.innerText = 'Save Global Settings';
+        btn.style.opacity = '1';
+    });
+
+    // UTILITY: Show/Hide PIN
+    function togglePinVisibility() {
+        const pinInput = document.getElementById('admin_pin');
+        if (pinInput.type === "password") {
+            pinInput.type = "text";
+        } else {
+            pinInput.type = "password";
+        }
+    }
+
+    // UTILITY: Show success/error messages
+    function showStatus(message, type) {
+        const statusDiv = document.getElementById('statusMessage');
+        statusDiv.innerText = message;
+        statusDiv.className = type === "success" ? "status-success" : "status-error";
+        statusDiv.style.display = "block";
+        
+        // Hide message after 4 seconds
+        setTimeout(() => { statusDiv.style.display = "none"; }, 4000);
+    }
+</script>
+
+</body>
+</html>
