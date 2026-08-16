@@ -1,3 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Needful Thingz Enterprise</title>
+    <style>
+        /* --- BRANDING & LOGO --- */
+        .logo-container {
+            text-align: center;
+            margin: -20px -20px 20px -20px;
+            background: #ffffff;
+            border-radius: 20px 20px 0 0;
+            padding: 15px 0;
+            border-bottom: 3px solid #006fba;
+        }
+        .logo-img {
+            max-width: 85%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* --- LAYOUT --- */
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #1a202c; 
+            margin: 0; 
+            padding: 10px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 20px; 
+        }
+        .card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 20px; 
+            width: 100%; 
+            max-width: 450px; 
+            min-height: 600px; 
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); 
+            box-sizing: border-box;
+        }
+        
+        /* --- MENU GRID --- */
+        .trade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 10px; }
+        
+        .trade-box { 
+            background: #f7fafc; 
+            border: 2px solid #e2e8f0; 
+            padding: 20px; 
+            border-radius: 12px; 
+            text-align: center; 
+            text-decoration: none; 
+            color: #2d3748;
+            display: block; 
+            transition: 0.2s; 
+        }
+        .trade-box:hover { border-color: #3182ce; background: #ebf8ff; transform: translateY(-2px); }
+        .trade-icon { font-size: 35px; margin-bottom: 10px; display: block; }
+        .trade-name { font-weight: 800; font-size: 13px; display: block; text-transform: uppercase; }
+
+        /* --- NEW ADMIN & COMPLIANCE GRID --- */
+        .admin-divider { 
+            text-align: center; 
+            font-size: 12px; 
+            font-weight: bold; 
+            color: #718096; 
+            text-transform: uppercase; 
+            margin: 15px 10px 10px 10px; 
+            letter-spacing: 1px; 
+            border-bottom: 1px solid #e2e8f0; 
+            padding-bottom: 5px; 
+        }
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 10px 10px 10px; }
+        .admin-box { 
+            background: #f7fafc; 
+            border: 2px solid #e2e8f0; 
+            padding: 15px; 
+            border-radius: 12px; 
+            text-align: center; 
+            text-decoration: none; 
+            color: #2d3748; 
+            display: block; 
+            transition: 0.2s; 
+        }
+        .admin-box:hover { transform: translateY(-2px); }
+        
+        /* Specific Button Themes */
+        .box-office { border-color: #e2e8f0; }
+        .box-office:hover { border-color: #4a5568; background: #edf2f7; }
+        
+        .box-invoice { border-color: #48bb78; background: #f0fff4; }
+        .box-invoice:hover { border-color: #2f855a; background: #c6f6d5; }
+
+        .box-clipboard { border-color: #fc8181; background: #fff5f5; }
+        .box-clipboard:hover { border-color: #e53e3e; background: #fed7d7; }
+
+        .box-licenses { border-color: #b794f4; background: #faf5ff; }
+        .box-licenses:hover { border-color: #805ad5; background: #e9d8fd; }
+
+        .footer { text-align: center; font-size: 11px; color: #a0aec0; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="logo-container">
+        <img src="nt-logo.png" alt="Needful Thingz Enterprise Field-Ops" class="logo-img">
+    </div>
+
+    <div class="trade-grid">
+        <a href="hvac-logic.html" class="trade-box">
+            <span class="trade-icon">❄️</span>
+            <span class="trade-name">HVAC</span>
+        </a>
+
+        <a href="electric-logic.html" class="trade-box">
+            <span class="trade-icon">⚡</span>
+            <span class="trade-name">Electrical</span>
+        </a>
+
+        <a href="plumbing-logic.html" class="trade-box">
+            <span class="trade-icon">🚰</span>
+            <span class="trade-name">Plumbing</span>
+        </a>
+
+        <a href="kitchen-logic.html" class="trade-box">
+            <span class="trade-icon">🧊</span>
+            <span class="trade-name">Kitchen</span>
+        </a>
+
+        <a href="solar-logic.html" class="trade-box">
+            <span class="trade-icon">☀️</span>
+            <span class="trade-name">Solar</span>
+        </a>
+
+        <a href="smarthome-logic.html" class="trade-box">
+            <span class="trade-icon">🏠</span>
+            <span class="trade-name">Smart Home</span>
+        </a>
+        
+        <a href="gc-logic.html" class="trade-box">
+            <span class="trade-icon">🔨</span>
+            <span class="trade-name">General</span>
+        </a>
+
+        <a href="land-logic.html" class="trade-box">
+            <span class="trade-icon">🌳</span>
+            <span class="trade-name">Landscape</span>
+        </a>
+    </div>
+
+    <div class="admin-divider">Field & Enterprise Management</div>
+    <div class="admin-grid">
+        
+        <a href="office-portal.html" class="admin-box box-office">
+            <span class="trade-icon">🏢</span>
+            <span class="trade-name">Office Portal</span>
+        </a>
+
+        <a href="tech-invoice.html" class="admin-box box-invoice">
+            <span class="trade-icon">💵</span>
+            <span class="trade-name">Field Invoice</span>
+            <span style="display:block; font-size:9px; color:#2f855a; margin-top:4px;">(Billing & Closeout)</span>
+        </a>
+
+        <a href="kill-clipboard.html" class="admin-box box-clipboard">
+            <span class="trade-icon">📎</span>
+            <span class="trade-name" style="font-size: 11px;">Kill The Clipboard</span>
+            <span style="display:block; font-size:9px; color:#c53030; margin-top:4px;">(W-9 / Insurance)</span>
+        </a>
+
+        <a href="kill-clipboard.html" class="admin-box box-licenses">
+            <span class="trade-icon">📜</span>
+            <span class="trade-name">Master Licenses</span>
+            <span style="display:block; font-size:9px; color:#553c9a; margin-top:4px;">(State & Local Certs)</span>
+        </a>
+
+    </div>
+
+    <div class="footer">
+        © 2026 Needful Thingz.<br>
+        <span style="color: #006fba;">Enterprise Field-Ops & Digital Portfolio System</span>
+    </div>
+</div>
+
+<section style="background-color: #f4f4f4; padding: 40px 20px; border-top: 4px solid #0056b3; width: 100%; max-width: 800px; border-radius: 8px; box-sizing: border-box;">
+    <div style="margin: 0 auto; font-family: Arial, sans-serif;">
+        <h2 style="color: #333; text-transform: uppercase; letter-spacing: 1px;">From The Field, For The Field</h2>
+        
+        <h3 style="color: #0056b3; margin-top: 10px;">W. Dalton Smith</h3>
+        <p style="font-style: italic; color: #666;">Solution Architect | HVAC Systems Specialist</p>
+        
+        <hr style="border: 0; height: 1px; background: #ccc; margin: 20px 0;">
+
+        <p style="line-height: 1.6; color: #444;">
+            I spent over 10 years in the field. I know exactly what it feels like to be on a roof at 2:00 PM in July trying to read smeared ink on a battered clipboard, or calling the office for the third time because a customer's service history wasn't logged correctly. 
+        </p>
+
+        <p style="line-height: 1.6; color: #444;">
+            The real bottleneck in the trades isn't turning wrenches—it's the massive amount of <strong>Operational Drag</strong>. Lost paperwork, missing licenses, and messy billing slow technicians down and cost the business money.
+        </p>
+
+        <p style="line-height: 1.6; color: #444;">
+            I built <strong>Needful Thingz Enterprise</strong> to solve this. Our mandate is simple: <strong>Kill The Clipboard.</strong> We digitize compliance, automate field math, streamline dispatch, and organize the entire company portfolio so you can get the administrative BS out of the way and focus on the job.
+        </p>
+        
+        <p style="font-weight: bold; color: #0056b3; margin-top: 20px;">
+            We don't just fix machines; we engineer the operations that keep the company moving.
+        </p>
+    </div>
+</section>
+
+<div style="padding: 20px; background-color: #f4f4f9; border-radius: 8px; border: 1px solid #ddd; width: 100%; max-width: 800px; box-sizing: border-box;">
+    <h2 style="color: #333;">The Digital Field-Ops Architecture Suite</h2>
+    <p style="font-size: 16px; color: #555;"><em>A proprietary framework designed to eliminate paperwork, organize enterprise-level data, and give technicians instant access to the company portfolio.</em></p>
+    <ul style="line-height: 1.8; color: #444;">
+        <li><strong>Module 01: The Command Center</strong> - Office-side dispatching, customer CRM, and live ticket tracking.</li>
+        <li><strong>Module 02: Digital Compliance Binder</strong> - Instant mobile access to W-9s, COIs, and Master Licenses.</li>
+        <li><strong>Module 03: Field Reference Data</strong> - Rapid-access specification and diagnostic reference trees across 8 distinct trades.</li>
+        <li><strong>Module 04: Automated Billing Engine</strong> - Self-calculating field invoices that sync directly back to the office portal.</li>
+        <li><strong>Module 05: UI/UX Translation</strong> - Mobile-first interface designed for "fat-finger" ease of use in extreme field conditions.</li>
+        <li><strong>Module 06: Data Orchestration</strong> - Secure routing protocols keeping customer data safe and accessible only to authorized personnel.</li>
+    </ul>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
     const SUPABASE_URL = 'https://zndgwxlnwftschvwwvob.supabase.co'; 
@@ -25,3 +252,5 @@
     }
     enforceSecurity();
 </script>
+</body>
+</html>
