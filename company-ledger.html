@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Ledger | Needful Thingz</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* --- CORE LAYOUT & THEMING --- */
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #e2e8f0; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .dashboard-container { background: #ffffff; width: 100%; max-width: 1200px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; margin-bottom: 30px; }
+
+        /* --- HEADER --- */
+        .header { background: #1a202c; color: white; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #38a169; }
+        .header h1 { margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        .back-btn { background: #4a5568; color: white; text-decoration: none; padding: 8px 15px; border-radius: 6px; font-size: 13px; font-weight: bold; transition: 0.2s; }
+        .back-btn:hover { background: #718096; }
+
+        /* --- REVENUE DASHBOARD --- */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding: 20px 30px; background: #f7fafc; border-bottom: 1px solid #e2e8f0; }
+        @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; gap: 10px; } }
+        
+        .stat-card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #cbd5e0; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .stat-title { font-size: 12px; font-weight: bold; color: #718096; text-transform: uppercase; margin-bottom: 5px; }
+        .stat-value { font-size: 28px; font-weight: 900; color: #2d3748; }
+        .money { color: #276749; }
+
+        /* --- SEARCH BAR --- */
+        .search-container { padding: 20px 30px; background: white; border-bottom: 1px solid #e2e8f0; }
+        .search-input { width: 100%; padding: 15px; font-size: 16px; border: 2px solid #cbd5e0; border-radius: 8px; box-sizing: border-box; transition: 0.2s; }
+        .search-input:focus { outline: none; border-color: #38a169; box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.2); }
+
+        /* --- LEDGER TABLE --- */
+        .table-wrapper { overflow-x: auto; padding: 0 30px 30px 30px; background: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #edf2f7; color: #4a5568; font-size: 12px; text-transform: uppercase; padding: 12px 15px; text-align: left; border-bottom: 2px solid #cbd5e0; }
+        td { padding: 15px; border-bottom: 1px solid #e2e8f0; color: #2d3748; font-size: 14px; }
+        tr:hover { background: #f7fafc; }
+        
+        .badge { font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; }
+        .badge-hvac { background: #fed7d7; color: #c53030; }
+        .badge-plumb { background: #eebefa; color: #6b46c1; }
+        .badge-elec { background: #fef08a; color: #975a16; }
+        .badge-general { background: #e2e8f0; color: #4a5568; }
+
+        .price-cell { font-weight: bold; color: #276749; font-size: 15px; }
+        .notes-cell { font-size: 12px; color: #718096; max-width: 250px; line-height: 1.4; }
+        
+        .empty-state { text-align: center; padding: 40px; color: #a0aec0; font-size: 16px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <div class="header">
+        <h1>📊 Master Company Ledger</h1>
+        <a href="index.html" class="back-btn">← Back to Hub</a>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-title">Gross Revenue (Archived)</div>
+            <div class="stat-value money" id="totalRevenue">$0.00</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Completed Jobs</div>
+            <div class="stat-value" id="totalJobs">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Average Ticket Size</div>
+            <div class="stat-value money" id="avgTicket">$0.00</div>
+        </div>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search by Customer Name or Address... (A-Z)">
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer Name</th>
+                    <th>Address</th>
+                    <th>Trade</th>
+                    <th>Labor / Parts</th>
+                    <th>Tech Notes</th>
+                    <th>Billed Price</th>
+                </tr>
+            </thead>
+            <tbody id="ledgerBody">
+                <tr><td colspan="6" class="empty-state">Loading financial archives...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://zndgwxlnwftschvwwvob.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let masterLedgerData = []; // Store the data globally so we can search it instantly
+
+    // 1. SECURITY BOUNCER
+    async function enforceSecurity() {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error || !session) window.location.href = 'login.html'; 
+        else loadLedger(); 
+    }
+    enforceSecurity();
+
+    // 2. FETCH ARCHIVED DATA (ALPHABETICAL)
+    async function loadLedger() {
+        // Fetch ONLY archived tickets, and order them by Customer Name (A-Z)
+        const { data, error } = await supabaseClient
+            .from('dispatch_tickets')
+            .select('*')
+            .eq('status', 'archived')
+            .order('customer_name', { ascending: true }); // <--- ALPHABETICAL SORTING MAGIC
+
+        if (error) {
+            document.getElementById('ledgerBody').innerHTML = `<tr><td colspan="6" class="empty-state" style="color:red;">Error loading ledger: ${error.message}</td></tr>`;
+            return;
+        }
+
+        masterLedgerData = data; // Save to global memory
+        renderTable(masterLedgerData);
+        updateDashboard(masterLedgerData);
+    }
+
+    // 3. RENDER THE TABLE
+    function renderTable(tickets) {
+        const tbody = document.getElementById('ledgerBody');
+        
+        if (tickets.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No records found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        tickets.forEach(ticket => {
+            // Assign badge colors based on trade
+            let badgeClass = 'badge-general';
+            if (ticket.system_type.toLowerCase().includes('ac') || ticket.system_type.toLowerCase().includes('heat') || ticket.system_type.toLowerCase().includes('split')) badgeClass = 'badge-hvac';
+            if (ticket.system_type.toLowerCase().includes('plumb')) badgeClass = 'badge-plumb';
+            if (ticket.system_type.toLowerCase().includes('electric')) badgeClass = 'badge-elec';
+
+            const formattedPrice = parseFloat(ticket.total_price || 0).toFixed(2);
+
+            tbody.innerHTML += `
+                <tr>
+                    <td style="font-weight:bold;">${ticket.customer_name}</td>
+                    <td>${ticket.address}</td>
+                    <td><span class="badge ${badgeClass}">${ticket.system_type}</span></td>
+                    <td style="font-size:12px;"><strong>Hrs:</strong> ${ticket.labor_hours || 0}<br><strong>Parts:</strong> ${ticket.materials_used || 'None'}</td>
+                    <td class="notes-cell">${ticket.tech_notes || 'No notes provided.'}</td>
+                    <td class="price-cell">$${formattedPrice}</td>
+                </tr>
+            `;
+        });
+    }
+
+    // 4. UPDATE REVENUE DASHBOARD
+    function updateDashboard(tickets) {
+        let totalRevenue = 0;
+        
+        tickets.forEach(ticket => {
+            totalRevenue += parseFloat(ticket.total_price || 0);
+        });
+
+        const jobCount = tickets.length;
+        const avgTicket = jobCount > 0 ? (totalRevenue / jobCount) : 0;
+
+        document.getElementById('totalRevenue').innerText = "$" + totalRevenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('totalJobs').innerText = jobCount;
+        document.getElementById('avgTicket').innerText = "$" + avgTicket.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    // 5. INSTANT SEARCH LOGIC
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        
+        // Filter the master list
+        const filteredData = masterLedgerData.filter(ticket => {
+            const nameMatch = ticket.customer_name && ticket.customer_name.toLowerCase().includes(searchTerm);
+            const addressMatch = ticket.address && ticket.address.toLowerCase().includes(searchTerm);
+            return nameMatch || addressMatch;
+        });
+
+        // Re-draw the table with only the matches
+        renderTable(filteredData);
+    });
+</script>
+
+</body>
+</html>
