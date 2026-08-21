@@ -42,18 +42,27 @@
         .box-ledger { border-color: #38a169; background: #f0fff4; }
         .box-ledger:hover { border-color: #276749; background: #c6f6d5; }
 
-        /* NEW SETTINGS BUTTON */
         .box-settings { border-color: #805ad5; background: #faf5ff; }
         .box-settings:hover { border-color: #553c9a; background: #e9d8fd; }
 
         .footer { text-align: center; font-size: 11px; color: #a0aec0; margin-top: 20px; }
+
+        /* --- NEW AI FEATURE STYLES --- */
+        .ai-section { background-color: #2d3748; padding: 30px 20px; border-top: 4px solid #48bb78; width: 100%; max-width: 800px; border-radius: 8px; box-sizing: border-box; color: white; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }
+        .ai-section h2 { color: #48bb78; text-transform: uppercase; letter-spacing: 1px; margin-top: 0; }
+        .record-btn { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #3182ce; color: white; border: none; border-radius: 8px; font-weight: bold; width: 100%; max-width: 300px; transition: 0.2s; margin: 20px 0; }
+        .record-btn:hover { background: #2b6cb0; }
+        .record-btn.recording { background: #e53e3e; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .ai-output { background: #1a202c; padding: 15px; border-radius: 8px; overflow-x: auto; border: 1px solid #4a5568; color: #68d391; text-align: left; font-family: monospace; font-size: 14px; }
+        .ai-status { font-weight: bold; color: #f6e05e; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div class="logo-container">
-        <img src="nt-logo.png" alt="Needful Thingz Enterprise Field-Ops" class="logo-img">
+        <h1 style="color: #006fba; margin: 0; font-size: 24px;">NEEDFUL THINGZ</h1>
     </div>
 
     <div class="trade-grid">
@@ -107,6 +116,21 @@
     </div>
 </div>
 
+<!-- AI VOICE TO INVOICE SANDBOX -->
+<section class="ai-section">
+    <h2>AI Voice-to-Invoice Sandbox</h2>
+    <p style="color: #a0aec0; margin-bottom: 20px;">Click record, describe the work completed, and watch the AI instantly structure the data for billing.</p>
+    
+    <button id="recordBtn" class="record-btn">🎤 Start Recording</button>
+    <div id="status" class="ai-status">System Ready.</div>
+    
+    <h3 style="color: #e2e8f0; text-align: left; font-size: 16px; margin-top: 20px;">Live JSON Output:</h3>
+    <pre id="output" class="ai-output">{
+  "status": "Awaiting audio input..."
+}</pre>
+</section>
+
+<!-- ARCHITECTURE SECTION -->
 <section style="background-color: #f4f4f4; padding: 40px 20px; border-top: 4px solid #0056b3; width: 100%; max-width: 800px; border-radius: 8px; box-sizing: border-box;">
     <div style="margin: 0 auto; font-family: Arial, sans-serif;">
         <h2 style="color: #333; text-transform: uppercase; letter-spacing: 1px;">From The Field, For The Field</h2>
@@ -133,8 +157,67 @@
     </ul>
 </div>
 
+<!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+    // --- 1. AI RECORDING LOGIC ---
+    let mediaRecorder;
+    let audioChunks = [];
+    const recordBtn = document.getElementById('recordBtn');
+    const statusDiv = document.getElementById('status');
+    const outputPre = document.getElementById('output');
+
+    recordBtn.addEventListener('click', async () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        recordBtn.textContent = '🎤 Start Recording';
+        recordBtn.classList.remove('recording');
+        statusDiv.textContent = 'Transmitting to Supabase... Please wait.';
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = event => {
+          audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const formData = new FormData();
+          formData.append('file', audioBlob, 'recording.webm');
+
+          try {
+            const response = await fetch('https://zndgwxlnwftschvwwvob.supabase.co/functions/v1/voice-to-invoice', {
+              method: 'POST',
+              body: formData
+            });
+
+            const result = await response.json();
+            outputPre.textContent = JSON.stringify(result, null, 2);
+            statusDiv.textContent = 'Invoice Generated Successfully!';
+            
+          } catch (err) {
+            console.error(err);
+            statusDiv.textContent = 'Transmission Error.';
+            outputPre.textContent = "Error: " + err.message;
+          }
+        };
+
+        mediaRecorder.start();
+        recordBtn.textContent = '🛑 Stop Recording';
+        recordBtn.classList.add('recording');
+        statusDiv.textContent = 'Recording... Speak your field notes now!';
+      } catch (err) {
+        alert('Microphone access denied. Please allow microphone permissions.');
+        console.error(err);
+      }
+    });
+
+    // --- 2. SECURITY LOGIC ---
     const SUPABASE_URL = 'https://zndgwxlnwftschvwwvob.supabase.co'; 
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
 
@@ -151,7 +234,9 @@
             window.location.href = 'login.html'; 
         }
     }
-    enforceSecurity();
+    
+    // Security fully active for end-to-end testing
+    enforceSecurity(); 
 </script>
 </body>
 </html>
