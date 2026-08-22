@@ -13,19 +13,17 @@
         body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
         .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); box-sizing: border-box; }
         
-        /* --- MENU GRID --- */
-        .trade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 10px; }
-        .trade-box { background: #f7fafc; border: 2px solid #e2e8f0; padding: 20px; border-radius: 12px; text-align: center; text-decoration: none; color: #2d3748; display: block; transition: 0.2s; }
-        .trade-box:hover { border-color: #3182ce; background: #ebf8ff; transform: translateY(-2px); }
+        /* --- MENU GRIDS --- */
+        .admin-divider { text-align: center; font-size: 12px; font-weight: bold; color: #718096; text-transform: uppercase; margin: 15px 10px 10px 10px; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+        .admin-grid, .trade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 10px 10px 10px; }
+        
+        .trade-box, .admin-box { background: #f7fafc; border: 2px solid #e2e8f0; padding: 15px; border-radius: 12px; text-align: center; text-decoration: none; color: #2d3748; display: block; transition: 0.2s; }
+        .trade-box:hover, .admin-box:hover { transform: translateY(-2px); }
+        .trade-box:hover { border-color: #3182ce; background: #ebf8ff; }
+        
         .trade-icon { font-size: 35px; margin-bottom: 10px; display: block; }
         .trade-name { font-weight: 800; font-size: 13px; display: block; text-transform: uppercase; }
 
-        /* --- ADMIN & COMPLIANCE GRID --- */
-        .admin-divider { text-align: center; font-size: 12px; font-weight: bold; color: #718096; text-transform: uppercase; margin: 15px 10px 10px 10px; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
-        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 10px 10px 10px; }
-        .admin-box { background: #f7fafc; border: 2px solid #e2e8f0; padding: 15px; border-radius: 12px; text-align: center; text-decoration: none; color: #2d3748; display: block; transition: 0.2s; }
-        .admin-box:hover { transform: translateY(-2px); }
-        
         /* Specific Button Themes */
         .box-office { border-color: #e2e8f0; }
         .box-office:hover { border-color: #4a5568; background: #edf2f7; }
@@ -42,15 +40,15 @@
 
         .footer { text-align: center; font-size: 11px; color: #a0aec0; margin-top: 20px; }
 
-        /* --- AI FEATURE STYLES --- */
-        .ai-section { background-color: #2d3748; padding: 30px 20px; border-top: 4px solid #48bb78; width: 100%; max-width: 800px; border-radius: 8px; box-sizing: border-box; color: white; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }
-        .ai-section h2 { color: #48bb78; text-transform: uppercase; letter-spacing: 1px; margin-top: 0; }
-        .record-btn { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #3182ce; color: white; border: none; border-radius: 8px; font-weight: bold; width: 100%; max-width: 300px; transition: 0.2s; margin: 20px 0; }
+        /* --- AI FEATURE STYLES (MOVED INSIDE CARD) --- */
+        .ai-section-inner { background-color: #2d3748; padding: 20px; border-radius: 12px; text-align: center; color: white; margin: 15px 10px; box-shadow: inset 0 4px 6px rgba(0,0,0,0.3); border: 2px solid #48bb78; }
+        .ai-section-inner h2 { color: #48bb78; text-transform: uppercase; letter-spacing: 1px; margin-top: 0; font-size: 16px; }
+        .record-btn { padding: 15px; font-size: 16px; cursor: pointer; background: #3182ce; color: white; border: none; border-radius: 8px; font-weight: bold; width: 100%; transition: 0.2s; margin: 10px 0; }
         .record-btn:hover { background: #2b6cb0; }
         .record-btn.recording { background: #e53e3e; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-        .ai-output { background: #1a202c; padding: 15px; border-radius: 8px; overflow-x: auto; border: 1px solid #4a5568; color: #68d391; text-align: left; font-family: monospace; font-size: 14px; }
-        .ai-status { font-weight: bold; color: #f6e05e; margin-bottom: 15px; }
+        .ai-output { background: #1a202c; padding: 15px; border-radius: 8px; overflow-x: auto; border: 1px solid #4a5568; color: #68d391; text-align: left; font-family: monospace; font-size: 13px; margin-top: 10px; }
+        .ai-status { font-weight: bold; color: #f6e05e; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -60,7 +58,7 @@
         <h1 style="color: #006fba; margin: 0; font-size: 24px;">NEEDFUL THINGZ</h1>
     </div>
 
-    <!-- ENTERPRISE MANAGEMENT (MOVED TO TOP) -->
+    <!-- 1. ENTERPRISE MANAGEMENT (TOP) -->
     <div class="admin-divider">Field & Enterprise Management</div>
     <div class="admin-grid">
         <a href="office-portal.html" class="admin-box box-office"><span class="trade-icon">🏢</span><span class="trade-name">Office Portal</span></a>
@@ -71,7 +69,20 @@
         <a href="enterprise-settings.html" class="admin-box box-settings"><span class="trade-icon">⚙️</span><span class="trade-name">Settings</span><span style="display:block; font-size:9px; color:#6b46c1; margin-top:4px;">(Security & Config)</span></a>
     </div>
 
-    <!-- TRADE MODULES -->
+    <!-- 2. AI VOICE TO INVOICE SANDBOX (MIDDLE) -->
+    <div class="ai-section-inner">
+        <h2>AI Voice-to-Invoice Sandbox</h2>
+        <p style="color: #a0aec0; font-size: 12px; margin-bottom: 10px;">Click record, describe the work completed, and watch the AI structure the data instantly.</p>
+        
+        <button id="recordBtn" class="record-btn">🎤 Start Recording</button>
+        <div id="status" class="ai-status">System Ready.</div>
+        
+        <pre id="output" class="ai-output">{
+  "status": "Awaiting audio input..."
+}</pre>
+    </div>
+
+    <!-- 3. TRADE MODULES (BOTTOM) -->
     <div class="admin-divider">Guided Logic Trade Modules</div>
     <div class="trade-grid">
         <a href="hvac-logic.html" class="trade-box"><span class="trade-icon">❄️</span><span class="trade-name">HVAC</span></a>
@@ -90,20 +101,6 @@
     </div>
 </div>
 
-<!-- AI VOICE TO INVOICE SANDBOX -->
-<section class="ai-section">
-    <h2>AI Voice-to-Invoice Sandbox</h2>
-    <p style="color: #a0aec0; margin-bottom: 20px;">Click record, describe the work completed, and watch the AI instantly structure the data for billing.</p>
-    
-    <button id="recordBtn" class="record-btn">🎤 Start Recording</button>
-    <div id="status" class="ai-status">System Ready.</div>
-    
-    <h3 style="color: #e2e8f0; text-align: left; font-size: 16px; margin-top: 20px;">Live JSON Output:</h3>
-    <pre id="output" class="ai-output">{
-  "status": "Awaiting audio input..."
-}</pre>
-</section>
-
 <!-- ARCHITECTURE SECTION -->
 <section style="background-color: #f4f4f4; padding: 40px 20px; border-top: 4px solid #0056b3; width: 100%; max-width: 800px; border-radius: 8px; box-sizing: border-box;">
     <div style="margin: 0 auto; font-family: Arial, sans-serif;">
@@ -121,7 +118,7 @@
 <!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    // --- 1. SMART AI RECORDING LOGIC ---
+    // --- 1. AI RECORDING LOGIC ---
     let mediaRecorder;
     let audioChunks = [];
     const recordBtn = document.getElementById('recordBtn');
