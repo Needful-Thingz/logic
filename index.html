@@ -40,15 +40,23 @@
 
         .footer { text-align: center; font-size: 11px; color: #a0aec0; margin-top: 20px; }
 
-        /* --- AI FEATURE STYLES (MOVED INSIDE CARD) --- */
+        /* --- AI FEATURE STYLES --- */
         .ai-section-inner { background-color: #2d3748; padding: 20px; border-radius: 12px; text-align: center; color: white; margin: 15px 10px; box-shadow: inset 0 4px 6px rgba(0,0,0,0.3); border: 2px solid #48bb78; }
         .ai-section-inner h2 { color: #48bb78; text-transform: uppercase; letter-spacing: 1px; margin-top: 0; font-size: 16px; }
         .record-btn { padding: 15px; font-size: 16px; cursor: pointer; background: #3182ce; color: white; border: none; border-radius: 8px; font-weight: bold; width: 100%; transition: 0.2s; margin: 10px 0; }
         .record-btn:hover { background: #2b6cb0; }
         .record-btn.recording { background: #e53e3e; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-        .ai-output { background: #1a202c; padding: 15px; border-radius: 8px; overflow-x: auto; border: 1px solid #4a5568; color: #68d391; text-align: left; font-family: monospace; font-size: 13px; margin-top: 10px; }
+        
+        /* New Polished Output Styles */
+        .ai-formatted-output { background: #1a202c; padding: 15px; border-radius: 8px; border: 1px solid #4a5568; color: #e2e8f0; text-align: left; font-size: 14px; margin-top: 15px; line-height: 1.5; }
+        .ai-formatted-output h3 { color: #68d391; font-size: 15px; margin-top: 0; border-bottom: 1px solid #4a5568; padding-bottom: 8px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .ai-formatted-output strong { color: #a0aec0; }
+        
+        .reset-btn { background: #e53e3e; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; font-size: 14px; margin-top: 10px; cursor: pointer; transition: 0.2s; }
+        .reset-btn:hover { background: #c53030; }
         .ai-status { font-weight: bold; color: #f6e05e; font-size: 12px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -77,9 +85,19 @@
         <button id="recordBtn" class="record-btn">🎤 Start Recording</button>
         <div id="status" class="ai-status">System Ready.</div>
         
-        <pre id="output" class="ai-output">{
-  "status": "Awaiting audio input..."
-}</pre>
+        <!-- POLISHED TEXT OUTPUT (HIDDEN INITIALLY) -->
+        <div id="formattedOutput" class="ai-formatted-output hidden">
+            <h3>✅ Invoice Generated</h3>
+            <p><strong>Property/Unit:</strong> <span id="out-unit"></span></p>
+            <p><strong>Work Summary:</strong> <span id="out-summary"></span></p>
+            <p><strong>Parts Used:</strong> <span id="out-parts"></span></p>
+            <p><strong>Labor:</strong> <span id="out-labor"></span> Hours</p>
+            <p style="font-size: 16px; color: #48bb78; font-weight: bold; margin-top: 10px; border-top: 1px dashed #4a5568; padding-top: 10px;">
+                Total Estimated Cost: $<span id="out-cost"></span>
+            </p>
+        </div>
+
+        <button id="resetBtn" class="reset-btn hidden">🗑️ Discard & Re-Record</button>
     </div>
 
     <!-- 3. TRADE MODULES (BOTTOM) -->
@@ -123,14 +141,24 @@
     let audioChunks = [];
     const recordBtn = document.getElementById('recordBtn');
     const statusDiv = document.getElementById('status');
-    const outputPre = document.getElementById('output');
+    const formattedOutput = document.getElementById('formattedOutput');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // UI Reset Function
+    resetBtn.addEventListener('click', () => {
+        formattedOutput.classList.add('hidden');
+        resetBtn.classList.add('hidden');
+        statusDiv.textContent = 'System Ready.';
+        statusDiv.style.color = '#f6e05e';
+    });
 
     recordBtn.addEventListener('click', async () => {
       if (mediaRecorder && mediaRecorder.state === 'recording') {
         mediaRecorder.stop();
-        recordBtn.textContent = '🎤 Start Recording';
+        recordBtn.textContent = '⚙️ Processing AI...';
+        recordBtn.style.background = '#d69e2e';
         recordBtn.classList.remove('recording');
-        statusDiv.textContent = 'Transmitting to Supabase... Please wait.';
+        statusDiv.textContent = 'Transmitting securely to cloud...';
         return;
       }
 
@@ -144,6 +172,7 @@
         };
 
         mediaRecorder.onstop = async () => {
+          // Detect phone's native audio format to prevent API crashes
           const mimeType = mediaRecorder.mimeType || 'audio/webm';
           let ext = 'webm';
           if (mimeType.includes('mp4')) ext = 'mp4';
@@ -161,20 +190,50 @@
             });
 
             const result = await response.json();
-            outputPre.textContent = JSON.stringify(result, null, 2);
-            statusDiv.textContent = response.ok ? 'Invoice Generated Successfully!' : 'Groq API Error.';
+            
+            if(result.invoice) {
+                // Map the JSON to the polished HTML text
+                document.getElementById('out-unit').innerText = result.invoice.property_unit || 'N/A';
+                document.getElementById('out-summary').innerText = result.invoice.work_summary || 'N/A';
+                document.getElementById('out-parts').innerText = (result.invoice.parts_used || []).join(', ');
+                document.getElementById('out-labor').innerText = result.invoice.labor_hours || '0';
+                
+                let cost = result.invoice.total_estimated_cost || 0;
+                document.getElementById('out-cost').innerText = cost.toFixed(2);
+                
+                // Show the formatted output and the Reset button
+                formattedOutput.classList.remove('hidden');
+                resetBtn.classList.remove('hidden');
+                
+                statusDiv.textContent = 'Data mapped successfully.';
+                statusDiv.style.color = '#68d391';
+            } else {
+                statusDiv.textContent = 'Transmission Error: Could not map data.';
+                statusDiv.style.color = '#fc8181';
+            }
+            
+            // Reset the record button visually
+            recordBtn.textContent = '🎤 Start Recording';
+            recordBtn.style.background = '#3182ce';
             
           } catch (err) {
             console.error(err);
             statusDiv.textContent = 'Transmission Error.';
-            outputPre.textContent = "Error: " + err.message;
+            statusDiv.style.color = '#fc8181';
+            recordBtn.textContent = '🎤 Start Recording';
+            recordBtn.style.background = '#3182ce';
           }
         };
 
+        // Start Recording UI changes
+        formattedOutput.classList.add('hidden');
+        resetBtn.classList.add('hidden');
         mediaRecorder.start();
         recordBtn.textContent = '🛑 Stop Recording';
+        recordBtn.style.background = '#e53e3e';
         recordBtn.classList.add('recording');
-        statusDiv.textContent = 'Recording... Speak your field notes now!';
+        statusDiv.textContent = 'Listening to field notes...';
+        statusDiv.style.color = '#f6e05e';
       } catch (err) {
         alert('Microphone access denied. Please allow microphone permissions.');
         console.error(err);
