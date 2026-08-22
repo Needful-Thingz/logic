@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Needful Thingz Enterprise</title>
     <style>
@@ -10,11 +11,10 @@
 
         /* --- LAYOUT --- */
         body { font-family: 'Segoe UI', sans-serif; background: #1a202c; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
-        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; min-height: 600px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); box-sizing: border-box; }
+        .card { background: white; padding: 20px; border-radius: 20px; width: 100%; max-width: 450px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); box-sizing: border-box; }
         
         /* --- MENU GRID --- */
         .trade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 10px; }
-        
         .trade-box { background: #f7fafc; border: 2px solid #e2e8f0; padding: 20px; border-radius: 12px; text-align: center; text-decoration: none; color: #2d3748; display: block; transition: 0.2s; }
         .trade-box:hover { border-color: #3182ce; background: #ebf8ff; transform: translateY(-2px); }
         .trade-icon { font-size: 35px; margin-bottom: 10px; display: block; }
@@ -29,25 +29,20 @@
         /* Specific Button Themes */
         .box-office { border-color: #e2e8f0; }
         .box-office:hover { border-color: #4a5568; background: #edf2f7; }
-        
         .box-invoice { border-color: #48bb78; background: #f0fff4; }
         .box-invoice:hover { border-color: #2f855a; background: #c6f6d5; }
-
         .box-clipboard { border-color: #fc8181; background: #fff5f5; }
         .box-clipboard:hover { border-color: #e53e3e; background: #fed7d7; }
-
         .box-licenses { border-color: #b794f4; background: #faf5ff; }
         .box-licenses:hover { border-color: #805ad5; background: #e9d8fd; }
-
         .box-ledger { border-color: #38a169; background: #f0fff4; }
         .box-ledger:hover { border-color: #276749; background: #c6f6d5; }
-
         .box-settings { border-color: #805ad5; background: #faf5ff; }
         .box-settings:hover { border-color: #553c9a; background: #e9d8fd; }
 
         .footer { text-align: center; font-size: 11px; color: #a0aec0; margin-top: 20px; }
 
-        /* --- NEW AI FEATURE STYLES --- */
+        /* --- AI FEATURE STYLES --- */
         .ai-section { background-color: #2d3748; padding: 30px 20px; border-top: 4px solid #48bb78; width: 100%; max-width: 800px; border-radius: 8px; box-sizing: border-box; color: white; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }
         .ai-section h2 { color: #48bb78; text-transform: uppercase; letter-spacing: 1px; margin-top: 0; }
         .record-btn { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #3182ce; color: white; border: none; border-radius: 8px; font-weight: bold; width: 100%; max-width: 300px; transition: 0.2s; margin: 20px 0; }
@@ -65,6 +60,19 @@
         <h1 style="color: #006fba; margin: 0; font-size: 24px;">NEEDFUL THINGZ</h1>
     </div>
 
+    <!-- ENTERPRISE MANAGEMENT (MOVED TO TOP) -->
+    <div class="admin-divider">Field & Enterprise Management</div>
+    <div class="admin-grid">
+        <a href="office-portal.html" class="admin-box box-office"><span class="trade-icon">🏢</span><span class="trade-name">Office Portal</span></a>
+        <a href="tech-invoice.html" class="admin-box box-invoice"><span class="trade-icon">💵</span><span class="trade-name">Field Invoice</span><span style="display:block; font-size:9px; color:#2f855a; margin-top:4px;">(Billing & AI Voice)</span></a>
+        <a href="kill-clipboard.html" class="admin-box box-clipboard"><span class="trade-icon">📎</span><span class="trade-name" style="font-size: 11px;">Kill The Clipboard</span><span style="display:block; font-size:9px; color:#c53030; margin-top:4px;">(W-9 / Insurance)</span></a>
+        <a href="kill-clipboard.html" class="admin-box box-licenses"><span class="trade-icon">📜</span><span class="trade-name">Master Licenses</span><span style="display:block; font-size:9px; color:#553c9a; margin-top:4px;">(State & Local Certs)</span></a>
+        <a href="company-ledger.html" class="admin-box box-ledger"><span class="trade-icon">📊</span><span class="trade-name">Company Ledger</span><span style="display:block; font-size:9px; color:#276749; margin-top:4px;">(Archived Financials)</span></a>
+        <a href="enterprise-settings.html" class="admin-box box-settings"><span class="trade-icon">⚙️</span><span class="trade-name">Settings</span><span style="display:block; font-size:9px; color:#6b46c1; margin-top:4px;">(Security & Config)</span></a>
+    </div>
+
+    <!-- TRADE MODULES -->
+    <div class="admin-divider">Guided Logic Trade Modules</div>
     <div class="trade-grid">
         <a href="hvac-logic.html" class="trade-box"><span class="trade-icon">❄️</span><span class="trade-name">HVAC</span></a>
         <a href="electric-logic.html" class="trade-box"><span class="trade-icon">⚡</span><span class="trade-name">Electrical</span></a>
@@ -74,40 +82,6 @@
         <a href="smarthome-logic.html" class="trade-box"><span class="trade-icon">🏠</span><span class="trade-name">Smart Home</span></a>
         <a href="gc-logic.html" class="trade-box"><span class="trade-icon">🔨</span><span class="trade-name">General</span></a>
         <a href="land-logic.html" class="trade-box"><span class="trade-icon">🌳</span><span class="trade-name">Landscape</span></a>
-    </div>
-
-    <div class="admin-divider">Field & Enterprise Management</div>
-    <div class="admin-grid">
-        
-        <a href="office-portal.html" class="admin-box box-office">
-            <span class="trade-icon">🏢</span><span class="trade-name">Office Portal</span>
-        </a>
-
-        <a href="tech-invoice.html" class="admin-box box-invoice">
-            <span class="trade-icon">💵</span><span class="trade-name">Field Invoice</span>
-            <span style="display:block; font-size:9px; color:#2f855a; margin-top:4px;">(Billing & Closeout)</span>
-        </a>
-
-        <a href="kill-clipboard.html" class="admin-box box-clipboard">
-            <span class="trade-icon">📎</span><span class="trade-name" style="font-size: 11px;">Kill The Clipboard</span>
-            <span style="display:block; font-size:9px; color:#c53030; margin-top:4px;">(W-9 / Insurance)</span>
-        </a>
-
-        <a href="kill-clipboard.html" class="admin-box box-licenses">
-            <span class="trade-icon">📜</span><span class="trade-name">Master Licenses</span>
-            <span style="display:block; font-size:9px; color:#553c9a; margin-top:4px;">(State & Local Certs)</span>
-        </a>
-
-        <a href="company-ledger.html" class="admin-box box-ledger">
-            <span class="trade-icon">📊</span><span class="trade-name">Company Ledger</span>
-            <span style="display:block; font-size:9px; color:#276749; margin-top:4px;">(Archived Financials)</span>
-        </a>
-
-        <a href="enterprise-settings.html" class="admin-box box-settings">
-            <span class="trade-icon">⚙️</span><span class="trade-name">Settings</span>
-            <span style="display:block; font-size:9px; color:#6b46c1; margin-top:4px;">(Security & Config)</span>
-        </a>
-
     </div>
 
     <div class="footer">
@@ -144,19 +118,6 @@
     </div>
 </section>
 
-<div style="padding: 20px; background-color: #f4f4f9; border-radius: 8px; border: 1px solid #ddd; width: 100%; max-width: 800px; box-sizing: border-box;">
-    <h2 style="color: #333;">The Digital Field-Ops Architecture Suite</h2>
-    <p style="font-size: 16px; color: #555;"><em>A proprietary framework designed to eliminate paperwork, organize enterprise-level data, and give technicians instant access to the company portfolio.</em></p>
-    <ul style="line-height: 1.8; color: #444;">
-        <li><strong>Module 01: The Command Center</strong> - Office-side dispatching, customer CRM, and live ticket tracking.</li>
-        <li><strong>Module 02: Digital Compliance Binder</strong> - Instant mobile access to W-9s, COIs, and Master Licenses.</li>
-        <li><strong>Module 03: Field Reference Data</strong> - Rapid-access specification and diagnostic reference trees across 8 distinct trades.</li>
-        <li><strong>Module 04: Automated Billing Engine</strong> - Self-calculating field invoices that sync directly back to the office portal.</li>
-        <li><strong>Module 05: UI/UX Translation</strong> - Mobile-first interface designed for "fat-finger" ease of use in extreme field conditions.</li>
-        <li><strong>Module 06: Data Orchestration</strong> - Secure routing protocols keeping customer data safe and accessible only to authorized personnel.</li>
-    </ul>
-</div>
-
 <!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -186,7 +147,6 @@
         };
 
         mediaRecorder.onstop = async () => {
-          // Detect phone's native audio format to prevent API crashes
           const mimeType = mediaRecorder.mimeType || 'audio/webm';
           let ext = 'webm';
           if (mimeType.includes('mp4')) ext = 'mp4';
@@ -242,7 +202,6 @@
         }
     }
     
-    // Security fully active for end-to-end testing
     enforceSecurity(); 
 </script>
 </body>
