@@ -29,7 +29,7 @@
 
         /* --- HEADER --- */
         .header { 
-            background: #2f855a; /* Green to distinguish from Office Blue */
+            background: #2f855a; 
             color: white; 
             padding: 15px 20px; 
             display: flex; 
@@ -67,9 +67,16 @@
         .j-addr { font-size: 13px; color: #4a5568; margin: 8px 0; }
         .j-symp { font-size: 13px; color: #c53030; font-weight: bold; background: #fff5f5; padding: 8px; border-radius: 4px; }
 
-        /* --- INVOICE CLOSEOUT FORM (Hidden by default) --- */
+        /* --- INVOICE CLOSEOUT FORM --- */
         #closeout-section { display: none; background: #f0fff4; border-top: 2px solid #c6f6d5; padding: 20px; }
         .active-job-header { font-size: 18px; font-weight: bold; color: #276749; margin-bottom: 15px; }
+
+        /* --- AI BUTTON STYLING --- */
+        .ai-panel { background: #faf5ff; border: 2px solid #b794f4; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .ai-btn { background: #805ad5; color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(128, 90, 213, 0.3); transition: 0.2s; }
+        .ai-btn.recording { background: #e53e3e; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        #aiStatus { font-size: 11px; text-align: center; color: #553c9a; font-weight: bold; margin-top: 8px; }
 
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-size: 12px; font-weight: bold; color: #2f855a; margin-bottom: 5px; text-transform: uppercase; }
@@ -79,7 +86,7 @@
             border: 2px solid #cbd5e0; 
             border-radius: 6px; 
             box-sizing: border-box;
-            font-size: 16px; /* Prevents iPhone zoom */
+            font-size: 16px; 
         }
         
         .money-input { font-size: 20px !important; font-weight: bold; color: #2d3748; }
@@ -95,6 +102,7 @@
             font-weight: bold; 
             text-transform: uppercase;
             margin-top: 10px;
+            cursor: pointer;
         }
         .btn-cancel {
             background: transparent;
@@ -106,6 +114,7 @@
             font-size: 14px;
             font-weight: bold;
             margin-top: 10px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -127,6 +136,12 @@
     <div id="closeout-section">
         <div class="active-job-header" id="active-job-name">Closing: John Doe</div>
         
+        <!-- AI ENGINE PANEL -->
+        <div class="ai-panel">
+            <button type="button" id="recordBtn" class="ai-btn">🎙️ Auto-Fill with AI</button>
+            <div id="aiStatus">System Ready: Tap to speak field notes</div>
+        </div>
+
         <div class="form-group">
             <label>Field Diagnostics & Notes</label>
             <textarea id="tech_notes" rows="3" placeholder="Found blown capacitor. Replaced and tested system."></textarea>
@@ -148,8 +163,8 @@
             </div>
         </div>
 
-        <button class="btn-complete" id="submitBtn" onclick="submitInvoice()">Submit & Close Ticket</button>
-        <button class="btn-cancel" onclick="cancelCloseout()">Cancel</button>
+        <button type="button" class="btn-complete" id="submitBtn" onclick="submitInvoice()">Submit & Close Ticket</button>
+        <button type="button" class="btn-cancel" onclick="cancelCloseout()">Cancel</button>
     </div>
 </div>
 
@@ -158,7 +173,7 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let currentTicketId = null; // Remembers which job the tech clicked
+    let currentTicketId = null; 
 
     // 1. SECURITY BOUNCER
     async function enforceSecurity() {
@@ -166,7 +181,7 @@
         if (error || !session) {
             window.location.href = 'login.html'; 
         } else {
-            loadOpenJobs(); // Fetch jobs
+            loadOpenJobs(); 
         }
     }
     enforceSecurity();
@@ -175,7 +190,6 @@
     async function loadOpenJobs() {
         const feed = document.getElementById('jobFeed');
         
-        // Fetch tickets where status is exactly 'open'
         const { data: tickets, error } = await supabaseClient
             .from('dispatch_tickets')
             .select('*')
@@ -188,10 +202,8 @@
             return;
         }
 
-        // Draw the tickets
         feed.innerHTML = '';
         tickets.forEach(ticket => {
-            // When clicked, run openCloseout() and pass the ID and Name
             feed.innerHTML += `
                 <div class="job-card" onclick="openCloseout('${ticket.id}', '${ticket.customer_name}')">
                     <div class="j-name">${ticket.customer_name} <span class="j-type">${ticket.system_type}</span></div>
@@ -202,12 +214,12 @@
         });
     }
 
-    // 3. UI LOGIC: Show the form when a job is clicked
+    // 3. UI LOGIC
     function openCloseout(ticketId, customerName) {
-        currentTicketId = ticketId; // Save the ID
+        currentTicketId = ticketId; 
         document.getElementById('active-job-name').innerText = "Closing: " + customerName;
-        document.getElementById('list-section').style.display = 'none'; // Hide list
-        document.getElementById('closeout-section').style.display = 'block'; // Show form
+        document.getElementById('list-section').style.display = 'none'; 
+        document.getElementById('closeout-section').style.display = 'block'; 
     }
 
     function cancelCloseout() {
@@ -224,11 +236,10 @@
         btn.innerText = "Processing...";
         btn.style.opacity = '0.7';
 
-        // Update the specific ticket in Supabase
         const { error } = await supabaseClient
             .from('dispatch_tickets')
             .update({ 
-                status: 'completed', // Changes status so it disappears from the 'Open' list!
+                status: 'completed', 
                 tech_notes: document.getElementById('tech_notes').value,
                 materials_used: document.getElementById('materials').value,
                 labor_hours: document.getElementById('labor').value,
@@ -241,19 +252,85 @@
             btn.innerText = "Submit & Close Ticket";
             btn.style.opacity = '1';
         } else {
-            // Success! Reset UI and reload list
             alert("Job Completed & Sent to Office!");
             document.getElementById('tech_notes').value = '';
             document.getElementById('materials').value = '';
             document.getElementById('labor').value = '';
             document.getElementById('price').value = '';
             
-            cancelCloseout(); // Switch back to list view
-            loadOpenJobs(); // Reload the list (the completed job will vanish!)
+            cancelCloseout(); 
+            loadOpenJobs(); 
             btn.innerText = "Submit & Close Ticket";
             btn.style.opacity = '1';
         }
     }
+
+    // 5. AI VOICE PIPELINE
+    let mediaRecorder;
+    let audioChunks = [];
+    const recordBtn = document.getElementById('recordBtn');
+    const aiStatus = document.getElementById('aiStatus');
+
+    recordBtn.addEventListener('click', async () => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            recordBtn.innerHTML = '⚙️ Processing AI...';
+            recordBtn.style.background = '#d69e2e';
+            recordBtn.classList.remove('recording');
+            aiStatus.innerText = 'Transmitting securely to cloud...';
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const formData = new FormData();
+                formData.append('file', audioBlob, 'recording.webm');
+
+                try {
+                    const response = await fetch('https://zndgwxlnwftschvwwvob.supabase.co/functions/v1/voice-to-invoice', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+                    
+                    if(result.invoice) {
+                        document.getElementById('tech_notes').value = result.invoice.work_summary || '';
+                        document.getElementById('materials').value = (result.invoice.parts_used || []).join(', ');
+                        document.getElementById('labor').value = result.invoice.labor_hours || '';
+                        document.getElementById('price').value = result.invoice.total_estimated_cost || '';
+                        
+                        recordBtn.innerHTML = '✅ AI Complete';
+                        recordBtn.style.background = '#38a169';
+                        aiStatus.innerText = 'Data mapped successfully.';
+                    } else {
+                        aiStatus.innerText = 'Failed to map data.';
+                        recordBtn.innerHTML = '🎙️ Auto-Fill with AI';
+                        recordBtn.style.background = '#805ad5';
+                    }
+                } catch (err) {
+                    aiStatus.innerText = 'Transmission Error: ' + err.message;
+                    recordBtn.innerHTML = '🎙️ Auto-Fill with AI';
+                    recordBtn.style.background = '#805ad5';
+                }
+            };
+
+            mediaRecorder.start();
+            recordBtn.innerHTML = '🛑 Stop & Generate';
+            recordBtn.style.background = '#e53e3e';
+            recordBtn.classList.add('recording');
+            aiStatus.innerText = 'Listening to field notes...';
+        } catch (err) {
+            alert('Microphone access denied. Please allow microphone permissions.');
+        }
+    });
 </script>
 
 </body>
