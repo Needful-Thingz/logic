@@ -64,9 +64,12 @@
     let lastFiredTime = 0;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
+    // --- DRONE & COMBAT FLAGS ---
     let specialCharge = 0, specialReady = false, meleeHitbox;
     const specialMax = 100;
     let specialButton, specialGraphics;
+    let droneActive = false, drone, lastDroneFire = 0;
+    
     let comboStep = 0, isAttacking = false, inputBuffered = false, canCancel = false;
     let attackActiveTimer, attackRecoveryTimer;
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
@@ -83,13 +86,12 @@
         this.load.image('bg3', 'assets/bg3.png');
         this.load.image('floorTile', 'assets/bg4.png');
 
-        // Lowercase names enforced to prevent invisible heroes on GitHub
         this.load.spritesheet('vanguard', 'assets/vanguard.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('recon', 'assets/recon.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // The mathematically perfect 160x160 cookie cutter!
+        // Mathematically perfect 160x160 Mechasphere cookie cutter
         this.load.spritesheet('boss', 'assets/mechasphere.png', { frameWidth: 160, frameHeight: 160 });
     }
 
@@ -97,6 +99,18 @@
         currentScene = this; 
         this.input.addPointer(2);
         
+        // --- PROCEDURALLY GENERATE DRONE TEXTURE ---
+        let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
+        dGraphics.fillStyle(0x222222, 1);
+        dGraphics.fillRoundedRect(0, 6, 20, 12, 4); // Main chassis
+        dGraphics.fillStyle(0x777777, 1);
+        dGraphics.fillRect(6, 2, 8, 20); // Top/Bottom thruster mounts
+        dGraphics.fillStyle(0x00ffff, 1);
+        dGraphics.fillCircle(16, 12, 5); // Glowing Cyan Lens
+        dGraphics.fillStyle(0xffffff, 1);
+        dGraphics.fillCircle(17, 11, 2); // Lens Glare
+        dGraphics.generateTexture('drone_tex', 24, 24); // Saves it to engine memory!
+
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
         this.physics.world.setBoundsCollision(true, true, true, false); 
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
@@ -236,15 +250,23 @@
         specialButton = this.add.circle(750, 210, 30, 0x555555).setAlpha(0.7).setInteractive(); uiElements.push(specialButton);
         const specialButtonT = this.add.text(750, 210, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(specialButtonT);
         specialGraphics = this.add.graphics(); uiElements.push(specialGraphics);
+        
+        // --- DEPLOY DRONE USING PROCEDURAL TEXTURE ---
         specialButton.on('pointerdown', () => {
             if (specialReady && !isAttacking && !isBlocking && !isSpawning) {
-                player.setTint(0x00ffff);
-                enemiesGroup.getChildren().forEach(enemy => {
-                    if (Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y) < 250) { 
-                        dealDamageToEnemy(enemy, 50, 0.8, 0); enemy.setTint(0x00ffff); this.time.delayedCall(200, () => { if(enemy.active) enemy.clearTint(); }); 
-                    }
+                droneActive = true;
+                actionText.setText('DRONE DEPLOYED!');
+                
+                drone = currentScene.physics.add.sprite(player.x, player.y - 40, 'drone_tex');
+                drone.body.setAllowGravity(false);
+                
+                currentScene.time.delayedCall(10000, () => {
+                    droneActive = false;
+                    if(drone) drone.destroy();
+                    actionText.setText('DRONE OFFLINE');
+                    currentScene.time.delayedCall(1000, () => actionText.setText('Ready'));
                 });
-                this.time.delayedCall(500, () => player.clearTint());
+
                 specialCharge = 0; specialReady = false; specialButton.setFillStyle(0x555555); specialGraphics.clear();
             }
         });
@@ -608,6 +630,54 @@
 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
+        // --- AUTO-TURRET DRONE LOGIC ---
+        if (droneActive && drone && playerHealth > 0) {
+            
+            let targetX = player.x + (facingDirection === 0 ? -30 : 30);
+            let targetY = player.y - 40 + (Math.sin(currentTime / 200) * 8); 
+            drone.x = Phaser.Math.Linear(drone.x, targetX, 0.1);
+            drone.y = Phaser.Math.Linear(drone.y, targetY, 0.1);
+
+            if (currentTime > lastDroneFire + 300) {
+                let nearestEnemy = null;
+                let minDist = 500;
+                enemiesGroup.getChildren().forEach(enemy => {
+                    if (enemy.active && enemy.enemyData.state !== 'dead' && enemy.y <= 450) {
+                        let dist = Phaser.Math.Distance.Between(drone.x, drone.y, enemy.x, enemy.y);
+                        if (dist < minDist) { minDist = dist; nearestEnemy = enemy; }
+                    }
+                });
+
+                if (nearestEnemy) {
+                    let angle = Phaser.Math.Angle.Between(drone.x, drone.y, nearestEnemy.x, nearestEnemy.y);
+                    
+                    drone.rotation = angle;
+                    
+                    let laser = currentScene.add.rectangle(drone.x, drone.y, 10, 3, 0x00ffff);
+                    currentScene.physics.add.existing(laser);
+                    laser.body.setAllowGravity(false);
+                    currentScene.physics.velocityFromRotation(angle, 900, laser.body.velocity);
+                    laser.rotation = angle;
+                    
+                    currentScene.physics.add.overlap(laser, enemiesGroup, (l, enemy) => {
+                        if (enemy.enemyData.state !== 'dead') {
+                            l.destroy(); 
+                            dealDamageToEnemy(enemy, 15, 0.8, 0); 
+                            enemy.setTint(0x00ffff); 
+                            currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
+                        }
+                    });
+                    currentScene.time.delayedCall(1000, () => { if(laser.active) laser.destroy(); });
+                    lastDroneFire = currentTime;
+                } else {
+                    drone.rotation = facingDirection;
+                }
+            }
+        } else if (droneActive && playerHealth <= 0) {
+            droneActive = false;
+            if(drone) drone.destroy();
+        }
+        
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (data.isBoss) return; 
@@ -615,11 +685,14 @@
             if (data.state === 'dead') return; 
 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
-            if (distToPlayer > 800) return; 
+            if (distToPlayer > 800) return; // Keep optimization for large maps!
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
-                if (distToPlayer < 65 && data.canAttack) {
+                
+                // --- UPGRADED GRUNT AI (MATCHES ARENA) ---
+                if (distToPlayer < 75 && data.canAttack) {
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
+                    
                     enemy.anims.play('grunt_punch_right', true);
 
                     currentScene.time.delayedCall(400, () => {
@@ -630,33 +703,41 @@
                     });
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
                     
-                } else if (distToPlayer < 350 && distToPlayer > 150 && data.canAttack) {
-                    data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
-                    enemy.anims.play('grunt_punch_right', true); 
+                } else if (distToPlayer >= 100 && distToPlayer <= 350 && data.canAttack && data.state !== 'attack') {
+                    data.state = 'shoot'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
                     
-                    currentScene.time.delayedCall(300, () => {
-                        if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return;
-                        let b = currentScene.add.rectangle(enemy.x + (enemy.x < player.x ? 30 : -30), enemy.y, 12, 4, 0xff0000);
-                        currentScene.physics.add.existing(b);
-                        enemyProjectiles.add(b);
-                        b.body.setAllowGravity(false); 
-                        b.body.setVelocityX(enemy.x < player.x ? 450 : -450);
-                        b.dmg = 15;
-                        currentScene.time.delayedCall(1500, () => { if(b.active) b.destroy(); });
-                    });
-                    currentScene.time.delayedCall(2500, () => { data.canAttack = true; });
+                    let dir = (player.x > enemy.x) ? 1 : -1; 
+                    enemy.setFlipX(dir === -1);
+                    enemy.anims.play('grunt_punch_left', true);
 
-                } else if (distToPlayer < 400 && data.state !== 'attack') {
+                    currentScene.time.delayedCall(300, () => {
+                        if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return; 
+                        
+                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0xffaa00);
+                        currentScene.physics.add.existing(enemyBullet);
+                        enemyBullet.body.setAllowGravity(false);
+                        enemyBullet.body.setVelocityX(dir * 500); 
+                        enemyBullet.dmg = 10;
+                        enemyProjectiles.add(enemyBullet);
+                        
+                        currentScene.time.delayedCall(1500, () => { if(enemyBullet.active) enemyBullet.destroy(); });
+                        if (data.state !== 'dead') data.state = 'idle';
+                    });
+                    
+                    currentScene.time.delayedCall(2500, () => { data.canAttack = true; });
+                    
+                } else if (distToPlayer > 75 && data.state !== 'attack' && data.state !== 'shoot') {
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
                     enemy.setFlipX(dir === -1);
                     enemy.anims.play('grunt_run_normal', true);
+
                     if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
-                } else if (data.state !== 'attack') { 
+                } else if (data.state !== 'attack' && data.state !== 'shoot') { 
                     data.state = 'idle'; enemy.body.setVelocityX(0); 
                     enemy.anims.play('grunt_unarmed_idle', true);
                 }
             } else { 
-                if (data.state !== 'attack') { 
+                if (data.state !== 'attack' && data.state !== 'shoot') { 
                     enemy.body.setVelocityX(0); 
                     if(enemy.active && data.state !== 'dead') enemy.anims.play('grunt_unarmed_idle', true); 
                 } 
