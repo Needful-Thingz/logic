@@ -64,9 +64,12 @@
     let lastFiredTime = 0;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
+    // --- DRONE & COMBAT FLAGS ---
     let specialCharge = 0, specialReady = false, meleeHitbox;
     const specialMax = 100;
     let specialButton, specialGraphics;
+    let droneActive = false, drone, lastDroneFire = 0;
+    
     let comboStep = 0, isAttacking = false, inputBuffered = false, canCancel = false;
     let attackActiveTimer, attackRecoveryTimer;
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
@@ -91,7 +94,6 @@
     function create() {
         currentScene = this; 
         
-        // --- MULTI-TOUCH FIX ADDED BACK IN ---
         this.input.addPointer(2);
         
         this.physics.world.setBounds(0, 0, 800, 400);
@@ -121,8 +123,6 @@
         player = this.physics.add.sprite(400, 200, activeCharDef.spriteKey); 
         player.setScale(2);
         player.setCollideWorldBounds(true);
-        
-        // --- TIGHTENED HITBOX ADDED BACK IN ---
         player.body.setSize(18, 37); 
         player.body.setOffset(19, 0); 
 
@@ -198,19 +198,33 @@
         specialButton = this.add.circle(750, 210, 30, 0x555555).setAlpha(0.7).setInteractive(); uiElements.push(specialButton);
         const specialButtonT = this.add.text(750, 210, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(specialButtonT);
         specialGraphics = this.add.graphics(); uiElements.push(specialGraphics);
+        
+        // --- AUTO-TURRET DRONE ACTIVATION ---
         specialButton.on('pointerdown', () => {
             if (specialReady && !isAttacking && !isBlocking && !isSpawning) {
-                player.setTint(0x00ffff);
-                enemiesGroup.getChildren().forEach(enemy => {
-                    if (Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y) < 250) { 
-                        dealDamageToEnemy(enemy, 50, 0.8, 0); enemy.setTint(0x00ffff); this.time.delayedCall(200, () => { if(enemy.active) enemy.clearTint(); }); 
-                    }
+                droneActive = true;
+                actionText.setText('DRONE DEPLOYED!');
+                
+                // Spawn Drone Orb
+                drone = currentScene.add.circle(player.x, player.y - 40, 8, 0x00ffff);
+                currentScene.physics.add.existing(drone);
+                drone.body.setAllowGravity(false);
+                
+                // Lifespan Timer (10 seconds)
+                currentScene.time.delayedCall(10000, () => {
+                    droneActive = false;
+                    if(drone) drone.destroy();
+                    actionText.setText('DRONE OFFLINE');
+                    currentScene.time.delayedCall(1000, () => actionText.setText('Ready'));
                 });
-                this.time.delayedCall(500, () => player.clearTint());
+
                 specialCharge = 0; specialReady = false; specialButton.setFillStyle(0x555555); specialGraphics.clear();
             }
         });
 
+        uiElements.forEach(el => { if (el.setScrollFactor) el.setScrollFactor(0); });
+        joyStickLeft.base.setScrollFactor(0); joyStickLeft.thumb.setScrollFactor(0);
+        
         applyCharacterLoadout();
         startSpawner();
     }
@@ -515,6 +529,51 @@
             player.setFlipX(facingDirection === Math.PI);
 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
+        
+        // --- AUTO-TURRET DRONE LOGIC ---
+        if (droneActive && drone && playerHealth > 0) {
+            // Smoothly follow the player's shoulder
+            let targetX = player.x + (facingDirection === 0 ? -30 : 30);
+            let targetY = player.y - 40;
+            drone.x = Phaser.Math.Linear(drone.x, targetX, 0.1);
+            drone.y = Phaser.Math.Linear(drone.y, targetY, 0.1);
+
+            // Find Target & Shoot (300ms fire rate)
+            if (currentTime > lastDroneFire + 300) {
+                let nearestEnemy = null;
+                let minDist = 500;
+                enemiesGroup.getChildren().forEach(enemy => {
+                    if (enemy.active && enemy.enemyData.state !== 'dead' && enemy.y <= 450) {
+                        let dist = Phaser.Math.Distance.Between(drone.x, drone.y, enemy.x, enemy.y);
+                        if (dist < minDist) { minDist = dist; nearestEnemy = enemy; }
+                    }
+                });
+
+                if (nearestEnemy) {
+                    let angle = Phaser.Math.Angle.Between(drone.x, drone.y, nearestEnemy.x, nearestEnemy.y);
+                    let laser = currentScene.add.rectangle(drone.x, drone.y, 10, 3, 0x00ffff);
+                    currentScene.physics.add.existing(laser);
+                    laser.body.setAllowGravity(false);
+                    currentScene.physics.velocityFromRotation(angle, 900, laser.body.velocity);
+                    laser.rotation = angle;
+                    
+                    currentScene.physics.add.overlap(laser, enemiesGroup, (l, enemy) => {
+                        if (enemy.enemyData.state !== 'dead') {
+                            l.destroy(); 
+                            dealDamageToEnemy(enemy, 15, 0.8, 0); // 15 Damage, 80% Pierce
+                            enemy.setTint(0x00ffff); 
+                            currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
+                        }
+                    });
+                    currentScene.time.delayedCall(1000, () => { if(laser.active) laser.destroy(); });
+                    lastDroneFire = currentTime;
+                }
+            }
+        } else if (droneActive && playerHealth <= 0) {
+            // Kill the drone if the player dies
+            droneActive = false;
+            if(drone) drone.destroy();
+        }
         
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
