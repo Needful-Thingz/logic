@@ -50,17 +50,21 @@
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
     let activeOrdnance = ordnanceArmory['Frag'];
 
+    // --- TWO-GUN LOADOUT UPDATED ---
     let savedRoster = localStorage.getItem('nt_roster');
     const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
-        { name: "Vanguard", spriteKey: 'vanguard', color: 0x00aaff, melee: 'Whip',  gun: 'Shotgun' },
-        { name: "Recon",    spriteKey: 'recon',    color: 0xaaaa00, melee: 'Knife', gun: 'Rifle' },
-        { name: "Heavy",    spriteKey: 'heavy',    color: 0xaa00ff, melee: 'Sword', gun: 'Rocket' }
+        { name: "Vanguard", spriteKey: 'vanguard', color: 0x00aaff, melee: 'Whip',  gun1: 'Rifle', gun2: 'Shotgun' },
+        { name: "Recon",    spriteKey: 'recon',    color: 0xaaaa00, melee: 'Knife', gun1: 'Rifle', gun2: 'Sniper' },
+        { name: "Heavy",    spriteKey: 'heavy',    color: 0xaa00ff, melee: 'Sword', gun1: 'Rifle', gun2: 'Rocket' }
     ];
     
     let currentRosterIndex = 0, activeCharDef = playerRoster[currentRosterIndex];
     let playerHealth = 100, jumps = 0, playerHealthBar; 
     let currentWeaponIndex = 0, activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
-    let currentGunIndex = 1, activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
+    
+    let activeGun = gunArmory[activeCharDef.gun1] || gunArmory['Rifle'];
+    let usingPrimaryGun = true; // Tracks which gun is currently equipped
+    
     let lastFiredTime = 0;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
@@ -91,7 +95,7 @@
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // Mathematically perfect 160x160 Mechasphere cookie cutter
+        // The mathematically perfect 160x160 cookie cutter!
         this.load.spritesheet('boss', 'assets/mechasphere.png', { frameWidth: 160, frameHeight: 160 });
     }
 
@@ -225,6 +229,17 @@
             } 
         });
 
+        // --- NEW WEAPON SWAP BUTTON ---
+        const btnSwap = this.add.circle(550, 250, 25, 0x8800ff).setAlpha(0.7).setInteractive(); uiElements.push(btnSwap);
+        const btnSwapT = this.add.text(550, 250, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnSwapT);
+        btnSwap.on('pointerdown', () => {
+            if (isSpawning || playerHealth <= 0) return;
+            usingPrimaryGun = !usingPrimaryGun;
+            activeGun = usingPrimaryGun ? (gunArmory[activeCharDef.gun1] || gunArmory['Rifle']) : (gunArmory[activeCharDef.gun2] || gunArmory['Shotgun']);
+            gunText.setText('Gun: ' + activeGun.name);
+            actionText.setText(`EQUIPPED: ${activeGun.name.toUpperCase()}`);
+        });
+
         const btnDefend = this.add.circle(580, 300, 25, 0x888888).setAlpha(0.8).setInteractive(); uiElements.push(btnDefend);
         const btnDefendT = this.add.text(580, 300, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnDefendT);
         btnDefend.on('pointerdown', () => {
@@ -302,7 +317,11 @@
         player.setTexture(activeCharDef.spriteKey);
         
         currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
-        currentGunIndex = gunKeys.indexOf(activeCharDef.gun); activeGun = gunArmory[activeCharDef.gun] || gunArmory['Shotgun'];
+        
+        // Always reset back to the primary Assault Rifle when a new character spawns
+        usingPrimaryGun = true;
+        activeGun = gunArmory[activeCharDef.gun1] || gunArmory['Rifle'];
+        
         playerHealth = 100; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
         isSpawning = false;
         meleeText.setText('Melee: ' + activeWeapon.name); gunText.setText('Gun: ' + activeGun.name);
@@ -503,7 +522,7 @@
                 bossDefeated = true; 
                 if(bossAIEvent) bossAIEvent.remove(); 
                 showCenterMessage("SECTOR CLEARED!", '#00ff00'); 
-                bossWall.body.checkCollision.none = true; bossWall.setAlpha(0);
+                bossWall.body.checkCollision.none = true bossWall.setAlpha(0);
                 enemy.body.setVelocityX(0);
                 enemy.anims.play('boss_die', true);
                 currentScene.time.delayedCall(4000, () => { window.location.href = 'debrief.html?status=win'; });
@@ -685,7 +704,7 @@
             if (data.state === 'dead') return; 
 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
-            if (distToPlayer > 800) return; // Keep optimization for large maps!
+            if (distToPlayer > 800) return; // Keeps optimization for the long map
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 
