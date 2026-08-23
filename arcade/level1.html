@@ -50,7 +50,7 @@
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
     let activeOrdnance = ordnanceArmory['Frag'];
 
-    // --- TWO-GUN LOADOUT UPDATED ---
+    // --- TWO-GUN LOADOUT ADDED ---
     let savedRoster = localStorage.getItem('nt_roster');
     const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
         { name: "Vanguard", spriteKey: 'vanguard', color: 0x00aaff, melee: 'Whip',  gun1: 'Rifle', gun2: 'Shotgun' },
@@ -62,8 +62,9 @@
     let playerHealth = 100, jumps = 0, playerHealthBar; 
     let currentWeaponIndex = 0, activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
     
+    // Weapon Swap Trackers
     let activeGun = gunArmory[activeCharDef.gun1] || gunArmory['Rifle'];
-    let usingPrimaryGun = true; // Tracks which gun is currently equipped
+    let usingPrimaryGun = true; 
     
     let lastFiredTime = 0;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
@@ -95,7 +96,7 @@
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // The mathematically perfect 160x160 cookie cutter!
+        // 160x160 Boss Slicing Fix
         this.load.spritesheet('boss', 'assets/mechasphere.png', { frameWidth: 160, frameHeight: 160 });
     }
 
@@ -106,14 +107,14 @@
         // --- PROCEDURALLY GENERATE DRONE TEXTURE ---
         let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
         dGraphics.fillStyle(0x222222, 1);
-        dGraphics.fillRoundedRect(0, 6, 20, 12, 4); // Main chassis
+        dGraphics.fillRoundedRect(0, 6, 20, 12, 4); 
         dGraphics.fillStyle(0x777777, 1);
-        dGraphics.fillRect(6, 2, 8, 20); // Top/Bottom thruster mounts
+        dGraphics.fillRect(6, 2, 8, 20); 
         dGraphics.fillStyle(0x00ffff, 1);
-        dGraphics.fillCircle(16, 12, 5); // Glowing Cyan Lens
+        dGraphics.fillCircle(16, 12, 5); 
         dGraphics.fillStyle(0xffffff, 1);
-        dGraphics.fillCircle(17, 11, 2); // Lens Glare
-        dGraphics.generateTexture('drone_tex', 24, 24); // Saves it to engine memory!
+        dGraphics.fillCircle(17, 11, 2); 
+        dGraphics.generateTexture('drone_tex', 24, 24); 
 
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
         this.physics.world.setBoundsCollision(true, true, true, false); 
@@ -155,7 +156,6 @@
         spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
         spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
 
-        // --- BOSS RESET ---
         boss = this.physics.add.sprite(3000, 100, 'boss'); 
         boss.setScale(1.2); 
         boss.setFlipX(true);
@@ -266,7 +266,6 @@
         const specialButtonT = this.add.text(750, 210, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(specialButtonT);
         specialGraphics = this.add.graphics(); uiElements.push(specialGraphics);
         
-        // --- DEPLOY DRONE USING PROCEDURAL TEXTURE ---
         specialButton.on('pointerdown', () => {
             if (specialReady && !isAttacking && !isBlocking && !isSpawning) {
                 droneActive = true;
@@ -318,7 +317,6 @@
         
         currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
         
-        // Always reset back to the primary Assault Rifle when a new character spawns
         usingPrimaryGun = true;
         activeGun = gunArmory[activeCharDef.gun1] || gunArmory['Rifle'];
         
@@ -522,7 +520,10 @@
                 bossDefeated = true; 
                 if(bossAIEvent) bossAIEvent.remove(); 
                 showCenterMessage("SECTOR CLEARED!", '#00ff00'); 
-                bossWall.body.checkCollision.none = true bossWall.setAlpha(0);
+                
+                // FATAL ERROR FIXED HERE!
+                bossWall.body.checkCollision.none = true; bossWall.setAlpha(0);
+                
                 enemy.body.setVelocityX(0);
                 enemy.anims.play('boss_die', true);
                 currentScene.time.delayedCall(4000, () => { window.location.href = 'debrief.html?status=win'; });
@@ -649,7 +650,7 @@
 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
-        // --- AUTO-TURRET DRONE LOGIC ---
+        // --- DRONE LOGIC ---
         if (droneActive && drone && playerHealth > 0) {
             
             let targetX = player.x + (facingDirection === 0 ? -30 : 30);
@@ -704,11 +705,9 @@
             if (data.state === 'dead') return; 
 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
-            if (distToPlayer > 800) return; // Keeps optimization for the long map
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 
-                // --- UPGRADED GRUNT AI (MATCHES ARENA) ---
                 if (distToPlayer < 75 && data.canAttack) {
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
                     
