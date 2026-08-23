@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Level 1: Scorched Outskirts</title>
+    <title>Needful Thingz - Level 2: The Toxic Refinery</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -51,7 +50,6 @@
     const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
     let activeOrdnance = ordnanceArmory['Frag'];
 
-    // --- TWO-GUN LOADOUT ADDED ---
     let savedRoster = localStorage.getItem('nt_roster');
     const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
         { name: "Vanguard", spriteKey: 'vanguard', color: 0x00aaff, melee: 'Whip',  gun1: 'Rifle', gun2: 'Shotgun' },
@@ -87,17 +85,18 @@
     
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
-        this.load.image('bg1', 'assets/bg1.png');
-        this.load.image('bg2', 'assets/bg2.png');
-        this.load.image('bg3', 'assets/bg3.png');
-        this.load.image('floorTile', 'assets/bg4.png');
+        
+        // --- LEVEL 2 ASSETS LOADED HERE ---
+        this.load.image('bg1', 'assets/bg1_lvl2.png');
+        this.load.image('bg2', 'assets/bg2_lvl2.png');
+        this.load.image('bg3', 'assets/bg3_lvl2.png');
+        this.load.image('floorTile', 'assets/floor_lvl2.png');
 
         this.load.spritesheet('vanguard', 'assets/vanguard.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('recon', 'assets/recon.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // 160x160 Boss Slicing Fix
         this.load.spritesheet('boss', 'assets/mechasphere.png', { frameWidth: 160, frameHeight: 160 });
     }
 
@@ -521,10 +520,7 @@
                 bossDefeated = true; 
                 if(bossAIEvent) bossAIEvent.remove(); 
                 showCenterMessage("SECTOR CLEARED!", '#00ff00'); 
-                
-                // FATAL ERROR FIXED HERE!
                 bossWall.body.checkCollision.none = true; bossWall.setAlpha(0);
-                
                 enemy.body.setVelocityX(0);
                 enemy.anims.play('boss_die', true);
                 currentScene.time.delayedCall(4000, () => { window.location.href = 'debrief.html?status=win'; });
@@ -651,7 +647,7 @@
 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
-        // --- DRONE LOGIC ---
+        // --- AUTO-TURRET DRONE LOGIC ---
         if (droneActive && drone && playerHealth > 0) {
             
             let targetX = player.x + (facingDirection === 0 ? -30 : 30);
@@ -706,6 +702,7 @@
             if (data.state === 'dead') return; 
 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
+            if (distToPlayer > 800) return; 
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 
