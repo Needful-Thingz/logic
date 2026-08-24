@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; background-color: #121a12; overflow: hidden; } 
+        body { margin: 0; padding: 0; background-color: #0d1a0d; overflow: hidden; } 
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -19,12 +19,12 @@
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 400 },
         physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: false } },
         scene: { preload: preload, create: create, update: update },
-        backgroundColor: '#121a12' 
+        backgroundColor: '#0d1a0d' 
     };
 
     const game = new Phaser.Game(config);
     
-    let player, joyStickLeft, platforms;
+    let player, joyStickLeft, platforms, acidGroup, acidBubblesGroup;
     let uiElements = []; 
     let meleeText, gunText, ammoText, grenadeText, actionText, rosterText, scoreText, centerMsgText;
     let facingDirection = 0, currentScene, grenadesGroup; 
@@ -61,14 +61,12 @@
     let playerHealth = 100, jumps = 0, playerHealthBar; 
     let currentWeaponIndex = 0, activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
     
-    // Weapon Swap Trackers
     let activeGun = gunArmory[activeCharDef.gun1] || gunArmory['Rifle'];
     let usingPrimaryGun = true; 
     
     let lastFiredTime = 0;
     let currentOrdnanceAmmo = 3, lastTossedTime = 0;
     
-    // --- DRONE & COMBAT FLAGS ---
     let specialCharge = 0, specialReady = false, meleeHitbox;
     const specialMax = 100;
     let specialButton, specialGraphics;
@@ -80,13 +78,13 @@
     let isFiring = false; 
     
     let enemiesGroup, enemyProjectiles;
-    const WORLD_WIDTH = 3200; 
+    const WORLD_WIDTH = 4800; 
     let boss, bossActive = false, bossDefeated = false, bossHpBar, bossWall, bossAIEvent;
-    
+    let acidGraphicLayers = [];
+
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
         
-        // --- LEVEL 2 ASSETS LOADED HERE ---
         this.load.image('bg1', 'assets/bg1_lvl2.png');
         this.load.image('bg2', 'assets/bg2_lvl2.png');
         this.load.image('bg3', 'assets/bg3_lvl2.png');
@@ -104,7 +102,7 @@
         currentScene = this; 
         this.input.addPointer(2);
         
-        // --- PROCEDURALLY GENERATE DRONE TEXTURE ---
+        // Procedural Drone Graphic
         let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
         dGraphics.fillStyle(0x222222, 1);
         dGraphics.fillRoundedRect(0, 6, 20, 12, 4); 
@@ -136,34 +134,69 @@
         enemiesGroup = this.physics.add.group();
         enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup();
+        acidGroup = this.physics.add.staticGroup();
+        acidBubblesGroup = this.add.group();
 
-        platforms.add(this.add.tileSprite(400, 390, 800, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(600, 300, 150, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1050, 250, 200, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1350, 390, 400, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1350, 180, 200, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1900, 390, 500, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1800, 280, 150, 32, 'floorTile'));
-        platforms.add(this.add.tileSprite(2000, 220, 150, 32, 'floorTile'));
-        platforms.add(this.add.tileSprite(2800, 390, 800, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(2650, 260, 150, 32, 'floorTile'));
-        platforms.add(this.add.tileSprite(2950, 260, 150, 32, 'floorTile'));
+        // --- PLATFORM LAYOUT (4,800px Extended Route) ---
+        // Sector 1: Entry & Primary Sump (0 - 1500)
+        platforms.add(this.add.tileSprite(300, 390, 600, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(700, 270, 150, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1000, 390, 350, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1150, 230, 180, 32, 'floorTile')); 
 
-        bossWall = this.add.rectangle(2400, 200, 20, 400, 0x00ffff, 0);
+        // Sector 2: Vertical Pipe Runs (1500 - 3000)
+        platforms.add(this.add.tileSprite(1650, 390, 400, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1450, 270, 160, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1950, 260, 160, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(2150, 300, 140, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(2350, 240, 140, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(2750, 390, 600, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(2650, 250, 160, 32, 'floorTile'));
+        platforms.add(this.add.tileSprite(2950, 200, 160, 32, 'floorTile'));
+
+        // Sector 3: Sludge Processing Tanks (3000 - 4100)
+        platforms.add(this.add.tileSprite(3250, 280, 150, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(3700, 390, 600, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(3550, 260, 160, 32, 'floorTile'));
+        platforms.add(this.add.tileSprite(3900, 240, 160, 32, 'floorTile'));
+
+        // Sector 4: Goliath Arena (4100 - 4800)
+        platforms.add(this.add.tileSprite(4450, 390, 700, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(4300, 260, 150, 32, 'floorTile'));
+        platforms.add(this.add.tileSprite(4620, 260, 150, 32, 'floorTile'));
+
+        // --- PROCEDURAL ACID HAZARD ZONES ---
+        createAcidPool(600, 825);
+        createAcidPool(1175, 1450);
+        createAcidPool(1850, 2450);
+        createAcidPool(3050, 3400);
+
+        // Lockdown Wall
+        bossWall = this.add.rectangle(4050, 200, 20, 400, 0x00ff66, 0);
         this.physics.add.existing(bossWall, true);
         bossWall.body.checkCollision.none = true; 
 
-        spawnEnemyAt(700, 200); spawnEnemyAt(1050, 150); spawnEnemyAt(1350, 100);
-        spawnEnemyAt(1450, 300); spawnEnemyAt(1800, 200); spawnEnemyAt(2100, 300);
+        // Grunt Enemy Encounters Across 4800px
+        spawnEnemyAt(700, 200); 
+        spawnEnemyAt(1000, 300); 
+        spawnEnemyAt(1150, 160);
+        spawnEnemyAt(1650, 300); 
+        spawnEnemyAt(1950, 190); 
+        spawnEnemyAt(2350, 170);
+        spawnEnemyAt(2700, 300);
+        spawnEnemyAt(2950, 140);
+        spawnEnemyAt(3550, 190);
+        spawnEnemyAt(3750, 300);
 
-        boss = this.physics.add.sprite(3000, 100, 'boss'); 
+        // Boss Initialization (Positioned in Sector 4)
+        boss = this.physics.add.sprite(4600, 100, 'boss'); 
         boss.setScale(1.2); 
         boss.setFlipX(true);
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
         boss.body.setAllowGravity(true); 
         boss.setDepth(15); 
-        boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
+        boss.enemyData = { isBoss: true, hp: 600, maxHp: 600, armor: 250, maxArmor: 250, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
 
         const charKeys = ['vanguard', 'recon', 'heavy', 'grunt'];
@@ -190,7 +223,8 @@
         this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
         meleeHitbox = this.add.rectangle(-100, -100, 40, 20, 0xffffff).setAlpha(0);
-        this.physics.add.existing(meleeHitbox); meleeHitbox.body.setAllowGravity(false);
+        this.physics.add.existing(meleeHitbox); 
+        meleeHitbox.body.setAllowGravity(false);
 
         playerHealthBar = this.add.graphics().setDepth(10);
         bossHpBar = this.add.graphics().setScrollFactor(0).setDepth(20);
@@ -201,6 +235,14 @@
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
         this.physics.add.overlap(player, enemyProjectiles, (p, proj) => { proj.destroy(); playerTakeDamage(proj.dmg, proj.x); });
+        
+        // Hazard overlap
+        this.physics.add.overlap(player, acidGroup, () => {
+            if (playerHealth > 0 && !isInvincible) {
+                spawnDamageText(player.x, player.y - 20, 999, true, true);
+                playerTakeDamage(1000, player.x);
+            }
+        });
 
         // --- UI SETUP ---
         meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff', backgroundColor: '#000000' }); uiElements.push(meleeText);
@@ -229,7 +271,6 @@
             } 
         });
 
-        // --- NEW WEAPON SWAP BUTTON ---
         const btnSwap = this.add.circle(550, 250, 25, 0x8800ff).setAlpha(0.7).setInteractive(); uiElements.push(btnSwap);
         const btnSwapT = this.add.text(550, 250, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnSwapT);
         btnSwap.on('pointerdown', () => {
@@ -291,6 +332,38 @@
         applyCharacterLoadout();
     }
 
+    function createAcidPool(startX, endX) {
+        let width = endX - startX;
+        let centerX = startX + (width / 2);
+        
+        // Hazard Physics trigger
+        let pool = currentScene.add.rectangle(centerX, 385, width, 30, 0x000000, 0);
+        acidGroup.add(pool);
+        pool.body.setAllowGravity(false);
+
+        // Visual Acid Graphic Layer
+        let g = currentScene.add.graphics().setDepth(5);
+        acidGraphicLayers.push({ graphics: g, startX: startX, width: width });
+
+        // Bubble Spawner Timer
+        currentScene.time.addEvent({
+            delay: Phaser.Math.Between(400, 800),
+            loop: true,
+            callback: () => {
+                let bx = Phaser.Math.Between(startX + 10, endX - 10);
+                let bubble = currentScene.add.circle(bx, 395, Phaser.Math.Between(3, 6), 0x39ff14, 0.8).setDepth(6);
+                currentScene.tweens.add({
+                    targets: bubble,
+                    y: 375,
+                    alpha: 0,
+                    scale: 1.4,
+                    duration: Phaser.Math.Between(600, 1000),
+                    onComplete: () => bubble.destroy()
+                });
+            }
+        });
+    }
+
     function playAnim(animSuffix) {
         player.anims.play(`${activeCharDef.spriteKey}_${animSuffix}`, true);
     }
@@ -336,8 +409,10 @@
     }
 
     function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) {
-        let fontSize = isCritical ? '26px' : '16px'; let color = isPlayerHit ? '#ff3333' : '#ffdd00'; 
-        let floatText = currentScene.add.text(x, y, Math.round(amount).toString(), { fontSize: fontSize, fill: color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5);
+        let fontSize = isCritical ? '26px' : '16px'; 
+        let color = isPlayerHit ? '#39ff14' : '#ffdd00'; 
+        let textContent = amount >= 900 ? "ACID BURN!" : Math.round(amount).toString();
+        let floatText = currentScene.add.text(x, y, textContent, { fontSize: fontSize, fill: color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5).setDepth(25);
         currentScene.tweens.add({ targets: floatText, x: floatText.x + Phaser.Math.Between(-25, 25), y: floatText.y - 60, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() });
     }
 
@@ -544,10 +619,18 @@
     }
     
     function triggerBoss() {
-        bossActive = true; boss.enemyData.state = 'active'; currentScene.cameras.main.stopFollow(); currentScene.cameras.main.pan(2800, 200, 1000, 'Sine.easeInOut');
+        bossActive = true; 
+        boss.enemyData.state = 'active'; 
+        currentScene.cameras.main.stopFollow(); 
+        currentScene.cameras.main.pan(4400, 200, 1000, 'Sine.easeInOut');
         boss.anims.play('boss_walk', true);
         boss.body.setVelocityX(-20); 
-        currentScene.time.delayedCall(1000, () => { currentScene.cameras.main.setBounds(2400, 0, 800, 400); bossWall.body.checkCollision.none = false; showCenterMessage("WARNING: GOLIATH MECH", '#ff0000'); bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runBossPattern, loop: true }); });
+        currentScene.time.delayedCall(1000, () => { 
+            currentScene.cameras.main.setBounds(4000, 0, 800, 400); 
+            bossWall.body.checkCollision.none = false; 
+            showCenterMessage("WARNING: GOLIATH MECH", '#ff0000'); 
+            bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runBossPattern, loop: true }); 
+        });
     }
 
     function runBossPattern() {
@@ -561,7 +644,7 @@
                 if(!boss.active) return;
                 
                 for (let i = -2; i <= 2; i++) {
-                    let bullet = currentScene.add.rectangle(boss.x - 110, boss.y - 20, 20, 20, 0xff5500); 
+                    let bullet = currentScene.add.rectangle(boss.x - 110, boss.y - 20, 20, 20, 0x00ff66); 
                     currentScene.physics.add.existing(bullet); 
                     enemyProjectiles.add(bullet); 
                     bullet.body.setAllowGravity(false);
@@ -584,7 +667,7 @@
                 if(!boss.active) return; 
                 currentScene.cameras.main.shake(200, 0.01); 
                 
-                let shockwave = currentScene.add.rectangle(boss.x - 80, 360, 40, 60, 0x00ffff); 
+                let shockwave = currentScene.add.rectangle(boss.x - 80, 360, 40, 60, 0x39ff14); 
                 currentScene.physics.add.existing(shockwave); 
                 enemyProjectiles.add(shockwave);
                 shockwave.body.setAllowGravity(false);
@@ -601,8 +684,29 @@
     }
 
     function update() {
-        drawFloatingBars(); let currentTime = currentScene.time.now;
-        if (!bossActive && player.x > 2600) triggerBoss();
+        drawFloatingBars(); 
+        let currentTime = currentScene.time.now;
+
+        // Animate procedural acid pool surfaces
+        let wave = (Math.sin(currentTime / 300) + 1) / 2; // 0 to 1
+        acidGraphicLayers.forEach(layer => {
+            let g = layer.graphics;
+            g.clear();
+            // Dark murky base
+            g.fillStyle(0x052e05, 0.9);
+            g.fillRect(layer.startX, 375, layer.width, 35);
+            // Glowing neon liquid surface
+            g.fillStyle(0x39ff14, 0.5 + (wave * 0.3));
+            g.fillRect(layer.startX, 375, layer.width, 10);
+            // Bright surface crust line
+            g.lineStyle(2, 0xaaff55, 0.9);
+            g.beginPath();
+            g.moveTo(layer.startX, 375);
+            g.lineTo(layer.startX + layer.width, 375);
+            g.strokePath();
+        });
+
+        if (!bossActive && player.x > 4100) triggerBoss();
         if (player.y > 450 && playerHealth > 0 && !isSpawning) playerTakeDamage(1000, player.x); 
 
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
@@ -647,9 +751,8 @@
 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
-        // --- AUTO-TURRET DRONE LOGIC ---
+        // Drone logic
         if (droneActive && drone && playerHealth > 0) {
-            
             let targetX = player.x + (facingDirection === 0 ? -30 : 30);
             let targetY = player.y - 40 + (Math.sin(currentTime / 200) * 8); 
             drone.x = Phaser.Math.Linear(drone.x, targetX, 0.1);
@@ -667,7 +770,6 @@
 
                 if (nearestEnemy) {
                     let angle = Phaser.Math.Angle.Between(drone.x, drone.y, nearestEnemy.x, nearestEnemy.y);
-                    
                     drone.rotation = angle;
                     
                     let laser = currentScene.add.rectangle(drone.x, drone.y, 10, 3, 0x00ffff);
@@ -695,6 +797,7 @@
             if(drone) drone.destroy();
         }
         
+        // Grunt AI Loop
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (data.isBoss) return; 
@@ -702,13 +805,11 @@
             if (data.state === 'dead') return; 
 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
-            if (distToPlayer > 800) return; 
+            if (distToPlayer > 900) return; 
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
-                
                 if (distToPlayer < 75 && data.canAttack) {
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
-                    
                     enemy.anims.play('grunt_punch_right', true);
 
                     currentScene.time.delayedCall(400, () => {
@@ -729,7 +830,7 @@
                     currentScene.time.delayedCall(300, () => {
                         if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return; 
                         
-                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0xffaa00);
+                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0x39ff14);
                         currentScene.physics.add.existing(enemyBullet);
                         enemyBullet.body.setAllowGravity(false);
                         enemyBullet.body.setVelocityX(dir * 500); 
