@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; background-color: #0d1a0d; overflow: hidden; } 
+        body { margin: 0; padding: 0; background-color: #051005; overflow: hidden; } 
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
@@ -19,7 +19,7 @@
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 400 },
         physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: false } },
         scene: { preload: preload, create: create, update: update },
-        backgroundColor: '#0d1a0d' 
+        backgroundColor: '#051005' 
     };
 
     const game = new Phaser.Game(config);
@@ -102,6 +102,7 @@
         currentScene = this; 
         this.input.addPointer(2);
         
+        // Procedural Texture Fallbacks
         let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
         dGraphics.fillStyle(0x222222, 1);
         dGraphics.fillRoundedRect(0, 6, 20, 12, 4); 
@@ -135,7 +136,7 @@
         platforms = this.physics.add.staticGroup();
         acidGroup = this.physics.add.staticGroup();
 
-        // Platforms Layout (4,800px)
+        // --- PLATFORMS LAYOUT (Floor top at y = 374) ---
         platforms.add(this.add.tileSprite(300, 390, 600, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(700, 270, 150, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(1000, 390, 350, 32, 'floorTile')); 
@@ -155,18 +156,18 @@
         platforms.add(this.add.tileSprite(3550, 260, 160, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(3900, 240, 160, 32, 'floorTile'));
 
-        // Arena Platforms
-        platforms.add(this.add.tileSprite(4450, 390, 700, 32, 'floorTile')); 
+        // Arena Flooring (Seamless 4000 to 4800)
+        platforms.add(this.add.tileSprite(4400, 390, 800, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(4280, 260, 160, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(4500, 190, 160, 32, 'floorTile'));
 
-        // Procedural Acid Hazards
+        // --- ENHANCED ACID HAZARDS ---
         createAcidPool(600, 825);
         createAcidPool(1175, 1450);
         createAcidPool(1850, 2450);
         createAcidPool(3050, 3400);
 
-        // Arena Containment Barrier
+        // Containment Barrier
         bossWall = this.add.rectangle(4050, 200, 20, 400, 0x00ff66, 0);
         this.physics.add.existing(bossWall, true);
         bossWall.body.checkCollision.none = true; 
@@ -183,9 +184,10 @@
         spawnEnemyAt(3550, 190);
         spawnEnemyAt(3750, 300);
 
-        // Siege Tank Boss
-        boss = this.physics.add.sprite(4640, 310, 'boss_lvl2', 0); 
-        boss.setScale(2.0); 
+        // --- SIEGE TANK BOSS (Anchored to Floor surface y = 374) ---
+        boss = this.physics.add.sprite(4580, 374, 'boss_lvl2', 0); 
+        boss.setOrigin(0.5, 1.0); 
+        boss.setScale(2.2); 
         boss.setFlipX(false);
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
@@ -336,29 +338,41 @@
         let width = endX - startX;
         let centerX = startX + (width / 2);
         
-        // Static hazard trigger (zero gravity by default)
-        let pool = currentScene.add.rectangle(centerX, 385, width, 30, 0x000000, 0);
+        let pool = currentScene.add.rectangle(centerX, 388, width, 24, 0x000000, 0);
         acidGroup.add(pool);
 
         let g = currentScene.add.graphics().setDepth(5);
         acidGraphicLayers.push({ graphics: g, startX: startX, width: width });
 
-        currentScene.time.addEvent({
-            delay: Phaser.Math.Between(400, 800),
-            loop: true,
-            callback: () => {
-                let bx = Phaser.Math.Between(startX + 10, endX - 10);
-                let bubble = currentScene.add.circle(bx, 395, Phaser.Math.Between(3, 6), 0x39ff14, 0.8).setDepth(6);
-                currentScene.tweens.add({
-                    targets: bubble,
-                    y: 375,
-                    alpha: 0,
-                    scale: 1.4,
-                    duration: Phaser.Math.Between(600, 1000),
-                    onComplete: () => bubble.destroy()
-                });
-            }
-        });
+        // Staggered multi-point bubbling streams
+        let ventCount = Math.max(3, Math.floor(width / 60));
+        for (let i = 0; i < ventCount; i++) {
+            let ventX = startX + 25 + (i * ((width - 50) / (ventCount - 1)));
+            currentScene.time.addEvent({
+                delay: Phaser.Math.Between(250, 600),
+                loop: true,
+                callback: () => {
+                    let bx = ventX + Phaser.Math.Between(-15, 15);
+                    let bSize = Phaser.Math.Between(3, 7);
+                    let bubble = currentScene.add.circle(bx, 395, bSize, 0x39ff14, 0.85).setDepth(6);
+                    let dot = currentScene.add.circle(bx - 1, 394, Math.max(1, bSize - 3), 0xffffff, 0.9).setDepth(7);
+                    
+                    currentScene.tweens.add({
+                        targets: [bubble, dot],
+                        y: 382,
+                        x: bx + Phaser.Math.Between(-6, 6),
+                        alpha: 0,
+                        scale: 1.4,
+                        duration: Phaser.Math.Between(500, 900),
+                        ease: 'Sine.easeOut',
+                        onComplete: () => {
+                            bubble.destroy();
+                            dot.destroy();
+                        }
+                    });
+                }
+            });
+        }
     }
 
     function playAnim(animSuffix) {
@@ -589,7 +603,7 @@
             currentScene.time.delayedCall(i * 130, () => {
                 if (!bossEnemy || !bossEnemy.active) return;
                 let exX = bossEnemy.x + Phaser.Math.Between(-80, 40);
-                let exY = bossEnemy.y + Phaser.Math.Between(-60, 60);
+                let exY = bossEnemy.y - 50 + Phaser.Math.Between(-40, 40);
                 let blastColor = (i % 2 === 0) ? 0x39ff14 : 0xff7700;
                 let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(25, 55), blastColor, 0.9).setDepth(25);
                 currentScene.tweens.add({
@@ -603,7 +617,7 @@
         }
 
         for (let j = 0; j < 16; j++) {
-            let chunk = currentScene.add.rectangle(bossEnemy.x - 30, bossEnemy.y, Phaser.Math.Between(8, 18), Phaser.Math.Between(8, 18), 0x223322).setDepth(26);
+            let chunk = currentScene.add.rectangle(bossEnemy.x - 30, bossEnemy.y - 40, Phaser.Math.Between(8, 18), Phaser.Math.Between(8, 18), 0x223322).setDepth(26);
             currentScene.physics.add.existing(chunk);
             chunk.body.setVelocity(Phaser.Math.Between(-500, 200), Phaser.Math.Between(-650, -200));
             chunk.body.setAngularVelocity(Phaser.Math.Between(-350, 350));
@@ -618,7 +632,7 @@
 
         currentScene.time.delayedCall(1900, () => {
             currentScene.cameras.main.flash(500, 255, 255, 255);
-            let finalWave = currentScene.add.circle(bossEnemy.x, bossEnemy.y, 30, 0x39ff14, 0.9).setDepth(30);
+            let finalWave = currentScene.add.circle(bossEnemy.x, bossEnemy.y - 40, 30, 0x39ff14, 0.9).setDepth(30);
             currentScene.tweens.add({
                 targets: finalWave,
                 scale: 16,
@@ -682,10 +696,11 @@
         bossActive = true; 
         boss.enemyData.state = 'active'; 
         currentScene.cameras.main.stopFollow(); 
-        currentScene.cameras.main.pan(4400, 200, 1000, 'Sine.easeInOut');
+        currentScene.cameras.main.pan(4400, 200, 800, 'Sine.easeInOut');
         
-        currentScene.time.delayedCall(1000, () => { 
+        currentScene.time.delayedCall(800, () => { 
             currentScene.cameras.main.setBounds(4000, 0, 800, 400); 
+            currentScene.cameras.main.startFollow(player, true, 0.1, 0.1);
             bossWall.body.checkCollision.none = false; 
             showCenterMessage("WARNING: SIEGE BUNKER CORE", '#ff0000'); 
             bossAIEvent = currentScene.time.addEvent({ delay: 3200, callback: runBossPattern, loop: true }); 
@@ -704,7 +719,7 @@
             for (let i = 0; i < 3; i++) {
                 currentScene.time.delayedCall(i * 350, () => {
                     if (!boss.active || bossDefeated) return;
-                    let mortar = currentScene.add.circle(boss.x - 60, boss.y - 40, 10, 0x39ff14);
+                    let mortar = currentScene.add.circle(boss.x - 60, boss.y - 60, 10, 0x39ff14);
                     currentScene.physics.add.existing(mortar);
                     enemyProjectiles.add(mortar);
                     mortar.body.setAllowGravity(true);
@@ -724,7 +739,7 @@
             for (let j = 0; j < 5; j++) {
                 currentScene.time.delayedCall(j * 150, () => {
                     if (!boss.active || bossDefeated) return;
-                    let bullet = currentScene.add.rectangle(boss.x - 80, boss.y + 15, 18, 6, 0x00ff66);
+                    let bullet = currentScene.add.rectangle(boss.x - 80, boss.y - 20, 18, 6, 0x00ff66);
                     currentScene.physics.add.existing(bullet);
                     enemyProjectiles.add(bullet);
                     bullet.body.setAllowGravity(false);
@@ -741,18 +756,47 @@
         drawFloatingBars(); 
         let currentTime = currentScene.time.now;
 
-        let wave = (Math.sin(currentTime / 300) + 1) / 2;
+        // --- DUAL MULTI-WAVE LIQUID SURFACE RENDERER ---
         acidGraphicLayers.forEach(layer => {
             let g = layer.graphics;
             g.clear();
-            g.fillStyle(0x052e05, 0.9);
-            g.fillRect(layer.startX, 375, layer.width, 35);
-            g.fillStyle(0x39ff14, 0.5 + (wave * 0.3));
-            g.fillRect(layer.startX, 375, layer.width, 10);
-            g.lineStyle(2, 0xaaff55, 0.9);
+            
+            // 1. Dark Sludge Base Fill
+            g.fillStyle(0x021f06, 0.95);
+            g.fillRect(layer.startX, 385, layer.width, 25);
+
+            // 2. Deep Back Wave
+            g.fillStyle(0x0a4d18, 0.85);
             g.beginPath();
-            g.moveTo(layer.startX, 375);
-            g.lineTo(layer.startX + layer.width, 375);
+            g.moveTo(layer.startX, 400);
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) {
+                let waveY = 384 + Math.sin((x * 0.04) + (currentTime * 0.003)) * 3 + Math.cos((x * 0.02) - (currentTime * 0.002)) * 2;
+                g.lineTo(x, waveY);
+            }
+            g.lineTo(layer.startX + layer.width, 400);
+            g.closePath();
+            g.fillPath();
+
+            // 3. Bright Undulating Front Wave
+            g.fillStyle(0x39ff14, 0.75);
+            g.beginPath();
+            g.moveTo(layer.startX, 400);
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) {
+                let waveY = 382 + Math.sin((x * 0.06) - (currentTime * 0.004)) * 3.5 + Math.sin((x * 0.02) + (currentTime * 0.003)) * 2;
+                g.lineTo(x, waveY);
+            }
+            g.lineTo(layer.startX + layer.width, 400);
+            g.closePath();
+            g.fillPath();
+
+            // 4. Luminous Foam / Crust Edge
+            g.lineStyle(2.5, 0xccff66, 0.95);
+            g.beginPath();
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) {
+                let waveY = 382 + Math.sin((x * 0.06) - (currentTime * 0.004)) * 3.5 + Math.sin((x * 0.02) + (currentTime * 0.003)) * 2;
+                if (x === layer.startX) g.moveTo(x, waveY);
+                else g.lineTo(x, waveY);
+            }
             g.strokePath();
         });
 
@@ -801,6 +845,7 @@
 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
+        // Drone Logic
         if (droneActive && drone && playerHealth > 0) {
             let targetX = player.x + (facingDirection === 0 ? -30 : 30);
             let targetY = player.y - 40 + (Math.sin(currentTime / 200) * 8); 
@@ -846,6 +891,7 @@
             if(drone) drone.destroy();
         }
         
+        // Grunt AI
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (data.isBoss) return; 
