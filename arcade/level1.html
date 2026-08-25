@@ -47,7 +47,10 @@
     };
     let gunKeys = ['Pistol', 'Shotgun', 'Rifle', 'Sniper', 'GrenadeL', 'Rocket'];
     
-    const ordnanceArmory = { 'Frag': { name: 'Frag Grenade', damage: 50, radius: 110, fuse: 1500, maxAmmo: 3, cooldown: 1000, color: 0x00ff00 } };
+    // UPDATED ORDNANCE ARMORY: Fast fuse, wider radius
+    const ordnanceArmory = { 
+        'Frag': { name: 'Frag Grenade', damage: 55, radius: 120, fuse: 750, maxAmmo: 3, cooldown: 800, color: 0x00ff00 } 
+    };
     let activeOrdnance = ordnanceArmory['Frag'];
 
     let savedRoster = localStorage.getItem('nt_roster');
@@ -219,6 +222,14 @@
         this.physics.add.collider(player, bossWall); 
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
+        
+        // --- INSTANT GRENADE DETONATION ON ENEMY CONTACT ---
+        this.physics.add.overlap(grenadesGroup, enemiesGroup, (nade, enemy) => {
+            if (nade.active && enemy.active && enemy.enemyData.state !== 'dead') {
+                explodeGrenade(nade);
+            }
+        });
+        
         this.physics.add.overlap(player, enemyProjectiles, (p, proj) => { proj.destroy(); playerTakeDamage(proj.dmg, proj.x); });
 
         // --- UI SETUP ---
@@ -472,24 +483,46 @@
         } 
     }
 
+    // --- ENHANCED GRENADE TOSS LOGIC ---
     function tossGrenade() {
         if (currentOrdnanceAmmo <= 0 || isAttacking || isBlocking || isDashing || isSpawning || currentScene.time.now < lastTossedTime + activeOrdnance.cooldown) return;
         currentOrdnanceAmmo--; updateUI(); lastTossedTime = currentScene.time.now; actionText.setText("TOSS!");
-        let nade = currentScene.add.circle(player.x, player.y - 10, 6, activeOrdnance.color);
-        currentScene.physics.add.existing(nade); nade.body.setBounce(0.6); nade.body.setDrag(100, 0); nade.body.setCollideWorldBounds(true);
-        grenadesGroup.add(nade); nade.body.setVelocity((facingDirection === 0) ? 350 : -350, -400);
-        currentScene.time.delayedCall(activeOrdnance.fuse, () => explodeGrenade(nade));
+        
+        let nade = currentScene.add.circle(player.x + (facingDirection === 0 ? 15 : -15), player.y - 10, 6, activeOrdnance.color);
+        currentScene.physics.add.existing(nade); 
+        
+        // Low bounce, high drag for tactical positioning
+        nade.body.setBounce(0.2); 
+        nade.body.setDrag(350, 0); 
+        nade.body.setCollideWorldBounds(true);
+        grenadesGroup.add(nade); 
+        
+        // Tighter combat arc
+        let throwX = (facingDirection === 0) ? 280 : -280;
+        nade.body.setVelocity(throwX, -260);
+        
+        currentScene.time.delayedCall(activeOrdnance.fuse, () => {
+            if (nade && nade.active) explodeGrenade(nade);
+        });
     }
     
     function explodeGrenade(nade) {
+        if (!nade || !nade.active) return;
         let exX = nade.x, exY = nade.y; nade.destroy();
-        let blastVisual = currentScene.add.circle(exX, exY, activeOrdnance.radius, 0xff7700, 0.7);
+        
+        let blastVisual = currentScene.add.circle(exX, exY, activeOrdnance.radius, 0xff7700, 0.8).setDepth(20);
+        currentScene.tweens.add({ targets: blastVisual, scale: 1.2, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
+
         enemiesGroup.getChildren().forEach(enemy => {
-            if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius && enemy.enemyData.state !== 'dead') {
-                dealDamageToEnemy(enemy, activeOrdnance.damage, 0.5, 0); enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
+            if (enemy.active && enemy.enemyData.state !== 'dead') {
+                let dist = Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y);
+                if (dist <= activeOrdnance.radius) {
+                    dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
+                    enemy.setTint(0xff7700); 
+                    currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
+                }
             }
         });
-        currentScene.tweens.add({ targets: blastVisual, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
     }
 
     function updateUI() {
