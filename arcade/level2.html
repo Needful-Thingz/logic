@@ -95,7 +95,6 @@
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // Exact 96x96 frame slicing for the 2-frame tank strip
         this.load.spritesheet('boss_lvl2', 'assets/boss_lvl2.png', { frameWidth: 96, frameHeight: 96 });
     }
 
@@ -136,7 +135,7 @@
         platforms = this.physics.add.staticGroup();
         acidGroup = this.physics.add.staticGroup();
 
-        // Platform Layout (4,800px)
+        // Platforms Layout (4,800px)
         platforms.add(this.add.tileSprite(300, 390, 600, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(700, 270, 150, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(1000, 390, 350, 32, 'floorTile')); 
@@ -161,13 +160,13 @@
         platforms.add(this.add.tileSprite(4280, 260, 160, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(4500, 190, 160, 32, 'floorTile'));
 
-        // Acid Hazards
+        // Procedural Acid Hazards
         createAcidPool(600, 825);
         createAcidPool(1175, 1450);
         createAcidPool(1850, 2450);
         createAcidPool(3050, 3400);
 
-        // Containment Barrier
+        // Arena Containment Barrier
         bossWall = this.add.rectangle(4050, 200, 20, 400, 0x00ff66, 0);
         this.physics.add.existing(bossWall, true);
         bossWall.body.checkCollision.none = true; 
@@ -184,7 +183,7 @@
         spawnEnemyAt(3550, 190);
         spawnEnemyAt(3750, 300);
 
-        // --- TANK BOSS (Frame 0 default, 2.0x Scale) ---
+        // Siege Tank Boss
         boss = this.physics.add.sprite(4640, 310, 'boss_lvl2', 0); 
         boss.setScale(2.0); 
         boss.setFlipX(false);
@@ -337,9 +336,9 @@
         let width = endX - startX;
         let centerX = startX + (width / 2);
         
+        // Static hazard trigger (zero gravity by default)
         let pool = currentScene.add.rectangle(centerX, 385, width, 30, 0x000000, 0);
         acidGroup.add(pool);
-        pool.body.setAllowGravity(false);
 
         let g = currentScene.add.graphics().setDepth(5);
         acidGraphicLayers.push({ graphics: g, startX: startX, width: width });
@@ -578,7 +577,6 @@
         currentScene.tweens.add({ targets: enemy, alpha: 0, delay: 1500, duration: 1000, onComplete: () => enemy.destroy() });
     }
 
-    // --- LEVEL 2 BUNKER DESTRUCTION SEQUENCE ---
     function triggerBossDefeat(bossEnemy) {
         bossDefeated = true;
         if (bossAIEvent) bossAIEvent.remove();
@@ -646,7 +644,6 @@
         if (data.armor > 0) { data.armor -= standardDmg; if (data.armor < 0) { data.hp += data.armor; data.armor = 0; } } else { data.hp -= standardDmg; }
         data.hp -= piercingDmg; spawnDamageText(enemy.x + Phaser.Math.Between(-10, 10), enemy.y - 30, Math.round(dmg), dmg >= 40, false);
         
-        // Frame-based damage flash (swaps to Frame 1 hurt outline)
         if (data.isBoss) {
             enemy.setFrame(1);
             currentScene.time.delayedCall(70, () => {
@@ -695,13 +692,11 @@
         });
     }
 
-    // --- LEVEL 2 BUNKER ATTACK PATTERNS ---
     function runBossPattern() {
         if (!boss.active || bossDefeated || playerHealth <= 0) return;
         let attackType = Phaser.Math.Between(1, 2);
 
         if (attackType === 1) {
-            // Acid Mortar Volley (Arcs high targeting upper & lower platforms)
             actionText.setText('WARNING: ACID MORTARS!');
             boss.setTint(0x39ff14);
             currentScene.time.delayedCall(200, () => { if (boss.active && !bossDefeated) boss.clearTint(); });
@@ -722,7 +717,6 @@
             }
 
         } else {
-            // Rapid Chemical Gatling Barrage (Horizontal sweep)
             actionText.setText('WARNING: CHEMICAL SWEEP!');
             boss.setTint(0xff5500);
             currentScene.time.delayedCall(200, () => { if (boss.active && !bossDefeated) boss.clearTint(); });
@@ -807,7 +801,6 @@
 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
-        // Drone Logic
         if (droneActive && drone && playerHealth > 0) {
             let targetX = player.x + (facingDirection === 0 ? -30 : 30);
             let targetY = player.y - 40 + (Math.sin(currentTime / 200) * 8); 
@@ -853,7 +846,6 @@
             if(drone) drone.destroy();
         }
         
-        // Grunt AI
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (data.isBoss) return; 
