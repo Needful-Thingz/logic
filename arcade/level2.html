@@ -102,7 +102,6 @@
         currentScene = this; 
         this.input.addPointer(2);
         
-        // Procedural Texture Fallbacks
         let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
         dGraphics.fillStyle(0x222222, 1);
         dGraphics.fillRoundedRect(0, 6, 20, 12, 4); 
@@ -136,7 +135,7 @@
         platforms = this.physics.add.staticGroup();
         acidGroup = this.physics.add.staticGroup();
 
-        // --- PLATFORMS LAYOUT (Floor top at y = 374) ---
+        // Platforms Layout
         platforms.add(this.add.tileSprite(300, 390, 600, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(700, 270, 150, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(1000, 390, 350, 32, 'floorTile')); 
@@ -156,18 +155,18 @@
         platforms.add(this.add.tileSprite(3550, 260, 160, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(3900, 240, 160, 32, 'floorTile'));
 
-        // Arena Flooring (Seamless 4000 to 4800)
+        // Arena Platforms
         platforms.add(this.add.tileSprite(4400, 390, 800, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(4280, 260, 160, 32, 'floorTile'));
         platforms.add(this.add.tileSprite(4500, 190, 160, 32, 'floorTile'));
 
-        // --- ENHANCED ACID HAZARDS ---
+        // Acid Hazards
         createAcidPool(600, 825);
         createAcidPool(1175, 1450);
         createAcidPool(1850, 2450);
         createAcidPool(3050, 3400);
 
-        // Containment Barrier
+        // Arena Barrier
         bossWall = this.add.rectangle(4050, 200, 20, 400, 0x00ff66, 0);
         this.physics.add.existing(bossWall, true);
         bossWall.body.checkCollision.none = true; 
@@ -184,11 +183,11 @@
         spawnEnemyAt(3550, 190);
         spawnEnemyAt(3750, 300);
 
-        // --- SIEGE TANK BOSS (Anchored to Floor surface y = 374) ---
+        // --- SIEGE TANK BOSS (Flipped to face Left toward player) ---
         boss = this.physics.add.sprite(4580, 374, 'boss_lvl2', 0); 
         boss.setOrigin(0.5, 1.0); 
         boss.setScale(2.2); 
-        boss.setFlipX(false);
+        boss.setFlipX(true); 
         boss.body.setCollideWorldBounds(true);
         boss.body.setImmovable(true);
         boss.body.setAllowGravity(false); 
@@ -344,7 +343,6 @@
         let g = currentScene.add.graphics().setDepth(5);
         acidGraphicLayers.push({ graphics: g, startX: startX, width: width });
 
-        // Staggered multi-point bubbling streams
         let ventCount = Math.max(3, Math.floor(width / 60));
         for (let i = 0; i < ventCount; i++) {
             let ventX = startX + 25 + (i * ((width - 50) / (ventCount - 1)));
@@ -756,16 +754,13 @@
         drawFloatingBars(); 
         let currentTime = currentScene.time.now;
 
-        // --- DUAL MULTI-WAVE LIQUID SURFACE RENDERER ---
         acidGraphicLayers.forEach(layer => {
             let g = layer.graphics;
             g.clear();
             
-            // 1. Dark Sludge Base Fill
             g.fillStyle(0x021f06, 0.95);
             g.fillRect(layer.startX, 385, layer.width, 25);
 
-            // 2. Deep Back Wave
             g.fillStyle(0x0a4d18, 0.85);
             g.beginPath();
             g.moveTo(layer.startX, 400);
@@ -777,7 +772,6 @@
             g.closePath();
             g.fillPath();
 
-            // 3. Bright Undulating Front Wave
             g.fillStyle(0x39ff14, 0.75);
             g.beginPath();
             g.moveTo(layer.startX, 400);
@@ -789,7 +783,6 @@
             g.closePath();
             g.fillPath();
 
-            // 4. Luminous Foam / Crust Edge
             g.lineStyle(2.5, 0xccff66, 0.95);
             g.beginPath();
             for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) {
@@ -845,7 +838,6 @@
 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
-        // Drone Logic
         if (droneActive && drone && playerHealth > 0) {
             let targetX = player.x + (facingDirection === 0 ? -30 : 30);
             let targetY = player.y - 40 + (Math.sin(currentTime / 200) * 8); 
@@ -891,7 +883,6 @@
             if(drone) drone.destroy();
         }
         
-        // Grunt AI
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (data.isBoss) return; 
