@@ -136,15 +136,6 @@
         conveyorGroup = this.physics.add.staticGroup();
         lavaGroup = this.physics.add.staticGroup();
 
-        // --- THE FAIL-SAFE BOSS ARENA ---
-        // If the Boss Sprite is invisible, this guarantees the background changes to an arena!
-        let arenaBackdrop = this.add.rectangle(4000, 0, 800, 400, 0x111111).setOrigin(0,0).setDepth(-3.5);
-        let arenaTopBorder = this.add.rectangle(4000, 0, 800, 25, 0xff0000).setOrigin(0,0).setDepth(-3.5);
-        let arenaBotBorder = this.add.rectangle(4000, 375, 800, 25, 0xff0000).setOrigin(0,0).setDepth(-3.5);
-        
-        let bossCoreFallback = this.add.circle(4600, 200, 80, 0xff3300).setDepth(-2.5);
-        this.tweens.add({ targets: bossCoreFallback, alpha: 0.3, yoyo: true, repeat: -1, duration: 600 });
-
         // Normal Platforms
         platforms.add(this.add.tileSprite(150, 390, 300, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(800, 270, 150, 32, 'floorTile')); 
@@ -167,9 +158,9 @@
         createLavaPool(2600, 2700);
         createLavaPool(3300, 3600); 
 
-        // --- FIXED DYNAMIC BLAST DOOR ---
+        // Dynamic Blast Door
         bossWall = this.add.rectangle(4000, -400, 40, 400, 0x444444).setOrigin(0,0);
-        this.physics.add.existing(bossWall, false); // Dynamic Body allows tweening!
+        this.physics.add.existing(bossWall, false);
         bossWall.body.setImmovable(true);
         bossWall.body.setAllowGravity(false);
         bossWall.body.checkCollision.none = true; 
@@ -182,7 +173,6 @@
         spawnEnemyAt(3000, 300); 
         spawnEnemyAt(3500, 100);
 
-        // --- FORGIVING BOSS LOAD ---
         try {
             let bossFrames = this.textures.exists('boss_lvl3') ? this.textures.get('boss_lvl3').frameTotal - 1 : 40;
             this.anims.create({
@@ -192,7 +182,7 @@
                 repeat: -1
             });
         } catch (e) {
-            console.log("Boss Sprite dimensions mismatched, falling back to core.");
+            console.log("Boss Sprite Error.");
         }
 
         boss = this.physics.add.sprite(4000, 0, 'boss_lvl3', 0).setOrigin(0, 0); 
@@ -200,9 +190,11 @@
         boss.body.setAllowGravity(false); 
         boss.body.setImmovable(true);
         
-        // Hitbox only covers the right-most 250px so you shoot the machine
-        boss.body.setSize(250, 400);
-        boss.body.setOffset(550, 0); 
+        // --- NEW CENTERED HITBOX ---
+        // Puts the hit zone right in the middle 300px of the 800px screen
+        boss.body.setSize(300, 400);
+        boss.body.setOffset(250, 0); 
+        
         boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
 
@@ -593,7 +585,7 @@
         enemiesGroup.getChildren().forEach(enemy => {
             if (enemy.active && enemy.enemyData.state !== 'dead') {
                 let dist = Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y);
-                let isHit = dist <= activeOrdnance.radius || (enemy.enemyData.isBoss && exX >= 4500);
+                let isHit = dist <= activeOrdnance.radius || (enemy.enemyData.isBoss && exX >= 4250 && exX <= 4550);
 
                 if (isHit) {
                     dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
@@ -646,7 +638,8 @@
         for (let i = 0; i < 16; i++) {
             currentScene.time.delayedCall(i * 120, () => {
                 if (!bossEnemy || !bossEnemy.active) return;
-                let exX = bossEnemy.x + Phaser.Math.Between(400, 800);
+                // Explosions now happen entirely in the CENTER of the 800px screen
+                let exX = bossEnemy.x + Phaser.Math.Between(250, 550);
                 let exY = Phaser.Math.Between(50, 350);
                 let blastColor = (i % 2 === 0) ? 0xff3300 : 0xffcc00;
                 let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(40, 80), blastColor, 0.9).setDepth(25);
@@ -677,7 +670,7 @@
         if (!enemy.active || enemy.enemyData.state === 'dead') return;
         let data = enemy.enemyData; let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg;
         if (data.armor > 0) { data.armor -= standardDmg; if (data.armor < 0) { data.hp += data.armor; data.armor = 0; } } else { data.hp -= standardDmg; }
-        data.hp -= piercingDmg; spawnDamageText(enemy.x + (enemy.enemyData.isBoss ? Phaser.Math.Between(500, 700) : Phaser.Math.Between(-10, 10)), enemy.y - 30, Math.round(dmg), dmg >= 40, false);
+        data.hp -= piercingDmg; spawnDamageText(enemy.x + (enemy.enemyData.isBoss ? Phaser.Math.Between(300, 500) : Phaser.Math.Between(-10, 10)), enemy.y - 30, Math.round(dmg), dmg >= 40, false);
         
         if (data.isBoss) {
             enemy.setTintFill(0xff0000);
@@ -743,7 +736,9 @@
             for (let i = 0; i < 4; i++) {
                 currentScene.time.delayedCall(i * 300, () => {
                     if (!boss.active || bossDefeated) return;
-                    let mortar = currentScene.add.circle(4700, 200, 12, 0xff3300);
+                    // --- NEW CENTERED SPAWN ---
+                    // Spawns from the center of the 800px screen (4400 on the X axis)
+                    let mortar = currentScene.add.circle(4400, 200, 12, 0xff3300);
                     currentScene.physics.add.existing(mortar);
                     enemyProjectiles.add(mortar);
                     mortar.body.setAllowGravity(true);
@@ -758,7 +753,8 @@
             actionText.setText('WARNING: FORGE BLAST!');
             currentScene.time.delayedCall(300, () => {
                 if (!boss.active || bossDefeated) return;
-                let fireball = currentScene.add.circle(4700, 300, 40, 0xffaa00);
+                // --- NEW CENTERED SPAWN ---
+                let fireball = currentScene.add.circle(4400, 300, 40, 0xffaa00);
                 currentScene.physics.add.existing(fireball);
                 enemyProjectiles.add(fireball);
                 fireball.body.setAllowGravity(false);
