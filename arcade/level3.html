@@ -98,7 +98,7 @@
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // --- NEW FULL-SCREEN 800x400 BOSS LOAD ---
+        // --- 800x400 BOSS LOAD ---
         this.load.spritesheet('boss_lvl3', 'assets/boss_lvl3.png', { frameWidth: 800, frameHeight: 400 });
     }
 
@@ -125,6 +125,7 @@
         let bg2Img = this.textures.exists('bg2') ? 'bg2' : null;
         let bg3Img = this.textures.exists('bg3') ? 'bg3' : null;
 
+        // Note the setDepth(-5), setDepth(-4), etc. This pushes the BGs to the absolute back!
         if (bg1Img) { let scale1 = 400 / this.textures.get('bg1').getSourceImage().height; this.add.tileSprite(0, 0, WORLD_WIDTH / scale1, 400/scale1, 'bg1').setOrigin(0, 0).setScale(scale1).setScrollFactor(0.1).setDepth(-5); }
         if (bg2Img) { let scale2 = 400 / this.textures.get('bg2').getSourceImage().height; this.add.tileSprite(0, 400, WORLD_WIDTH / scale2, 400/scale2, 'bg2').setOrigin(0, 1).setScale(scale2).setScrollFactor(0.4).setDepth(-4); }
         if (bg3Img) { let scale3 = 400 / this.textures.get('bg3').getSourceImage().height; this.add.tileSprite(0, 400, WORLD_WIDTH / scale3, 400/scale3, 'bg3').setOrigin(0, 1).setScale(scale3).setScrollFactor(0.7).setDepth(-3); }
@@ -141,9 +142,10 @@
         platforms.add(this.add.tileSprite(800, 270, 150, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2000, 260, 160, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2400, 390, 400, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(3800, 240, 160, 32, 'floorTile'));
-        // Arena Floor (Ensures you have something to stand on over the BG)
-        platforms.add(this.add.tileSprite(4400, 390, 800, 32, 'floorTile')); 
+        
+        // --- FIXED ARENA FLOOR BRIDGE ---
+        // Stretches from 3600 to 4800, completely bridging the gap so you can walk in safely!
+        platforms.add(this.add.tileSprite(4200, 390, 1200, 32, 'floorTile')); 
 
         // Conveyor Belts 
         createConveyor(600, 390, 400, 1.5);   
@@ -157,9 +159,9 @@
         createLavaPool(1000, 1000);
         createLavaPool(1600, 2200);
         createLavaPool(2600, 2700);
-        createLavaPool(3300, 4000);
+        createLavaPool(3300, 3600); // Shortened slightly to meet the new bridge
 
-        // --- NEW BLAST DOOR TRANSITION WALL ---
+        // Blast Door
         bossWall = this.add.rectangle(4000, -400, 40, 400, 0x333333).setOrigin(0,0);
         this.physics.add.existing(bossWall, true);
         bossWall.body.checkCollision.none = true; 
@@ -173,8 +175,7 @@
         spawnEnemyAt(3500, 100);
 
         // --- FULL SCREEN BOSS ENTITY ---
-        // Dynamically detects number of frames. Defaults to 90 if it can't read it.
-        let bossFrames = this.textures.exists('boss_lvl3') ? this.textures.get('boss_lvl3').frameTotal - 1 : 90;
+        let bossFrames = this.textures.exists('boss_lvl3') ? this.textures.get('boss_lvl3').frameTotal - 1 : 40;
         this.anims.create({
             key: 'boss_lvl3_anim',
             frames: this.anims.generateFrameNumbers('boss_lvl3', { start: 0, end: bossFrames }),
@@ -182,15 +183,17 @@
             repeat: -1
         });
 
-        // Spawn at exactly 4000x0 to cover the whole 800x400 arena background
+        // Spawn at exactly 4000x0 to cover the whole 800x400 arena
         boss = this.physics.add.sprite(4000, 0, 'boss_lvl3', 0).setOrigin(0, 0); 
-        boss.setDepth(-2); // Sits behind player and platforms, but over old BGs
+        
+        // Depth -2 puts him IN FRONT of the backgrounds (-5, -4, -3), but behind the player!
+        boss.setDepth(-2); 
         boss.body.setAllowGravity(false); 
         boss.body.setImmovable(true);
         
-        // Custom hit box: Covers the rightmost 300px of the arena so you can shoot it
-        boss.body.setSize(300, 400);
-        boss.body.setOffset(500, 0); 
+        // Hitbox only covers the right-most 250px so you have to shoot the machine, not the air
+        boss.body.setSize(250, 400);
+        boss.body.setOffset(550, 0); 
 
         boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
@@ -709,7 +712,7 @@
         currentScene.cameras.main.stopFollow(); 
         currentScene.cameras.main.pan(4400, 200, 800, 'Sine.easeInOut');
         
-        // Drop the Blast door
+        // Blast door drops down behind the player
         currentScene.tweens.add({ targets: bossWall, y: 0, duration: 800, ease: 'Bounce.easeOut' });
 
         currentScene.time.delayedCall(800, () => { 
@@ -732,6 +735,7 @@
             for (let i = 0; i < 4; i++) {
                 currentScene.time.delayedCall(i * 300, () => {
                     if (!boss.active || bossDefeated) return;
+                    // Fixed coordinates so they physically launch from the Boss's screen edge
                     let mortar = currentScene.add.circle(4700, 200, 12, 0xff3300);
                     currentScene.physics.add.existing(mortar);
                     enemyProjectiles.add(mortar);
@@ -747,6 +751,7 @@
             actionText.setText('WARNING: FORGE BLAST!');
             currentScene.time.delayedCall(300, () => {
                 if (!boss.active || bossDefeated) return;
+                // Fixed coordinates to shoot straight across the floor
                 let fireball = currentScene.add.circle(4700, 300, 40, 0xffaa00);
                 currentScene.physics.add.existing(fireball);
                 enemyProjectiles.add(fireball);
