@@ -17,7 +17,8 @@
     const config = {
         type: Phaser.AUTO,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 400 },
-        physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: false } },
+        // --- DEVELOPER DEBUG MODE IS TURNED ON HERE (debug: true) ---
+        physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: true } },
         scene: { preload: preload, create: create, update: update },
         backgroundColor: '#1a0a05' 
     };
@@ -100,8 +101,8 @@
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // Cache-buster v6 to wipe out the old red-circle test!
-        this.load.spritesheet('boss_lvl3', 'assets/boss_lvl3.png?v=6', { frameWidth: 400, frameHeight: 200 });
+        // Cache Buster v7 to wipe everything and load the 400x200 sprite
+        this.load.spritesheet('boss_lvl3', 'assets/boss_lvl3.png?v=7', { frameWidth: 400, frameHeight: 200 });
     }
 
     function create() {
@@ -123,7 +124,8 @@
         this.physics.world.setBoundsCollision(true, true, true, false); 
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
 
-        this.add.rectangle(4000, 0, 800, 400, 0x000000).setOrigin(0,0).setDepth(-6);
+        // Pushed the black background WAY to the back so it doesn't cover the boss
+        this.add.rectangle(4000, 0, 800, 400, 0x000000).setOrigin(0,0).setDepth(-10);
 
         let bg1Img = this.textures.exists('bg1') ? 'bg1' : null;
         let bg2Img = this.textures.exists('bg2') ? 'bg2' : null;
@@ -183,17 +185,18 @@
             console.log("Boss Sprite Error.");
         }
 
-        boss = this.physics.add.sprite(4000, 0, 'boss_lvl3', 0).setOrigin(0, 0); 
+        // --- NEW CENTERED BOSS FIX ---
+        // Puts the boss perfectly in the dead center of the 800x400 arena
+        boss = this.physics.add.sprite(4400, 200, 'boss_lvl3', 0).setOrigin(0.5, 0.5); 
         
-        // Stretches the mobile-safe 400x200 image perfectly to 800x400
-        boss.setScale(2); 
-        
-        boss.setDepth(-2); 
+        // Forces the graphic to be 800x400 without breaking the physics engine scaling
+        boss.setDisplaySize(800, 400); 
+        boss.setDepth(1); 
         boss.body.setAllowGravity(false); 
         boss.body.setImmovable(true);
         
-        // Centered hitbox for a forward-facing robot head
-        boss.body.setSize(150, 200);
+        // Hitbox correctly tailored for a 400x200 internal graphic
+        boss.body.setSize(150, 200); 
         boss.body.setOffset(125, 0); 
         
         boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
@@ -639,7 +642,7 @@
         for (let i = 0; i < 16; i++) {
             currentScene.time.delayedCall(i * 120, () => {
                 if (!bossEnemy || !bossEnemy.active) return;
-                let exX = bossEnemy.x + Phaser.Math.Between(250, 550);
+                let exX = bossEnemy.x + Phaser.Math.Between(-150, 150);
                 let exY = Phaser.Math.Between(50, 350);
                 let blastColor = (i % 2 === 0) ? 0xff3300 : 0xffcc00;
                 let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(40, 80), blastColor, 0.9).setDepth(25);
@@ -670,7 +673,10 @@
         if (!enemy.active || enemy.enemyData.state === 'dead') return;
         let data = enemy.enemyData; let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg;
         if (data.armor > 0) { data.armor -= standardDmg; if (data.armor < 0) { data.hp += data.armor; data.armor = 0; } } else { data.hp -= standardDmg; }
-        data.hp -= piercingDmg; spawnDamageText(enemy.x + (enemy.enemyData.isBoss ? Phaser.Math.Between(300, 500) : Phaser.Math.Between(-10, 10)), enemy.y - 30, Math.round(dmg), dmg >= 40, false);
+        data.hp -= piercingDmg; 
+        
+        let dmgX = enemy.x + (enemy.enemyData.isBoss ? Phaser.Math.Between(-100, 100) : Phaser.Math.Between(-10, 10));
+        spawnDamageText(dmgX, enemy.y - 30, Math.round(dmg), dmg >= 40, false);
         
         if (data.isBoss) {
             enemy.setTintFill(0xff0000);
@@ -744,7 +750,11 @@
                     currentScene.physics.add.existing(mortar);
                     enemyProjectiles.add(mortar);
                     mortar.body.setAllowGravity(true);
-                    mortar.body.setVelocity(Phaser.Math.Between(-350, -600), Phaser.Math.Between(-500, -300));
+                    
+                    // NEW: Boss calculates where player is standing to throw lava at them
+                    let pX = player.x;
+                    let throwX = (pX > 4400) ? Phaser.Math.Between(200, 600) : Phaser.Math.Between(-600, -200);
+                    mortar.body.setVelocity(throwX, Phaser.Math.Between(-500, -300));
                     mortar.dmg = 35;
                     mortar.isMortar = true;
 
@@ -759,7 +769,10 @@
                 currentScene.physics.add.existing(fireball);
                 enemyProjectiles.add(fireball);
                 fireball.body.setAllowGravity(false);
-                fireball.body.setVelocityX(-700);
+                
+                // NEW: Fireball shoots in whichever direction the player is standing
+                let blastDir = (player.x > 4400) ? 1 : -1;
+                fireball.body.setVelocityX(700 * blastDir);
                 fireball.dmg = 50;
 
                 currentScene.time.delayedCall(2500, () => { if (fireball.active) fireball.destroy(); });
