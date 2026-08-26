@@ -31,7 +31,6 @@
     let score = 0;
     
     let bg1Tile, bg2Tile, bg3Tile;
-    let fallbackCore; // The visual fail-safe boss!
 
     const weaponArmory = {
         'Knife': { name: 'Combat Knife', damage: 28, reach: 40, pierce: 0.15, stun: 0, speed: 80, color: 0xcccccc },
@@ -101,8 +100,8 @@
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // Cache Buster upgraded to ?v=3 to force total server refresh
-        this.load.spritesheet('boss_lvl3', 'assets/boss_lvl3.png?v=3', { frameWidth: 800, frameHeight: 400 });
+        // Cache-buster v6 to wipe out the old red-circle test!
+        this.load.spritesheet('boss_lvl3', 'assets/boss_lvl3.png?v=6', { frameWidth: 400, frameHeight: 200 });
     }
 
     function create() {
@@ -124,7 +123,6 @@
         this.physics.world.setBoundsCollision(true, true, true, false); 
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
 
-        // Solid Black backdrop for the arena transition
         this.add.rectangle(4000, 0, 800, 400, 0x000000).setOrigin(0,0).setDepth(-6);
 
         let bg1Img = this.textures.exists('bg1') ? 'bg1' : null;
@@ -142,16 +140,12 @@
         conveyorGroup = this.physics.add.staticGroup();
         lavaGroup = this.physics.add.staticGroup();
 
-        // Normal Platforms
         platforms.add(this.add.tileSprite(150, 390, 300, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(800, 270, 150, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2000, 260, 160, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2400, 390, 400, 32, 'floorTile')); 
-        
-        // Solid Arena Floor bridge
         platforms.add(this.add.tileSprite(4200, 390, 1200, 32, 'floorTile')); 
 
-        // Conveyor Belts 
         createConveyor(600, 390, 400, 1.5);   
         createConveyor(1300, 390, 600, -2.0); 
         createConveyor(1500, 250, 200, 1.5);  
@@ -164,14 +158,12 @@
         createLavaPool(2600, 2700);
         createLavaPool(3300, 3600); 
 
-        // Dynamic Blast Door
         bossWall = this.add.rectangle(4000, -400, 40, 400, 0x444444).setOrigin(0,0);
         this.physics.add.existing(bossWall, false);
         bossWall.body.setImmovable(true);
         bossWall.body.setAllowGravity(false);
         bossWall.body.checkCollision.none = true; 
 
-        // Grunts
         spawnEnemyAt(600, 300); 
         spawnEnemyAt(1300, 300); 
         spawnEnemyAt(1500, 150);
@@ -179,29 +171,11 @@
         spawnEnemyAt(3000, 300); 
         spawnEnemyAt(3500, 100);
 
-        // --- NEW DIAGNOSTIC FAIL-SAFE SYSTEM ---
-        fallbackCore = this.add.circle(4400, 200, 80, 0xff0000).setDepth(-1).setAlpha(0);
-        this.tweens.add({ targets: fallbackCore, scale: 1.2, duration: 500, yoyo: true, repeat: -1 });
-
-        let tex = this.textures.get('boss_lvl3');
-        if (!tex || tex.key === '__MISSING') {
-            // IMAGE WAS NOT FOUND ON GITHUB
-            this.add.text(4400, 100, "ERROR: boss_lvl3.png NOT FOUND!\nCHECK GITHUB UPLOAD.", { fontSize: '24px', fill: '#ff0000', align: 'center', backgroundColor: '#000', fontStyle: 'bold' }).setOrigin(0.5).setDepth(100);
-            fallbackCore.setAlpha(1);
-        } else {
-            let img = tex.getSourceImage();
-            if (img && img.width % 800 !== 0) {
-                // IMAGE MATH WAS WRONG
-                this.add.text(4400, 100, "ERROR: IMAGE WIDTH IS " + img.width + "\nEXPECTED MULTIPLE OF 800", { fontSize: '24px', fill: '#ff0000', align: 'center', backgroundColor: '#000', fontStyle: 'bold' }).setOrigin(0.5).setDepth(100);
-                fallbackCore.setAlpha(1);
-            }
-        }
-
         try {
-            let bossFrames = this.textures.exists('boss_lvl3') && tex.key !== '__MISSING' ? this.textures.get('boss_lvl3').frameTotal - 1 : 40;
+            let bossFrames = this.textures.exists('boss_lvl3') ? this.textures.get('boss_lvl3').frameTotal - 1 : 35;
             this.anims.create({
                 key: 'boss_lvl3_anim',
-                frames: this.anims.generateFrameNumbers('boss_lvl3', { start: 0, end: bossFrames > 0 ? bossFrames : 40 }),
+                frames: this.anims.generateFrameNumbers('boss_lvl3', { start: 0, end: bossFrames > 0 ? bossFrames : 35 }),
                 frameRate: 15,
                 repeat: -1
             });
@@ -210,13 +184,17 @@
         }
 
         boss = this.physics.add.sprite(4000, 0, 'boss_lvl3', 0).setOrigin(0, 0); 
+        
+        // Stretches the mobile-safe 400x200 image perfectly to 800x400
+        boss.setScale(2); 
+        
         boss.setDepth(-2); 
         boss.body.setAllowGravity(false); 
         boss.body.setImmovable(true);
         
-        // Hitbox only covers the middle 300px so you shoot the machine
-        boss.body.setSize(300, 400);
-        boss.body.setOffset(250, 0); 
+        // Centered hitbox for a forward-facing robot head
+        boss.body.setSize(150, 200);
+        boss.body.setOffset(125, 0); 
         
         boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
@@ -654,7 +632,6 @@
         bossDefeated = true;
         if (bossAIEvent) bossAIEvent.remove();
         bossEnemy.body.enable = false;
-        if (fallbackCore) fallbackCore.setAlpha(0);
 
         currentScene.cameras.main.shake(2200, 0.03);
         currentScene.cameras.main.flash(300, 255, 100, 0); 
