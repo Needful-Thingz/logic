@@ -98,8 +98,8 @@
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // Massive 90-frame Boss Load
-        this.load.spritesheet('boss_lvl3', 'assets/boss_lvl3.png', { frameWidth: 480, frameHeight: 300 });
+        // --- NEW FULL-SCREEN 800x400 BOSS LOAD ---
+        this.load.spritesheet('boss_lvl3', 'assets/boss_lvl3.png', { frameWidth: 800, frameHeight: 400 });
     }
 
     function create() {
@@ -125,9 +125,9 @@
         let bg2Img = this.textures.exists('bg2') ? 'bg2' : null;
         let bg3Img = this.textures.exists('bg3') ? 'bg3' : null;
 
-        if (bg1Img) { let scale1 = 400 / this.textures.get('bg1').getSourceImage().height; this.add.tileSprite(0, 0, WORLD_WIDTH / scale1, 400/scale1, 'bg1').setOrigin(0, 0).setScale(scale1).setScrollFactor(0.1); }
-        if (bg2Img) { let scale2 = 400 / this.textures.get('bg2').getSourceImage().height; this.add.tileSprite(0, 400, WORLD_WIDTH / scale2, 400/scale2, 'bg2').setOrigin(0, 1).setScale(scale2).setScrollFactor(0.4); }
-        if (bg3Img) { let scale3 = 400 / this.textures.get('bg3').getSourceImage().height; this.add.tileSprite(0, 400, WORLD_WIDTH / scale3, 400/scale3, 'bg3').setOrigin(0, 1).setScale(scale3).setScrollFactor(0.7); }
+        if (bg1Img) { let scale1 = 400 / this.textures.get('bg1').getSourceImage().height; this.add.tileSprite(0, 0, WORLD_WIDTH / scale1, 400/scale1, 'bg1').setOrigin(0, 0).setScale(scale1).setScrollFactor(0.1).setDepth(-5); }
+        if (bg2Img) { let scale2 = 400 / this.textures.get('bg2').getSourceImage().height; this.add.tileSprite(0, 400, WORLD_WIDTH / scale2, 400/scale2, 'bg2').setOrigin(0, 1).setScale(scale2).setScrollFactor(0.4).setDepth(-4); }
+        if (bg3Img) { let scale3 = 400 / this.textures.get('bg3').getSourceImage().height; this.add.tileSprite(0, 400, WORLD_WIDTH / scale3, 400/scale3, 'bg3').setOrigin(0, 1).setScale(scale3).setScrollFactor(0.7).setDepth(-3); }
 
         grenadesGroup = this.physics.add.group(); 
         enemiesGroup = this.physics.add.group();
@@ -142,6 +142,7 @@
         platforms.add(this.add.tileSprite(2000, 260, 160, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2400, 390, 400, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(3800, 240, 160, 32, 'floorTile'));
+        // Arena Floor (Ensures you have something to stand on over the BG)
         platforms.add(this.add.tileSprite(4400, 390, 800, 32, 'floorTile')); 
 
         // Conveyor Belts 
@@ -158,7 +159,8 @@
         createLavaPool(2600, 2700);
         createLavaPool(3300, 4000);
 
-        bossWall = this.add.rectangle(4050, 200, 20, 400, 0xff3300, 0);
+        // --- NEW BLAST DOOR TRANSITION WALL ---
+        bossWall = this.add.rectangle(4000, -400, 40, 400, 0x333333).setOrigin(0,0);
         this.physics.add.existing(bossWall, true);
         bossWall.body.checkCollision.none = true; 
 
@@ -170,22 +172,26 @@
         spawnEnemyAt(3000, 300); 
         spawnEnemyAt(3500, 100);
 
-        // --- LEVEL 3 BOSS SPAWN ---
+        // --- FULL SCREEN BOSS ENTITY ---
+        // Dynamically detects number of frames. Defaults to 90 if it can't read it.
+        let bossFrames = this.textures.exists('boss_lvl3') ? this.textures.get('boss_lvl3').frameTotal - 1 : 90;
         this.anims.create({
             key: 'boss_lvl3_anim',
-            frames: this.anims.generateFrameNumbers('boss_lvl3', { start: 0, end: 89 }),
+            frames: this.anims.generateFrameNumbers('boss_lvl3', { start: 0, end: bossFrames }),
             frameRate: 15,
             repeat: -1
         });
 
-        boss = this.physics.add.sprite(4650, 374, 'boss_lvl3', 0); 
-        boss.setOrigin(0.5, 1.0); // Anchors his feet to the ground
-        boss.setScale(1.0); 
-        boss.setFlipX(true); // Facing left toward the player
-        boss.body.setCollideWorldBounds(true);
-        boss.body.setImmovable(true);
+        // Spawn at exactly 4000x0 to cover the whole 800x400 arena background
+        boss = this.physics.add.sprite(4000, 0, 'boss_lvl3', 0).setOrigin(0, 0); 
+        boss.setDepth(-2); // Sits behind player and platforms, but over old BGs
         boss.body.setAllowGravity(false); 
-        boss.setDepth(15); 
+        boss.body.setImmovable(true);
+        
+        // Custom hit box: Covers the rightmost 300px of the arena so you can shoot it
+        boss.body.setSize(300, 400);
+        boss.body.setOffset(500, 0); 
+
         boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
 
@@ -576,7 +582,10 @@
         enemiesGroup.getChildren().forEach(enemy => {
             if (enemy.active && enemy.enemyData.state !== 'dead') {
                 let dist = Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y);
-                if (dist <= activeOrdnance.radius) {
+                // Adjusting grenade detection for massive boss hitboxes
+                let isHit = dist <= activeOrdnance.radius || (enemy.enemyData.isBoss && exX >= 4500);
+
+                if (isHit) {
                     dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
                     enemy.setTint(0xff7700); 
                     currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
@@ -627,8 +636,8 @@
         for (let i = 0; i < 16; i++) {
             currentScene.time.delayedCall(i * 120, () => {
                 if (!bossEnemy || !bossEnemy.active) return;
-                let exX = bossEnemy.x + Phaser.Math.Between(-150, 150);
-                let exY = bossEnemy.y - 150 + Phaser.Math.Between(-100, 100);
+                let exX = bossEnemy.x + Phaser.Math.Between(400, 800);
+                let exY = Phaser.Math.Between(50, 350);
                 let blastColor = (i % 2 === 0) ? 0xff3300 : 0xffcc00;
                 let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(40, 80), blastColor, 0.9).setDepth(25);
                 currentScene.tweens.add({
@@ -658,10 +667,10 @@
         if (!enemy.active || enemy.enemyData.state === 'dead') return;
         let data = enemy.enemyData; let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg;
         if (data.armor > 0) { data.armor -= standardDmg; if (data.armor < 0) { data.hp += data.armor; data.armor = 0; } } else { data.hp -= standardDmg; }
-        data.hp -= piercingDmg; spawnDamageText(enemy.x + Phaser.Math.Between(-10, 10), enemy.y - 30, Math.round(dmg), dmg >= 40, false);
+        data.hp -= piercingDmg; spawnDamageText(enemy.x + (enemy.enemyData.isBoss ? Phaser.Math.Between(500, 700) : Phaser.Math.Between(-10, 10)), enemy.y - 30, Math.round(dmg), dmg >= 40, false);
         
         if (data.isBoss) {
-            enemy.setTint(0xff0000);
+            enemy.setTintFill(0xff0000);
             currentScene.time.delayedCall(80, () => {
                 if (enemy.active && !bossDefeated) enemy.clearTint();
             });
@@ -700,11 +709,14 @@
         currentScene.cameras.main.stopFollow(); 
         currentScene.cameras.main.pan(4400, 200, 800, 'Sine.easeInOut');
         
+        // Drop the Blast door
+        currentScene.tweens.add({ targets: bossWall, y: 0, duration: 800, ease: 'Bounce.easeOut' });
+
         currentScene.time.delayedCall(800, () => { 
             currentScene.cameras.main.setBounds(4000, 0, 800, 400); 
             currentScene.cameras.main.startFollow(player, true, 0.1, 0.1);
             bossWall.body.checkCollision.none = false; 
-            showCenterMessage("WARNING: FOUNDRY CORE", '#ff5500'); 
+            showCenterMessage("WARNING: EXTERIOR PROTOCOL", '#ff5500'); 
             
             boss.anims.play('boss_lvl3_anim', true);
             bossAIEvent = currentScene.time.addEvent({ delay: 3500, callback: runBossPattern, loop: true }); 
@@ -720,7 +732,7 @@
             for (let i = 0; i < 4; i++) {
                 currentScene.time.delayedCall(i * 300, () => {
                     if (!boss.active || bossDefeated) return;
-                    let mortar = currentScene.add.circle(boss.x - 150, boss.y - 200, 12, 0xff3300);
+                    let mortar = currentScene.add.circle(4700, 200, 12, 0xff3300);
                     currentScene.physics.add.existing(mortar);
                     enemyProjectiles.add(mortar);
                     mortar.body.setAllowGravity(true);
@@ -735,7 +747,7 @@
             actionText.setText('WARNING: FORGE BLAST!');
             currentScene.time.delayedCall(300, () => {
                 if (!boss.active || bossDefeated) return;
-                let fireball = currentScene.add.circle(boss.x - 180, boss.y - 100, 40, 0xffaa00);
+                let fireball = currentScene.add.circle(4700, 300, 40, 0xffaa00);
                 currentScene.physics.add.existing(fireball);
                 enemyProjectiles.add(fireball);
                 fireball.body.setAllowGravity(false);
