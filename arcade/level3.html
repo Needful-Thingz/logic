@@ -98,7 +98,7 @@
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // --- 800x400 BOSS LOAD ---
+        // Massive 800x400 Boss
         this.load.spritesheet('boss_lvl3', 'assets/boss_lvl3.png', { frameWidth: 800, frameHeight: 400 });
     }
 
@@ -125,7 +125,6 @@
         let bg2Img = this.textures.exists('bg2') ? 'bg2' : null;
         let bg3Img = this.textures.exists('bg3') ? 'bg3' : null;
 
-        // Note the setDepth(-5), setDepth(-4), etc. This pushes the BGs to the absolute back!
         if (bg1Img) { let scale1 = 400 / this.textures.get('bg1').getSourceImage().height; this.add.tileSprite(0, 0, WORLD_WIDTH / scale1, 400/scale1, 'bg1').setOrigin(0, 0).setScale(scale1).setScrollFactor(0.1).setDepth(-5); }
         if (bg2Img) { let scale2 = 400 / this.textures.get('bg2').getSourceImage().height; this.add.tileSprite(0, 400, WORLD_WIDTH / scale2, 400/scale2, 'bg2').setOrigin(0, 1).setScale(scale2).setScrollFactor(0.4).setDepth(-4); }
         if (bg3Img) { let scale3 = 400 / this.textures.get('bg3').getSourceImage().height; this.add.tileSprite(0, 400, WORLD_WIDTH / scale3, 400/scale3, 'bg3').setOrigin(0, 1).setScale(scale3).setScrollFactor(0.7).setDepth(-3); }
@@ -137,14 +136,22 @@
         conveyorGroup = this.physics.add.staticGroup();
         lavaGroup = this.physics.add.staticGroup();
 
+        // --- THE FAIL-SAFE BOSS ARENA ---
+        // If the Boss Sprite is invisible, this guarantees the background changes to an arena!
+        let arenaBackdrop = this.add.rectangle(4000, 0, 800, 400, 0x111111).setOrigin(0,0).setDepth(-3.5);
+        let arenaTopBorder = this.add.rectangle(4000, 0, 800, 25, 0xff0000).setOrigin(0,0).setDepth(-3.5);
+        let arenaBotBorder = this.add.rectangle(4000, 375, 800, 25, 0xff0000).setOrigin(0,0).setDepth(-3.5);
+        
+        let bossCoreFallback = this.add.circle(4600, 200, 80, 0xff3300).setDepth(-2.5);
+        this.tweens.add({ targets: bossCoreFallback, alpha: 0.3, yoyo: true, repeat: -1, duration: 600 });
+
         // Normal Platforms
         platforms.add(this.add.tileSprite(150, 390, 300, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(800, 270, 150, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2000, 260, 160, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2400, 390, 400, 32, 'floorTile')); 
         
-        // --- FIXED ARENA FLOOR BRIDGE ---
-        // Stretches from 3600 to 4800, completely bridging the gap so you can walk in safely!
+        // Solid Arena Floor bridge
         platforms.add(this.add.tileSprite(4200, 390, 1200, 32, 'floorTile')); 
 
         // Conveyor Belts 
@@ -154,16 +161,17 @@
         createConveyor(3000, 390, 600, 2.5);  
         createConveyor(3500, 200, 150, -1.0); 
 
-        // Lava Hazards
         createLavaPool(300, 400);
         createLavaPool(1000, 1000);
         createLavaPool(1600, 2200);
         createLavaPool(2600, 2700);
-        createLavaPool(3300, 3600); // Shortened slightly to meet the new bridge
+        createLavaPool(3300, 3600); 
 
-        // Blast Door
-        bossWall = this.add.rectangle(4000, -400, 40, 400, 0x333333).setOrigin(0,0);
-        this.physics.add.existing(bossWall, true);
+        // --- FIXED DYNAMIC BLAST DOOR ---
+        bossWall = this.add.rectangle(4000, -400, 40, 400, 0x444444).setOrigin(0,0);
+        this.physics.add.existing(bossWall, false); // Dynamic Body allows tweening!
+        bossWall.body.setImmovable(true);
+        bossWall.body.setAllowGravity(false);
         bossWall.body.checkCollision.none = true; 
 
         // Grunts
@@ -174,27 +182,27 @@
         spawnEnemyAt(3000, 300); 
         spawnEnemyAt(3500, 100);
 
-        // --- FULL SCREEN BOSS ENTITY ---
-        let bossFrames = this.textures.exists('boss_lvl3') ? this.textures.get('boss_lvl3').frameTotal - 1 : 40;
-        this.anims.create({
-            key: 'boss_lvl3_anim',
-            frames: this.anims.generateFrameNumbers('boss_lvl3', { start: 0, end: bossFrames }),
-            frameRate: 15,
-            repeat: -1
-        });
+        // --- FORGIVING BOSS LOAD ---
+        try {
+            let bossFrames = this.textures.exists('boss_lvl3') ? this.textures.get('boss_lvl3').frameTotal - 1 : 40;
+            this.anims.create({
+                key: 'boss_lvl3_anim',
+                frames: this.anims.generateFrameNumbers('boss_lvl3', { start: 0, end: bossFrames > 0 ? bossFrames : 40 }),
+                frameRate: 15,
+                repeat: -1
+            });
+        } catch (e) {
+            console.log("Boss Sprite dimensions mismatched, falling back to core.");
+        }
 
-        // Spawn at exactly 4000x0 to cover the whole 800x400 arena
         boss = this.physics.add.sprite(4000, 0, 'boss_lvl3', 0).setOrigin(0, 0); 
-        
-        // Depth -2 puts him IN FRONT of the backgrounds (-5, -4, -3), but behind the player!
         boss.setDepth(-2); 
         boss.body.setAllowGravity(false); 
         boss.body.setImmovable(true);
         
-        // Hitbox only covers the right-most 250px so you have to shoot the machine, not the air
+        // Hitbox only covers the right-most 250px so you shoot the machine
         boss.body.setSize(250, 400);
         boss.body.setOffset(550, 0); 
-
         boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
 
@@ -585,7 +593,6 @@
         enemiesGroup.getChildren().forEach(enemy => {
             if (enemy.active && enemy.enemyData.state !== 'dead') {
                 let dist = Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y);
-                // Adjusting grenade detection for massive boss hitboxes
                 let isHit = dist <= activeOrdnance.radius || (enemy.enemyData.isBoss && exX >= 4500);
 
                 if (isHit) {
@@ -712,16 +719,17 @@
         currentScene.cameras.main.stopFollow(); 
         currentScene.cameras.main.pan(4400, 200, 800, 'Sine.easeInOut');
         
-        // Blast door drops down behind the player
+        bossWall.body.checkCollision.none = false; 
         currentScene.tweens.add({ targets: bossWall, y: 0, duration: 800, ease: 'Bounce.easeOut' });
 
         currentScene.time.delayedCall(800, () => { 
             currentScene.cameras.main.setBounds(4000, 0, 800, 400); 
             currentScene.cameras.main.startFollow(player, true, 0.1, 0.1);
-            bossWall.body.checkCollision.none = false; 
             showCenterMessage("WARNING: EXTERIOR PROTOCOL", '#ff5500'); 
             
-            boss.anims.play('boss_lvl3_anim', true);
+            if (boss.anims && boss.anims.animationManager.exists('boss_lvl3_anim')) {
+                boss.anims.play('boss_lvl3_anim', true);
+            }
             bossAIEvent = currentScene.time.addEvent({ delay: 3500, callback: runBossPattern, loop: true }); 
         });
     }
@@ -735,7 +743,6 @@
             for (let i = 0; i < 4; i++) {
                 currentScene.time.delayedCall(i * 300, () => {
                     if (!boss.active || bossDefeated) return;
-                    // Fixed coordinates so they physically launch from the Boss's screen edge
                     let mortar = currentScene.add.circle(4700, 200, 12, 0xff3300);
                     currentScene.physics.add.existing(mortar);
                     enemyProjectiles.add(mortar);
@@ -751,7 +758,6 @@
             actionText.setText('WARNING: FORGE BLAST!');
             currentScene.time.delayedCall(300, () => {
                 if (!boss.active || bossDefeated) return;
-                // Fixed coordinates to shoot straight across the floor
                 let fireball = currentScene.add.circle(4700, 300, 40, 0xffaa00);
                 currentScene.physics.add.existing(fireball);
                 enemyProjectiles.add(fireball);
