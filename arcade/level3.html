@@ -9,10 +9,8 @@
     <style>
         body { margin: 0; padding: 0; background-color: #1a0a05; overflow: hidden; } 
         
-        /* CANVAS IS NOW ON TOP (z-index: 10) */
         canvas { display: block; margin: 0 auto; position: relative; z-index: 10; }
         
-        /* GIF IS NOW IN THE BACK (z-index: 1) */
         #bossGif {
             position: absolute;
             top: 50%;
@@ -29,13 +27,13 @@
 </head>
 <body>
 
-<img id="bossGif" src="assets/boss_lvl3.gif?v=9" alt="Foundry Boss">
+<!-- Cache-buster v10 for the HTML layout -->
+<img id="bossGif" src="assets/boss_lvl3.gif?v=10" alt="Foundry Boss">
 
 <script>
     const config = {
         type: Phaser.AUTO,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 400 },
-        // --- MAGIC GLASS WINDOW FLAG ---
         transparent: true, 
         physics: { default: 'arcade', arcade: { gravity: { y: 800 }, debug: false } },
         scene: { preload: preload, create: create, update: update }
@@ -135,7 +133,6 @@
         this.physics.world.setBoundsCollision(true, true, true, false); 
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
 
-        // This black box acts as the canvas wall until the boss triggers!
         arenaBg = this.add.rectangle(4000, 0, 800, 400, 0x000000).setOrigin(0,0).setDepth(-10);
 
         let bg1Img = this.textures.exists('bg1') ? 'bg1' : null;
@@ -160,13 +157,16 @@
         spawnEnemyAt(600, 300); spawnEnemyAt(1300, 300); spawnEnemyAt(1500, 150); spawnEnemyAt(2400, 300); spawnEnemyAt(3000, 300); spawnEnemyAt(3500, 100);
 
         // ==========================================
-        // THE GHOST BOX
+        // THE PERFECT CENTER "HEAD" HITBOX
+        // Visually tinted RED (0.3 alpha) so you can literally see where to shoot!
+        // X=4400 is the center of the 800px room. Y=200 is the center height.
         // ==========================================
-        boss = this.add.rectangle(4400, 200, 300, 400, 0x000000, 0); 
+        boss = this.add.rectangle(4400, 200, 250, 250, 0xff0000, 0.3); 
         this.physics.add.existing(boss);
         boss.body.setAllowGravity(false); 
         boss.body.setImmovable(true);
-        boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
+        // Temporarily lowered his HP so you can test killing him faster
+        boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         enemiesGroup.add(boss);
         // ==========================================
 
@@ -189,9 +189,15 @@
 
         this.physics.add.collider(player, platforms); this.physics.add.collider(player, bossWall); this.physics.add.collider(enemiesGroup, platforms); this.physics.add.collider(grenadesGroup, platforms);
         this.physics.add.collider([player, enemiesGroup, grenadesGroup], conveyorGroup, (entity, conveyor) => { if (entity.body.touching.down && conveyor.body.touching.up) { entity.x += conveyor.beltSpeed; } });
-        this.physics.add.overlap(grenadesGroup, enemiesGroup, (nade, enemy) => { if (nade.active && enemy.active && enemy.enemyData.state !== 'dead') { explodeGrenade(nade); } });
+        
+        this.physics.add.overlap(grenadesGroup, enemiesGroup, (nade, enemy) => { 
+            if (nade.active && enemy.active && enemy.enemyData.state !== 'dead') { explodeGrenade(nade); } 
+        });
+        
         this.physics.add.collider(enemyProjectiles, platforms, (proj) => { if (proj.isMortar) { let puddle = currentScene.add.circle(proj.x, proj.y, 25, 0xff5500, 0.7); currentScene.tweens.add({ targets: puddle, scale: 1.5, alpha: 0, duration: 400, onComplete: () => puddle.destroy() }); proj.destroy(); } });
+        
         this.physics.add.overlap(player, enemyProjectiles, (p, proj) => { proj.destroy(); playerTakeDamage(proj.dmg, proj.x); });
+        
         this.physics.add.overlap(player, lavaGroup, () => { if (playerHealth > 0 && !isInvincible) { spawnDamageText(player.x, player.y - 20, 999, true, true); playerTakeDamage(1000, player.x); } });
 
         uiElements.push(this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff', backgroundColor: '#000000' })); meleeText = uiElements[uiElements.length-1];
@@ -252,7 +258,7 @@
     function spawnNextCharacter() { if (currentRosterIndex >= 3) return; isSpawning = true; isInvincible = true; player.x = currentScene.cameras.main.scrollX + 100; player.y = -50; player.body.setVelocityY(800); applyCharacterLoadout(); player.setAlpha(0.5); currentScene.time.delayedCall(1500, () => { isInvincible = false; player.setAlpha(1); actionText.setText('Ready'); }); }
 
     function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) {
-        let textContent = amount >= 900 ? "LAVA BURN!" : Math.round(amount).toString(); let floatText = currentScene.add.text(x, y, textContent, { fontSize: isCritical ? '26px' : '16px', fill: isPlayerHit ? '#ff3300' : '#ffdd00', fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5).setDepth(25);
+        let textContent = amount >= 900 ? "LAVA BURN!" : Math.round(amount).toString(); let floatText = currentScene.add.text(x, y, textContent, { fontSize: isCritical ? '36px' : '22px', fill: isPlayerHit ? '#ff3300' : '#ffdd00', fontStyle: 'bold', stroke: '#000000', strokeThickness: 5 }).setOrigin(0.5).setDepth(25);
         currentScene.tweens.add({ targets: floatText, x: floatText.x + Phaser.Math.Between(-25, 25), y: floatText.y - 60, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() });
     }
 
@@ -315,8 +321,8 @@
         let blastVisual = currentScene.add.circle(exX, exY, activeOrdnance.radius, 0xff7700, 0.8).setDepth(20); currentScene.tweens.add({ targets: blastVisual, scale: 1.2, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
         enemiesGroup.getChildren().forEach(enemy => {
             if (enemy.active && enemy.enemyData.state !== 'dead') {
-                let dist = Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y);
-                if (dist <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 4400, 200) < 300)) {
+                // Modified grenade distance checker so it reliably hits the boss head
+                if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 4400, 200) < 250)) {
                     dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
                     if(!enemy.enemyData.isBoss) { enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); }
                 }
@@ -342,7 +348,11 @@
     function triggerBossDefeat(bossEnemy) {
         bossDefeated = true; if (bossAIEvent) bossAIEvent.remove(); bossEnemy.body.enable = false; currentScene.cameras.main.shake(2200, 0.03); currentScene.cameras.main.flash(300, 255, 100, 0); 
         let gif = document.getElementById('bossGif'); if (gif) { gif.style.transition = "all 2s ease"; gif.style.opacity = "0"; gif.style.filter = "brightness(4)"; }
-        for (let i = 0; i < 16; i++) { currentScene.time.delayedCall(i * 120, () => { if (!bossEnemy || !bossEnemy.active) return; let exX = bossEnemy.x + Phaser.Math.Between(-250, 250); let exY = Phaser.Math.Between(50, 350); let blastColor = (i % 2 === 0) ? 0xff3300 : 0xffcc00; let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(40, 80), blastColor, 0.9).setDepth(25); currentScene.tweens.add({ targets: blast, scale: 2.0, alpha: 0, duration: 400, onComplete: () => blast.destroy() }); }); }
+        
+        // Hide the red dev box when he dies
+        bossEnemy.setAlpha(0);
+
+        for (let i = 0; i < 16; i++) { currentScene.time.delayedCall(i * 120, () => { if (!bossEnemy || !bossEnemy.active) return; let exX = bossEnemy.x + Phaser.Math.Between(-250, 250); let exY = Phaser.Math.Between(-150, 150); let blastColor = (i % 2 === 0) ? 0xff3300 : 0xffcc00; let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(40, 80), blastColor, 0.9).setDepth(25); currentScene.tweens.add({ targets: blast, scale: 2.0, alpha: 0, duration: 400, onComplete: () => blast.destroy() }); }); }
         currentScene.time.delayedCall(2000, () => { currentScene.cameras.main.flash(600, 255, 255, 255); bossWall.body.checkCollision.none = true; bossWall.setAlpha(0); showCenterMessage("FOUNDRY OVERRIDDEN!", '#ff5500'); if (gif) gif.style.display = "none"; });
         currentScene.time.delayedCall(4500, () => { window.location.href = 'debrief.html?status=win'; });
     }
@@ -353,8 +363,9 @@
         if (data.armor > 0) { data.armor -= standardDmg; if (data.armor < 0) { data.hp += data.armor; data.armor = 0; } } else { data.hp -= standardDmg; }
         data.hp -= piercingDmg; 
         
-        let dmgX = enemy.x + (enemy.enemyData.isBoss ? Phaser.Math.Between(-150, 150) : Phaser.Math.Between(-10, 10));
-        spawnDamageText(dmgX, enemy.y - (enemy.enemyData.isBoss ? Phaser.Math.Between(0, 150) : 30), Math.round(dmg), dmg >= 40, false);
+        // BIG DAMAGE TEXT EXPLODING OUT OF THE HEAD
+        let dmgX = enemy.x + (enemy.enemyData.isBoss ? Phaser.Math.Between(-50, 50) : Phaser.Math.Between(-10, 10));
+        spawnDamageText(dmgX, enemy.y + (enemy.enemyData.isBoss ? Phaser.Math.Between(-50, 50) : -30), Math.round(dmg), dmg >= 40, false);
         
         if (data.isBoss) {
             let gif = document.getElementById('bossGif');
@@ -364,7 +375,7 @@
             data.isStunned = true; data.state = 'stunned'; enemy.setTint(0x00ffff); currentScene.time.delayedCall(stunDuration * 1000, () => { if(enemy.active && data.state !== 'dead') { data.isStunned = false; data.state = 'idle'; enemy.clearTint(); } });
         }
 
-        if (data.hp <= 0) { score += data.isBoss ? 2000 : 10; scoreText.setText('SCORE: ' + score); if (data.isBoss) triggerBossDefeat(enemy); else triggerEnemyDeath(enemy); }
+        if (data.hp <= 0) { score += data.isBoss ? 5000 : 10; scoreText.setText('SCORE: ' + score); if (data.isBoss) triggerBossDefeat(enemy); else triggerEnemyDeath(enemy); }
     }
 
     function drawFloatingBars() {
@@ -378,11 +389,9 @@
         bossActive = true; boss.enemyData.state = 'active'; currentScene.cameras.main.stopFollow(); currentScene.cameras.main.pan(4400, 200, 800, 'Sine.easeInOut');
         bossWall.body.checkCollision.none = false; currentScene.tweens.add({ targets: bossWall, y: 0, duration: 800, ease: 'Bounce.easeOut' });
 
-        // TURN ON GIF BEHIND THE CANVAS IMMEDIATELY
         let gif = document.getElementById('bossGif');
         if (gif) { gif.style.display = 'block'; gif.style.opacity = '1'; gif.style.filter = 'none'; }
 
-        // FADE OUT EVERYTHING IN FRONT TO REVEAL IT
         if (bg1Tile) currentScene.tweens.add({ targets: bg1Tile, alpha: 0, duration: 1500 });
         if (bg2Tile) currentScene.tweens.add({ targets: bg2Tile, alpha: 0, duration: 1500 });
         if (bg3Tile) currentScene.tweens.add({ targets: bg3Tile, alpha: 0, duration: 1500 });
