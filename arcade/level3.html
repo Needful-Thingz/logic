@@ -27,8 +27,8 @@
 </head>
 <body>
 
-<!-- Cache-buster v14 for the HTML layout -->
-<img id="bossGif" src="assets/boss_lvl3.gif?v=14" alt="Foundry Boss">
+<!-- Cache-buster v15 for the HTML layout -->
+<img id="bossGif" src="assets/boss_lvl3.gif?v=15" alt="Foundry Boss">
 
 <script>
     const config = {
@@ -157,17 +157,19 @@
         spawnEnemyAt(600, 300); spawnEnemyAt(1300, 300); spawnEnemyAt(1500, 150); spawnEnemyAt(2400, 300); spawnEnemyAt(3000, 300); spawnEnemyAt(3500, 100);
 
         // ==========================================
-        // PERFECT HEAD HITBOX V14
-        // X = 4400 (center of room)
-        // Y = 50 (Pushed up high)
-        // Width = 200, Height = 150 (Chops off the bottom entirely!)
+        // THE TRUE ANTI-GRAVITY HEAD HITBOX (v15)
+        // Set at Y: 90 so it covers the top half of the screen perfectly.
         // ==========================================
-        boss = this.add.rectangle(4400, 50, 200, 150, 0xff0000, 0.4); 
+        boss = this.add.rectangle(4400, 90, 250, 180, 0xff0000, 0.4); 
         this.physics.add.existing(boss);
+        boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
+        
+        // WE MUST ADD TO GROUP FIRST!
+        enemiesGroup.add(boss);
+        
+        // THEN WE DISABLE GRAVITY! This permanently locks it in the sky.
         boss.body.setAllowGravity(false); 
         boss.body.setImmovable(true);
-        boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
-        enemiesGroup.add(boss);
         // ==========================================
 
         const charKeys = ['vanguard', 'recon', 'heavy', 'grunt'];
@@ -321,8 +323,8 @@
         let blastVisual = currentScene.add.circle(exX, exY, activeOrdnance.radius, 0xff7700, 0.8).setDepth(20); currentScene.tweens.add({ targets: blastVisual, scale: 1.2, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
         enemiesGroup.getChildren().forEach(enemy => {
             if (enemy.active && enemy.enemyData.state !== 'dead') {
-                // TIGHTER CHECK: Grenades must explode near the new Y:50 head to hit!
-                if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 4400, 50) < 150)) {
+                // TIGHTER CHECK: Grenades must explode near the new Y:90 head to hit!
+                if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 4400, 90) < 180)) {
                     dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
                     if(!enemy.enemyData.isBoss) { enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); }
                 }
@@ -351,7 +353,7 @@
         
         bossEnemy.setAlpha(0); // Hide red box
 
-        for (let i = 0; i < 16; i++) { currentScene.time.delayedCall(i * 120, () => { if (!bossEnemy || !bossEnemy.active) return; let exX = bossEnemy.x + Phaser.Math.Between(-250, 250); let exY = Phaser.Math.Between(-150, 150); let blastColor = (i % 2 === 0) ? 0xff3300 : 0xffcc00; let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(40, 80), blastColor, 0.9).setDepth(25); currentScene.tweens.add({ targets: blast, scale: 2.0, alpha: 0, duration: 400, onComplete: () => blast.destroy() }); }); }
+        for (let i = 0; i < 16; i++) { currentScene.time.delayedCall(i * 120, () => { if (!bossEnemy || !bossEnemy.active) return; let exX = bossEnemy.x + Phaser.Math.Between(-150, 150); let exY = Phaser.Math.Between(-50, 150); let blastColor = (i % 2 === 0) ? 0xff3300 : 0xffcc00; let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(40, 80), blastColor, 0.9).setDepth(25); currentScene.tweens.add({ targets: blast, scale: 2.0, alpha: 0, duration: 400, onComplete: () => blast.destroy() }); }); }
         currentScene.time.delayedCall(2000, () => { currentScene.cameras.main.flash(600, 255, 255, 255); bossWall.body.checkCollision.none = true; bossWall.setAlpha(0); showCenterMessage("FOUNDRY OVERRIDDEN!", '#ff5500'); if (gif) gif.style.display = "none"; });
         currentScene.time.delayedCall(4500, () => { window.location.href = 'debrief.html?status=win'; });
     }
@@ -363,7 +365,7 @@
         data.hp -= piercingDmg; 
         
         let dmgX = enemy.x + (enemy.enemyData.isBoss ? Phaser.Math.Between(-50, 50) : Phaser.Math.Between(-10, 10));
-        spawnDamageText(dmgX, enemy.y + (enemy.enemyData.isBoss ? Phaser.Math.Between(-20, 20) : -30), Math.round(dmg), dmg >= 40, false);
+        spawnDamageText(dmgX, enemy.y + (enemy.enemyData.isBoss ? Phaser.Math.Between(-40, 40) : -30), Math.round(dmg), dmg >= 40, false);
         
         if (data.isBoss) {
             let gif = document.getElementById('bossGif');
