@@ -27,8 +27,8 @@
 </head>
 <body>
 
-<!-- Cache-buster v13 for the HTML layout -->
-<img id="bossGif" src="assets/boss_lvl3.gif?v=13" alt="Foundry Boss">
+<!-- Cache-buster v14 for the HTML layout -->
+<img id="bossGif" src="assets/boss_lvl3.gif?v=14" alt="Foundry Boss">
 
 <script>
     const config = {
@@ -157,13 +157,12 @@
         spawnEnemyAt(600, 300); spawnEnemyAt(1300, 300); spawnEnemyAt(1500, 150); spawnEnemyAt(2400, 300); spawnEnemyAt(3000, 300); spawnEnemyAt(3500, 100);
 
         // ==========================================
-        // PERFECT 250x250 HITBOX SHIFTED UP
-        // Stacked directly on top of the old position!
+        // PERFECT HEAD HITBOX V14
         // X = 4400 (center of room)
-        // Y = 75 (Top half of the screen)
-        // Width = 250, Height = 250
+        // Y = 50 (Pushed up high)
+        // Width = 200, Height = 150 (Chops off the bottom entirely!)
         // ==========================================
-        boss = this.add.rectangle(4400, 75, 250, 250, 0xff0000, 0.3); 
+        boss = this.add.rectangle(4400, 50, 200, 150, 0xff0000, 0.4); 
         this.physics.add.existing(boss);
         boss.body.setAllowGravity(false); 
         boss.body.setImmovable(true);
@@ -322,8 +321,8 @@
         let blastVisual = currentScene.add.circle(exX, exY, activeOrdnance.radius, 0xff7700, 0.8).setDepth(20); currentScene.tweens.add({ targets: blastVisual, scale: 1.2, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
         enemiesGroup.getChildren().forEach(enemy => {
             if (enemy.active && enemy.enemyData.state !== 'dead') {
-                // TIGHTER CHECK: Grenades must explode high up near the new head Y:75 to hit!
-                if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 4400, 75) < 200)) {
+                // TIGHTER CHECK: Grenades must explode near the new Y:50 head to hit!
+                if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 4400, 50) < 150)) {
                     dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
                     if(!enemy.enemyData.isBoss) { enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); }
                 }
@@ -364,7 +363,7 @@
         data.hp -= piercingDmg; 
         
         let dmgX = enemy.x + (enemy.enemyData.isBoss ? Phaser.Math.Between(-50, 50) : Phaser.Math.Between(-10, 10));
-        spawnDamageText(dmgX, enemy.y + (enemy.enemyData.isBoss ? Phaser.Math.Between(-50, 50) : -30), Math.round(dmg), dmg >= 40, false);
+        spawnDamageText(dmgX, enemy.y + (enemy.enemyData.isBoss ? Phaser.Math.Between(-20, 20) : -30), Math.round(dmg), dmg >= 40, false);
         
         if (data.isBoss) {
             let gif = document.getElementById('bossGif');
