@@ -27,14 +27,16 @@
 </head>
 <body>
 
+<!-- HIDDEN PRELOADER: Forces the tablet to download all 5 GIFs immediately so they don't blink! -->
 <div style="display: none;">
-    <img src="assets/boss_spawn.gif?v=17">
-    <img src="assets/boss_idle.gif?v=17">
-    <img src="assets/boss_lava.gif?v=17">
-    <img src="assets/boss_laser.gif?v=17">
-    <img src="assets/boss_die.gif?v=17">
+    <img src="assets/boss_spawn.gif?v=18">
+    <img src="assets/boss_idle.gif?v=18">
+    <img src="assets/boss_lava.gif?v=18">
+    <img src="assets/boss_laser.gif?v=18">
+    <img src="assets/boss_die.gif?v=18">
 </div>
 
+<!-- The blank canvas where the GIF gets swapped -->
 <img id="bossGif" src="" alt="Foundry Boss">
 
 <script>
@@ -163,10 +165,8 @@
 
         spawnEnemyAt(600, 300); spawnEnemyAt(1300, 300); spawnEnemyAt(1500, 150); spawnEnemyAt(2400, 300); spawnEnemyAt(3000, 300); spawnEnemyAt(3500, 100);
 
-        boss = this.add.rectangle(4400, 120, 250, 180, 0xff0000, 0.0); // Made red box totally invisible!
+        boss = this.add.rectangle(4400, 120, 250, 180, 0xff0000, 0.0); // Invisible box!
         this.physics.add.existing(boss);
-        
-        // --- HP & ARMOR RESTORED TO FULL ---
         boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
         
         enemiesGroup.add(boss);
@@ -261,7 +261,9 @@
     function spawnNextCharacter() { if (currentRosterIndex >= 3) return; isSpawning = true; isInvincible = true; player.x = currentScene.cameras.main.scrollX + 100; player.y = -50; player.body.setVelocityY(800); applyCharacterLoadout(); player.setAlpha(0.5); currentScene.time.delayedCall(1500, () => { isInvincible = false; player.setAlpha(1); actionText.setText('Ready'); }); }
 
     function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) {
-        let textContent = amount >= 900 ? "LAVA BURN!" : Math.round(amount).toString(); let floatText = currentScene.add.text(x, y, textContent, { fontSize: isCritical ? '36px' : '22px', fill: isPlayerHit ? '#ff3300' : '#ffdd00', fontStyle: 'bold', stroke: '#000000', strokeThickness: 5 }).setOrigin(0.5).setDepth(25);
+        let textContent = amount >= 900 ? "LAVA BURN!" : Math.round(amount).toString(); 
+        if(isNaN(amount)) textContent = amount; // Allows us to push custom strings like "SLUDGE!"
+        let floatText = currentScene.add.text(x, y, textContent, { fontSize: isCritical ? '36px' : '22px', fill: isPlayerHit ? '#ff3300' : '#ffdd00', fontStyle: 'bold', stroke: '#000000', strokeThickness: 5 }).setOrigin(0.5).setDepth(25);
         currentScene.tweens.add({ targets: floatText, x: floatText.x + Phaser.Math.Between(-25, 25), y: floatText.y - 60, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() });
     }
 
@@ -352,9 +354,7 @@
         
         let gif = document.getElementById('bossGif'); 
         if (gif) { 
-            // SWAP TO DEATH ANIMATION
-            gif.src = 'assets/boss_die.gif?v=17';
-            // Wait for his animation to finish before fading out
+            gif.src = 'assets/boss_die.gif?v=18';
             currentScene.time.delayedCall(2000, () => {
                 gif.style.transition = "all 1.5s ease"; 
                 gif.style.opacity = "0"; 
@@ -399,8 +399,7 @@
 
         let gif = document.getElementById('bossGif');
         if (gif) { 
-            // PLAY SPAWN ANIMATION FIRST
-            gif.src = 'assets/boss_spawn.gif?v=17';
+            gif.src = 'assets/boss_spawn.gif?v=18';
             gif.style.display = 'block'; 
             gif.style.opacity = '1'; 
             gif.style.filter = 'none'; 
@@ -414,9 +413,8 @@
         currentScene.time.delayedCall(800, () => { 
             currentScene.cameras.main.setBounds(4000, 0, 800, 400); currentScene.cameras.main.startFollow(player, true, 0.1, 0.1); showCenterMessage("WARNING: EXTERIOR PROTOCOL", '#ff5500'); 
             
-            // AFTER SPAWN ANIMATION IS DONE (1.5 seconds later), SWAP TO IDLE AND START ATTACKS
             currentScene.time.delayedCall(1500, () => {
-                if (gif) gif.src = 'assets/boss_idle.gif?v=17';
+                if (gif) gif.src = 'assets/boss_idle.gif?v=18';
                 bossAIEvent = currentScene.time.addEvent({ delay: 3500, callback: runBossPattern, loop: true }); 
             });
         });
@@ -429,8 +427,41 @@
 
         if (attackType === 1) {
             actionText.setText('WARNING: TOXIC SLUDGE!');
-            if (gif) gif.src = 'assets/boss_lava.gif?v=17'; // SWAP TO LAVA GIF
+            if (gif) gif.src = 'assets/boss_lava.gif?v=18'; 
             
+            // --- THE NEW LAVA WATERFALL HITBOX ---
+            // Activates 1 second into the animation, right as the lava visually drops
+            currentScene.time.delayedCall(1000, () => {
+                if (!boss.active || bossDefeated) return;
+                
+                // Create an invisible rectangle from the mouth down to the floor
+                let bossSpill = currentScene.add.rectangle(4400, 300, 140, 180, 0x00ff00, 0.0); 
+                currentScene.physics.add.existing(bossSpill);
+                bossSpill.body.setAllowGravity(false);
+                bossSpill.body.setImmovable(true);
+                
+                let spillCollider = currentScene.physics.add.overlap(player, bossSpill, () => {
+                    // Added a 'isBurned' check to give the player a short 0.5 sec cooldown between hits
+                    if (playerHealth > 0 && !isInvincible && !player.isBurned) {
+                        player.isBurned = true;
+                        
+                        spawnDamageText(player.x, player.y - 40, "SLUDGE!", true, true);
+                        playerTakeDamage(35, 4400); // Heavy damage
+                        
+                        // Physically blast the player backwards out of the waterfall!
+                        let knockDir = (player.x < 4400) ? -400 : 400;
+                        player.body.setVelocity(knockDir, -250);
+                        
+                        currentScene.time.delayedCall(500, () => { player.isBurned = false; });
+                    }
+                });
+
+                // Remove the hitbox when the attack animation ends
+                currentScene.time.delayedCall(2000, () => {
+                    if (bossSpill) bossSpill.destroy();
+                });
+            });
+
             // Wait 1.5 seconds to sync the mortars firing with the lava hitting the floor visually!
             currentScene.time.delayedCall(1500, () => {
                 for (let i = 0; i < 4; i++) {
@@ -442,25 +473,21 @@
                 }
             });
 
-            // Revert back to Idle GIF after the 3-second attack animation ends
             currentScene.time.delayedCall(3000, () => {
-                if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=17';
+                if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=18';
             });
 
         } else {
             actionText.setText('WARNING: EYE BEAM!');
-            if (gif) gif.src = 'assets/boss_laser.gif?v=17'; // SWAP TO LASER GIF
+            if (gif) gif.src = 'assets/boss_laser.gif?v=18'; 
             
-            // Wait a split second to fire exactly when his eye flashes!
-            // SPAWNED AT Y:160 INSTEAD OF Y:260 TO MATCH THE LEFT EYE!
             currentScene.time.delayedCall(400, () => {
                 if (!boss.active || bossDefeated) return; let fireball = currentScene.add.circle(4400, 160, 40, 0xffaa00); currentScene.physics.add.existing(fireball); enemyProjectiles.add(fireball); fireball.body.setAllowGravity(false);
                 let blastDir = (player.x > 4400) ? 1 : -1; fireball.body.setVelocityX(700 * blastDir); fireball.dmg = 50; currentScene.time.delayedCall(2500, () => { if (fireball.active) fireball.destroy(); });
             });
 
-            // Revert back to Idle GIF after the short laser animation ends
             currentScene.time.delayedCall(1200, () => {
-                if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=17';
+                if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=18';
             });
         }
     }
