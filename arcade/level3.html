@@ -27,8 +27,15 @@
 </head>
 <body>
 
-<!-- Cache-buster v16 for the HTML layout -->
-<img id="bossGif" src="assets/boss_lvl3.gif?v=16" alt="Foundry Boss">
+<div style="display: none;">
+    <img src="assets/boss_spawn.gif?v=17">
+    <img src="assets/boss_idle.gif?v=17">
+    <img src="assets/boss_lava.gif?v=17">
+    <img src="assets/boss_laser.gif?v=17">
+    <img src="assets/boss_die.gif?v=17">
+</div>
+
+<img id="bossGif" src="" alt="Foundry Boss">
 
 <script>
     const config = {
@@ -156,21 +163,15 @@
 
         spawnEnemyAt(600, 300); spawnEnemyAt(1300, 300); spawnEnemyAt(1500, 150); spawnEnemyAt(2400, 300); spawnEnemyAt(3000, 300); spawnEnemyAt(3500, 100);
 
-        // ==========================================
-        // SLID THE HEAD HITBOX DOWN (v16)
-        // X = 4400 (center of room)
-        // Y = 120 (Slid down slightly to perfectly frame the face)
-        // ==========================================
-        boss = this.add.rectangle(4400, 120, 250, 180, 0xff0000, 0.4); 
+        boss = this.add.rectangle(4400, 120, 250, 180, 0xff0000, 0.0); // Made red box totally invisible!
         this.physics.add.existing(boss);
-        boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         
-        // Added to enemiesGroup BEFORE turning off gravity so it stays flying!
+        // --- HP & ARMOR RESTORED TO FULL ---
+        boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
+        
         enemiesGroup.add(boss);
-        
         boss.body.setAllowGravity(false); 
         boss.body.setImmovable(true);
-        // ==========================================
 
         const charKeys = ['vanguard', 'recon', 'heavy', 'grunt'];
         charKeys.forEach(char => {
@@ -323,7 +324,6 @@
         let blastVisual = currentScene.add.circle(exX, exY, activeOrdnance.radius, 0xff7700, 0.8).setDepth(20); currentScene.tweens.add({ targets: blastVisual, scale: 1.2, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
         enemiesGroup.getChildren().forEach(enemy => {
             if (enemy.active && enemy.enemyData.state !== 'dead') {
-                // TIGHTER CHECK: Grenades must explode near the new Y:120 head to hit!
                 if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 4400, 120) < 180)) {
                     dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
                     if(!enemy.enemyData.isBoss) { enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); }
@@ -349,10 +349,18 @@
 
     function triggerBossDefeat(bossEnemy) {
         bossDefeated = true; if (bossAIEvent) bossAIEvent.remove(); bossEnemy.body.enable = false; currentScene.cameras.main.shake(2200, 0.03); currentScene.cameras.main.flash(300, 255, 100, 0); 
-        let gif = document.getElementById('bossGif'); if (gif) { gif.style.transition = "all 2s ease"; gif.style.opacity = "0"; gif.style.filter = "brightness(4)"; }
         
-        bossEnemy.setAlpha(0); // Hide red box
-
+        let gif = document.getElementById('bossGif'); 
+        if (gif) { 
+            // SWAP TO DEATH ANIMATION
+            gif.src = 'assets/boss_die.gif?v=17';
+            // Wait for his animation to finish before fading out
+            currentScene.time.delayedCall(2000, () => {
+                gif.style.transition = "all 1.5s ease"; 
+                gif.style.opacity = "0"; 
+            });
+        }
+        
         for (let i = 0; i < 16; i++) { currentScene.time.delayedCall(i * 120, () => { if (!bossEnemy || !bossEnemy.active) return; let exX = bossEnemy.x + Phaser.Math.Between(-150, 150); let exY = Phaser.Math.Between(-50, 150); let blastColor = (i % 2 === 0) ? 0xff3300 : 0xffcc00; let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(40, 80), blastColor, 0.9).setDepth(25); currentScene.tweens.add({ targets: blast, scale: 2.0, alpha: 0, duration: 400, onComplete: () => blast.destroy() }); }); }
         currentScene.time.delayedCall(2000, () => { currentScene.cameras.main.flash(600, 255, 255, 255); bossWall.body.checkCollision.none = true; bossWall.setAlpha(0); showCenterMessage("FOUNDRY OVERRIDDEN!", '#ff5500'); if (gif) gif.style.display = "none"; });
         currentScene.time.delayedCall(4500, () => { window.location.href = 'debrief.html?status=win'; });
@@ -390,7 +398,13 @@
         bossWall.body.checkCollision.none = false; currentScene.tweens.add({ targets: bossWall, y: 0, duration: 800, ease: 'Bounce.easeOut' });
 
         let gif = document.getElementById('bossGif');
-        if (gif) { gif.style.display = 'block'; gif.style.opacity = '1'; gif.style.filter = 'none'; }
+        if (gif) { 
+            // PLAY SPAWN ANIMATION FIRST
+            gif.src = 'assets/boss_spawn.gif?v=17';
+            gif.style.display = 'block'; 
+            gif.style.opacity = '1'; 
+            gif.style.filter = 'none'; 
+        }
 
         if (bg1Tile) currentScene.tweens.add({ targets: bg1Tile, alpha: 0, duration: 1500 });
         if (bg2Tile) currentScene.tweens.add({ targets: bg2Tile, alpha: 0, duration: 1500 });
@@ -399,28 +413,54 @@
 
         currentScene.time.delayedCall(800, () => { 
             currentScene.cameras.main.setBounds(4000, 0, 800, 400); currentScene.cameras.main.startFollow(player, true, 0.1, 0.1); showCenterMessage("WARNING: EXTERIOR PROTOCOL", '#ff5500'); 
-            bossAIEvent = currentScene.time.addEvent({ delay: 3500, callback: runBossPattern, loop: true }); 
+            
+            // AFTER SPAWN ANIMATION IS DONE (1.5 seconds later), SWAP TO IDLE AND START ATTACKS
+            currentScene.time.delayedCall(1500, () => {
+                if (gif) gif.src = 'assets/boss_idle.gif?v=17';
+                bossAIEvent = currentScene.time.addEvent({ delay: 3500, callback: runBossPattern, loop: true }); 
+            });
         });
     }
 
     function runBossPattern() {
-        if (!boss.active || bossDefeated || playerHealth <= 0) return; let attackType = Phaser.Math.Between(1, 2);
+        if (!boss.active || bossDefeated || playerHealth <= 0) return; 
+        let attackType = Phaser.Math.Between(1, 2);
+        let gif = document.getElementById('bossGif');
+
         if (attackType === 1) {
-            actionText.setText('WARNING: LAVA VOLLEY!');
-            for (let i = 0; i < 4; i++) {
-                currentScene.time.delayedCall(i * 300, () => {
-                    // Mortars spawn from lower down at Y=260 (mouth area)
-                    if (!boss.active || bossDefeated) return; let mortar = currentScene.add.circle(4400, 260, 12, 0xff3300); currentScene.physics.add.existing(mortar); enemyProjectiles.add(mortar); mortar.body.setAllowGravity(true);
-                    let pX = player.x; let throwX = (pX > 4400) ? Phaser.Math.Between(200, 600) : Phaser.Math.Between(-600, -200); mortar.body.setVelocity(throwX, Phaser.Math.Between(-500, -300)); mortar.dmg = 35; mortar.isMortar = true;
-                    currentScene.time.delayedCall(4000, () => { if (mortar.active) mortar.destroy(); });
-                });
-            }
+            actionText.setText('WARNING: TOXIC SLUDGE!');
+            if (gif) gif.src = 'assets/boss_lava.gif?v=17'; // SWAP TO LAVA GIF
+            
+            // Wait 1.5 seconds to sync the mortars firing with the lava hitting the floor visually!
+            currentScene.time.delayedCall(1500, () => {
+                for (let i = 0; i < 4; i++) {
+                    currentScene.time.delayedCall(i * 300, () => {
+                        if (!boss.active || bossDefeated) return; let mortar = currentScene.add.circle(4400, 260, 12, 0xff3300); currentScene.physics.add.existing(mortar); enemyProjectiles.add(mortar); mortar.body.setAllowGravity(true);
+                        let pX = player.x; let throwX = (pX > 4400) ? Phaser.Math.Between(200, 600) : Phaser.Math.Between(-600, -200); mortar.body.setVelocity(throwX, Phaser.Math.Between(-500, -300)); mortar.dmg = 35; mortar.isMortar = true;
+                        currentScene.time.delayedCall(4000, () => { if (mortar.active) mortar.destroy(); });
+                    });
+                }
+            });
+
+            // Revert back to Idle GIF after the 3-second attack animation ends
+            currentScene.time.delayedCall(3000, () => {
+                if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=17';
+            });
+
         } else {
-            actionText.setText('WARNING: FORGE BLAST!');
-            currentScene.time.delayedCall(300, () => {
-                // Fireballs spawn from Y=260
-                if (!boss.active || bossDefeated) return; let fireball = currentScene.add.circle(4400, 260, 40, 0xffaa00); currentScene.physics.add.existing(fireball); enemyProjectiles.add(fireball); fireball.body.setAllowGravity(false);
+            actionText.setText('WARNING: EYE BEAM!');
+            if (gif) gif.src = 'assets/boss_laser.gif?v=17'; // SWAP TO LASER GIF
+            
+            // Wait a split second to fire exactly when his eye flashes!
+            // SPAWNED AT Y:160 INSTEAD OF Y:260 TO MATCH THE LEFT EYE!
+            currentScene.time.delayedCall(400, () => {
+                if (!boss.active || bossDefeated) return; let fireball = currentScene.add.circle(4400, 160, 40, 0xffaa00); currentScene.physics.add.existing(fireball); enemyProjectiles.add(fireball); fireball.body.setAllowGravity(false);
                 let blastDir = (player.x > 4400) ? 1 : -1; fireball.body.setVelocityX(700 * blastDir); fireball.dmg = 50; currentScene.time.delayedCall(2500, () => { if (fireball.active) fireball.destroy(); });
+            });
+
+            // Revert back to Idle GIF after the short laser animation ends
+            currentScene.time.delayedCall(1200, () => {
+                if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=17';
             });
         }
     }
