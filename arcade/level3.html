@@ -27,8 +27,8 @@
 </head>
 <body>
 
-<!-- Cache-buster v15 for the HTML layout -->
-<img id="bossGif" src="assets/boss_lvl3.gif?v=15" alt="Foundry Boss">
+<!-- Cache-buster v16 for the HTML layout -->
+<img id="bossGif" src="assets/boss_lvl3.gif?v=16" alt="Foundry Boss">
 
 <script>
     const config = {
@@ -157,17 +157,17 @@
         spawnEnemyAt(600, 300); spawnEnemyAt(1300, 300); spawnEnemyAt(1500, 150); spawnEnemyAt(2400, 300); spawnEnemyAt(3000, 300); spawnEnemyAt(3500, 100);
 
         // ==========================================
-        // THE TRUE ANTI-GRAVITY HEAD HITBOX (v15)
-        // Set at Y: 90 so it covers the top half of the screen perfectly.
+        // SLID THE HEAD HITBOX DOWN (v16)
+        // X = 4400 (center of room)
+        // Y = 120 (Slid down slightly to perfectly frame the face)
         // ==========================================
-        boss = this.add.rectangle(4400, 90, 250, 180, 0xff0000, 0.4); 
+        boss = this.add.rectangle(4400, 120, 250, 180, 0xff0000, 0.4); 
         this.physics.add.existing(boss);
         boss.enemyData = { isBoss: true, hp: 500, maxHp: 500, armor: 200, maxArmor: 200, state: 'sleep', isStunned: false };
         
-        // WE MUST ADD TO GROUP FIRST!
+        // Added to enemiesGroup BEFORE turning off gravity so it stays flying!
         enemiesGroup.add(boss);
         
-        // THEN WE DISABLE GRAVITY! This permanently locks it in the sky.
         boss.body.setAllowGravity(false); 
         boss.body.setImmovable(true);
         // ==========================================
@@ -323,8 +323,8 @@
         let blastVisual = currentScene.add.circle(exX, exY, activeOrdnance.radius, 0xff7700, 0.8).setDepth(20); currentScene.tweens.add({ targets: blastVisual, scale: 1.2, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
         enemiesGroup.getChildren().forEach(enemy => {
             if (enemy.active && enemy.enemyData.state !== 'dead') {
-                // TIGHTER CHECK: Grenades must explode near the new Y:90 head to hit!
-                if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 4400, 90) < 180)) {
+                // TIGHTER CHECK: Grenades must explode near the new Y:120 head to hit!
+                if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 4400, 120) < 180)) {
                     dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
                     if(!enemy.enemyData.isBoss) { enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); }
                 }
