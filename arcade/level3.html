@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Needful Thingz - Level 3: The Assembly Line</title>
+    <title>Needful Thingz - Level 3: The Gauntlet</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
@@ -29,11 +29,11 @@
 
 <!-- HIDDEN PRELOADER -->
 <div style="display: none;">
-    <img src="assets/boss_spawn.gif?v=25">
-    <img src="assets/boss_idle.gif?v=25">
-    <img src="assets/boss_lava.gif?v=25">
-    <img src="assets/boss_laser.gif?v=25">
-    <img src="assets/boss_die.gif?v=25">
+    <img src="assets/boss_spawn.gif?v=26">
+    <img src="assets/boss_idle.gif?v=26">
+    <img src="assets/boss_lava.gif?v=26">
+    <img src="assets/boss_laser.gif?v=26">
+    <img src="assets/boss_die.gif?v=26">
 </div>
 
 <!-- The blank canvas where the GIF gets swapped -->
@@ -108,7 +108,10 @@
     let isFiring = false; 
     
     let enemiesGroup, enemyProjectiles;
-    const WORLD_WIDTH = 4800; 
+    
+    // --- MAP EXPANDED TO 6400 ---
+    const WORLD_WIDTH = 6400; 
+    
     let boss, bossActive = false, bossDefeated = false, bossHpBar, bossWall, bossAIEvent;
     let lavaGraphicLayers = [];
     let conveyorBelts = [];
@@ -138,11 +141,19 @@
         dGraphics.fillStyle(0xffffff, 1); dGraphics.fillCircle(17, 11, 2); 
         dGraphics.generateTexture('drone_tex', 24, 24); 
 
+        // NEW TURRET TEXTURE
+        let tGraphics = this.make.graphics({x: 0, y: 0, add: false});
+        tGraphics.fillStyle(0x444444, 1); tGraphics.fillRect(0, 0, 40, 40); 
+        tGraphics.fillStyle(0x777777, 1); tGraphics.fillRect(4, 4, 32, 32); 
+        tGraphics.fillStyle(0xff00ff, 1); tGraphics.fillCircle(20, 20, 10); 
+        tGraphics.generateTexture('turret_tex', 40, 40);
+
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
         this.physics.world.setBoundsCollision(true, true, true, false); 
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
 
-        arenaBg = this.add.rectangle(4000, 0, 800, 400, 0x000000).setOrigin(0,0).setDepth(-10);
+        // Boss room background moved down
+        arenaBg = this.add.rectangle(5600, 0, 800, 400, 0x000000).setOrigin(0,0).setDepth(-10);
 
         let bg1Img = this.textures.exists('bg1') ? 'bg1' : null;
         let bg2Img = this.textures.exists('bg2') ? 'bg2' : null;
@@ -155,17 +166,48 @@
         grenadesGroup = this.physics.add.group(); enemiesGroup = this.physics.add.group(); enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup(); conveyorGroup = this.physics.add.staticGroup(); lavaGroup = this.physics.add.staticGroup();
 
-        platforms.add(this.add.tileSprite(150, 390, 300, 32, 'floorTile')); platforms.add(this.add.tileSprite(800, 270, 150, 32, 'floorTile')); platforms.add(this.add.tileSprite(2000, 260, 160, 32, 'floorTile')); platforms.add(this.add.tileSprite(2400, 390, 400, 32, 'floorTile')); platforms.add(this.add.tileSprite(4200, 390, 1200, 32, 'floorTile')); 
+        // MORE PLATFORMS
+        platforms.add(this.add.tileSprite(150, 390, 300, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(800, 270, 150, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(2000, 260, 160, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(2400, 390, 400, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(4000, 390, 300, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(4800, 260, 200, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(5800, 390, 1200, 32, 'floorTile')); // Boss Platform
 
-        createConveyor(600, 390, 400, 1.5); createConveyor(1300, 390, 600, -2.0); createConveyor(1500, 250, 200, 1.5); createConveyor(3000, 390, 600, 2.5); createConveyor(3500, 200, 150, -1.0); 
+        // MORE CONVEYORS
+        createConveyor(600, 390, 400, 1.5); 
+        createConveyor(1300, 390, 600, -2.0); 
+        createConveyor(1500, 250, 200, 1.5); 
+        createConveyor(3000, 390, 600, 2.5); 
+        createConveyor(3500, 200, 150, -1.0); 
+        createConveyor(4400, 390, 500, 3.0); 
+        createConveyor(5300, 390, 400, -2.5); 
 
-        createLavaPool(300, 400); createLavaPool(1000, 1000); createLavaPool(1600, 2200); createLavaPool(2600, 2700); createLavaPool(3300, 3600); 
+        // MORE LAVA
+        createLavaPool(300, 400); 
+        createLavaPool(1000, 1200); 
+        createLavaPool(1600, 2200); 
+        createLavaPool(2600, 2700); 
+        createLavaPool(3300, 3850); 
+        createLavaPool(4150, 4650); 
+        createLavaPool(5100, 5500); 
 
-        bossWall = this.add.rectangle(4000, -400, 40, 400, 0x444444).setOrigin(0,0); this.physics.add.existing(bossWall, false); bossWall.body.setImmovable(true); bossWall.body.setAllowGravity(false); bossWall.body.checkCollision.none = true; 
+        // BOSS TRIGGER WALL
+        bossWall = this.add.rectangle(5600, -400, 40, 400, 0x444444).setOrigin(0,0); this.physics.add.existing(bossWall, false); bossWall.body.setImmovable(true); bossWall.body.setAllowGravity(false); bossWall.body.checkCollision.none = true; 
 
-        spawnEnemyAt(600, 300); spawnEnemyAt(1300, 300); spawnEnemyAt(1500, 150); spawnEnemyAt(2400, 300); spawnEnemyAt(3000, 300); spawnEnemyAt(3500, 100);
+        // SPAWNING 10 GRUNTS INSTEAD OF 6
+        spawnEnemyAt(600, 300); spawnEnemyAt(1300, 300); spawnEnemyAt(1500, 150); 
+        spawnEnemyAt(2400, 300); spawnEnemyAt(3000, 300); spawnEnemyAt(3500, 100);
+        spawnEnemyAt(4000, 300); spawnEnemyAt(4400, 300); spawnEnemyAt(4800, 150);
+        spawnEnemyAt(5300, 300); 
 
-        boss = this.add.rectangle(4400, 120, 250, 180, 0xff0000, 0.0); 
+        // SPAWN 2 NEW CEILING TURRETS
+        spawnTurretAt(2000, 40); 
+        spawnTurretAt(4800, 40); 
+
+        // BOSS AT END OF MAP
+        boss = this.add.rectangle(6000, 120, 250, 180, 0xff0000, 0.0); 
         this.physics.add.existing(boss);
         boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
         
@@ -243,6 +285,19 @@
         }
     }
 
+    // THE NEW TURRET SPAWNER
+    function spawnTurretAt(x, y) {
+        let enemy = currentScene.physics.add.sprite(x, y, 'turret_tex');
+        enemy.body.setAllowGravity(false);
+        enemy.body.setImmovable(true);
+        let hitbox = currentScene.add.rectangle(-100, -100, 40, 40, 0xffffff).setAlpha(0);
+        currentScene.physics.add.existing(hitbox); hitbox.body.setAllowGravity(false);
+        let barGraphics = currentScene.add.graphics().setDepth(10);
+        // Gives them 120 HP, 0 Armor, and a custom isTurret flag!
+        enemy.enemyData = { isBoss: false, isTurret: true, hp: 120, maxHp: 120, armor: 0, maxArmor: 0, state: 'idle', lastFired: 0, hitbox: hitbox, bars: barGraphics };
+        enemiesGroup.add(enemy);
+    }
+
     function playAnim(animSuffix) { player.anims.play(`${activeCharDef.spriteKey}_${animSuffix}`, true); }
     function showCenterMessage(text, color) { centerMsgText.setText(text); centerMsgText.setFill(color); centerMsgText.setAlpha(1); currentScene.tweens.add({ targets: centerMsgText, alpha: 0, delay: 2000, duration: 1000 }); }
 
@@ -282,7 +337,7 @@
             enemiesGroup.getChildren().forEach(enemy => {
                 if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds()) && enemy.enemyData.state !== 'dead') {
                     let heavyStun = activeWeapon.stun > 0 ? activeWeapon.stun * 2 : 0.5; dealDamageToEnemy(enemy, activeWeapon.damage * 2.5, activeWeapon.pierce, heavyStun);
-                    if(!enemy.enemyData.isBoss) { enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); enemy.body.setVelocityX(facingDirection === 0 ? 300 : -300); }
+                    if(!enemy.enemyData.isBoss && !enemy.enemyData.isTurret) { enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); enemy.body.setVelocityX(facingDirection === 0 ? 300 : -300); }
                 }
             });
             attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => { meleeHitbox.setPosition(-100, -100); attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; playAnim('unarmed_idle'); actionText.setText('Ready'); }); });
@@ -298,7 +353,7 @@
             enemiesGroup.getChildren().forEach(enemy => {
                 if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds()) && enemy.enemyData.state !== 'dead') {
                     dealDamageToEnemy(enemy, activeWeapon.damage * (step === 3 ? 2 : 1), activeWeapon.pierce, activeWeapon.stun);
-                    if(!enemy.enemyData.isBoss) { enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); if(step === 3) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150); }
+                    if(!enemy.enemyData.isBoss && !enemy.enemyData.isTurret) { enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); if(step === 3) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150); }
                 }
             });
         });
@@ -326,7 +381,7 @@
         let blastVisual = currentScene.add.circle(exX, exY, activeOrdnance.radius, 0xff7700, 0.8).setDepth(20); currentScene.tweens.add({ targets: blastVisual, scale: 1.2, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
         enemiesGroup.getChildren().forEach(enemy => {
             if (enemy.active && enemy.enemyData.state !== 'dead') {
-                if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 4400, 120) < 180)) {
+                if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 6000, 120) < 180)) {
                     dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
                     if(!enemy.enemyData.isBoss) { enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); }
                 }
@@ -347,14 +402,29 @@
         }
     }
 
-    function triggerEnemyDeath(enemy) { enemy.enemyData.state = 'dead'; enemy.body.enable = false; if (enemy.enemyData.bars) enemy.enemyData.bars.destroy(); if (enemy.enemyData.hitbox) enemy.enemyData.hitbox.destroy(); enemy.anims.play('grunt_die', true); currentScene.tweens.add({ targets: enemy, alpha: 0, delay: 1500, duration: 1000, onComplete: () => enemy.destroy() }); }
+    function triggerEnemyDeath(enemy) { 
+        enemy.enemyData.state = 'dead'; 
+        enemy.body.enable = false; 
+        if (enemy.enemyData.bars) enemy.enemyData.bars.destroy(); 
+        if (enemy.enemyData.hitbox) enemy.enemyData.hitbox.destroy(); 
+        
+        if (enemy.enemyData.isTurret) {
+            // Turrets explode instead of falling down!
+            let blast = currentScene.add.circle(enemy.x, enemy.y, 30, 0xff7700, 1).setDepth(20);
+            currentScene.tweens.add({ targets: blast, scale: 1.5, alpha: 0, duration: 400, onComplete: () => blast.destroy() });
+            enemy.destroy();
+        } else {
+            enemy.anims.play('grunt_die', true); 
+            currentScene.tweens.add({ targets: enemy, alpha: 0, delay: 1500, duration: 1000, onComplete: () => enemy.destroy() }); 
+        }
+    }
 
     function triggerBossDefeat(bossEnemy) {
         bossDefeated = true; if (bossAIEvent) bossAIEvent.remove(); bossEnemy.body.enable = false; currentScene.cameras.main.shake(2200, 0.03); currentScene.cameras.main.flash(300, 255, 100, 0); 
         
         let gif = document.getElementById('bossGif'); 
         if (gif) { 
-            gif.src = 'assets/boss_die.gif?v=25';
+            gif.src = 'assets/boss_die.gif?v=26';
             currentScene.time.delayedCall(2000, () => {
                 gif.style.transition = "all 1.5s ease"; 
                 gif.style.opacity = "0"; 
@@ -379,11 +449,11 @@
             let gif = document.getElementById('bossGif');
             if(gif) gif.style.filter = 'brightness(2) contrast(2) sepia(1) hue-rotate(-50deg) saturate(500%) drop-shadow(0 0 20px red)';
             currentScene.time.delayedCall(80, () => { if (enemy.active && !bossDefeated && gif) gif.style.filter = 'none'; });
-        } else if (stunDuration > 0) {
+        } else if (stunDuration > 0 && !data.isTurret) { // Turrets don't get stunned
             data.isStunned = true; data.state = 'stunned'; enemy.setTint(0x00ffff); currentScene.time.delayedCall(stunDuration * 1000, () => { if(enemy.active && data.state !== 'dead') { data.isStunned = false; data.state = 'idle'; enemy.clearTint(); } });
         }
 
-        if (data.hp <= 0) { score += data.isBoss ? 5000 : 10; scoreText.setText('SCORE: ' + score); if (data.isBoss) triggerBossDefeat(enemy); else triggerEnemyDeath(enemy); }
+        if (data.hp <= 0) { score += data.isBoss ? 5000 : (data.isTurret ? 100 : 10); scoreText.setText('SCORE: ' + score); if (data.isBoss) triggerBossDefeat(enemy); else triggerEnemyDeath(enemy); }
     }
 
     function drawFloatingBars() {
@@ -394,12 +464,13 @@
     }
 
     function triggerBoss() {
-        bossActive = true; boss.enemyData.state = 'active'; currentScene.cameras.main.stopFollow(); currentScene.cameras.main.pan(4400, 200, 800, 'Sine.easeInOut');
+        bossActive = true; boss.enemyData.state = 'active'; currentScene.cameras.main.stopFollow(); 
+        currentScene.cameras.main.pan(6000, 200, 800, 'Sine.easeInOut');
         bossWall.body.checkCollision.none = false; currentScene.tweens.add({ targets: bossWall, y: 0, duration: 800, ease: 'Bounce.easeOut' });
 
         let gif = document.getElementById('bossGif');
         if (gif) { 
-            gif.src = 'assets/boss_spawn.gif?v=25';
+            gif.src = 'assets/boss_spawn.gif?v=26';
             gif.style.display = 'block'; 
             gif.style.opacity = '1'; 
             gif.style.filter = 'none'; 
@@ -411,11 +482,10 @@
         if (arenaBg) currentScene.tweens.add({ targets: arenaBg, alpha: 0, duration: 1500 });
 
         currentScene.time.delayedCall(800, () => { 
-            currentScene.cameras.main.setBounds(4000, 0, 800, 400); currentScene.cameras.main.startFollow(player, true, 0.1, 0.1); showCenterMessage("WARNING: EXTERIOR PROTOCOL", '#ff5500'); 
+            currentScene.cameras.main.setBounds(5600, 0, 800, 400); currentScene.cameras.main.startFollow(player, true, 0.1, 0.1); showCenterMessage("WARNING: EXTERIOR PROTOCOL", '#ff5500'); 
             
             currentScene.time.delayedCall(1500, () => {
-                if (gif) gif.src = 'assets/boss_idle.gif?v=25';
-                
+                if (gif) gif.src = 'assets/boss_idle.gif?v=26';
                 bossAIEvent = currentScene.time.addEvent({ delay: 3500, callback: runBossPattern, loop: true }); 
             });
         });
@@ -429,13 +499,12 @@
 
         if (attackType === 1) {
             actionText.setText('WARNING: TOXIC SLUDGE!');
-            if (gif) gif.src = 'assets/boss_lava.gif?v=25'; 
+            if (gif) gif.src = 'assets/boss_lava.gif?v=26'; 
             
             currentScene.time.delayedCall(1000, () => {
                 if (!boss.active || bossDefeated) return;
                 
-                // BACK TO INVISIBLE
-                let bossSpill = currentScene.add.rectangle(4400, 300, 140, 180, 0x00ff00, 0.0); 
+                let bossSpill = currentScene.add.rectangle(6000, 300, 140, 180, 0x00ff00, 0.0); 
                 currentScene.physics.add.existing(bossSpill);
                 bossSpill.body.setAllowGravity(false);
                 bossSpill.body.setImmovable(true);
@@ -444,9 +513,9 @@
                     if (playerHealth > 0 && !isInvincible && !player.isBurned) {
                         player.isBurned = true;
                         spawnDamageText(player.x, player.y - 40, "SLUDGE!", true, true);
-                        playerTakeDamage(35, 4400); 
+                        playerTakeDamage(35, 6000); 
                         
-                        let knockDir = (player.x < 4400) ? -550 : 550;
+                        let knockDir = (player.x < 6000) ? -550 : 550;
                         player.body.setVelocity(knockDir, -300);
                         
                         currentScene.time.delayedCall(1000, () => { player.isBurned = false; });
@@ -459,24 +528,23 @@
             currentScene.time.delayedCall(1500, () => {
                 for (let i = 0; i < 4; i++) {
                     currentScene.time.delayedCall(i * 300, () => {
-                        if (!boss.active || bossDefeated) return; let mortar = currentScene.add.circle(4400, 260, 12, 0xff3300); currentScene.physics.add.existing(mortar); enemyProjectiles.add(mortar); mortar.body.setAllowGravity(true);
-                        let pX = player.x; let throwX = (pX > 4400) ? Phaser.Math.Between(200, 600) : Phaser.Math.Between(-600, -200); mortar.body.setVelocity(throwX, Phaser.Math.Between(-500, -300)); mortar.dmg = 35; mortar.isMortar = true;
+                        if (!boss.active || bossDefeated) return; let mortar = currentScene.add.circle(6000, 260, 12, 0xff3300); currentScene.physics.add.existing(mortar); enemyProjectiles.add(mortar); mortar.body.setAllowGravity(true);
+                        let pX = player.x; let throwX = (pX > 6000) ? Phaser.Math.Between(200, 600) : Phaser.Math.Between(-600, -200); mortar.body.setVelocity(throwX, Phaser.Math.Between(-500, -300)); mortar.dmg = 35; mortar.isMortar = true;
                         currentScene.time.delayedCall(4000, () => { if (mortar.active) mortar.destroy(); });
                     });
                 }
             });
 
-            currentScene.time.delayedCall(3000, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=25'; });
+            currentScene.time.delayedCall(3000, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=26'; });
 
         } else if (attackType === 2) {
             actionText.setText('WARNING: EYE BEAM!');
-            if (gif) gif.src = 'assets/boss_laser.gif?v=25'; 
+            if (gif) gif.src = 'assets/boss_laser.gif?v=26'; 
             
             currentScene.time.delayedCall(400, () => {
                 if (!boss.active || bossDefeated) return; 
                 
-                // BACK TO INVISIBLE
-                let laserBeam = currentScene.add.rectangle(4460, 280, 30, 240, 0x00ffff, 0.0); 
+                let laserBeam = currentScene.add.rectangle(6060, 280, 30, 240, 0x00ffff, 0.0); 
                 currentScene.physics.add.existing(laserBeam);
                 laserBeam.body.setAllowGravity(false);
                 laserBeam.body.setImmovable(true);
@@ -485,9 +553,9 @@
                     if (playerHealth > 0 && !isInvincible && !player.isBurned) {
                         player.isBurned = true;
                         spawnDamageText(player.x, player.y - 40, "LASER!", true, true);
-                        playerTakeDamage(45, 4460); 
+                        playerTakeDamage(45, 6060); 
                         
-                        let knockDir = (player.x < 4460) ? -400 : 400;
+                        let knockDir = (player.x < 6060) ? -400 : 400;
                         player.body.setVelocity(knockDir, -150);
                         
                         currentScene.time.delayedCall(1000, () => { player.isBurned = false; });
@@ -497,18 +565,18 @@
                 currentScene.time.delayedCall(600, () => { if (laserBeam) laserBeam.destroy(); });
             });
 
-            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=25'; });
+            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=26'; });
             
         } else {
             actionText.setText('WARNING: CROSSFIRE!');
-            if (gif) gif.src = 'assets/boss_laser.gif?v=25'; 
+            if (gif) gif.src = 'assets/boss_laser.gif?v=26'; 
             
             currentScene.time.delayedCall(400, () => {
                 if (!boss.active || bossDefeated) return; 
                 
-                let blastDir = (player.x > 4400) ? 1 : -1; 
+                let blastDir = (player.x > 6000) ? 1 : -1; 
                 
-                let fireball = currentScene.add.circle(4400, 260, 35, 0xffaa00); 
+                let fireball = currentScene.add.circle(6000, 260, 35, 0xffaa00); 
                 currentScene.physics.add.existing(fireball); 
                 enemyProjectiles.add(fireball); 
                 fireball.body.setAllowGravity(false);
@@ -516,7 +584,7 @@
                 fireball.dmg = 40; 
                 currentScene.time.delayedCall(2500, () => { if (fireball.active) fireball.destroy(); });
                 
-                let eyePulse = currentScene.add.circle(4460, 160, 12, 0x00ffff); 
+                let eyePulse = currentScene.add.circle(6060, 160, 12, 0x00ffff); 
                 currentScene.physics.add.existing(eyePulse); 
                 enemyProjectiles.add(eyePulse); 
                 eyePulse.body.setAllowGravity(false);
@@ -525,7 +593,7 @@
                 currentScene.time.delayedCall(2500, () => { if (eyePulse.active) eyePulse.destroy(); });
             });
 
-            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=25'; });
+            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=26'; });
         }
     }
 
@@ -541,7 +609,7 @@
             for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 382 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; if (x === layer.startX) g.moveTo(x, waveY); else g.lineTo(x, waveY); } g.strokePath();
         });
 
-        if (!bossActive && player.x > 4100) triggerBoss();
+        if (!bossActive && player.x > 5700) triggerBoss();
         if (player.y > 450 && playerHealth > 0 && !isSpawning) playerTakeDamage(1000, player.x); 
 
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
@@ -579,6 +647,23 @@
             let data = enemy.enemyData; if (data.isBoss) return; if (enemy.y > 450) { if (enemy.active) enemy.destroy(); return; } if (data.state === 'dead') return; 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); if (distToPlayer > 900) return; 
 
+            // --- TURRET AI ---
+            if (data.isTurret) {
+                if (distToPlayer < 700 && playerHealth > 0 && !isSpawning) {
+                    enemy.rotation = Phaser.Math.Angle.Between(enemy.x, enemy.y, player.x, player.y);
+                    if (currentTime > data.lastFired + 600) { // Fires every 600ms
+                        data.lastFired = currentTime;
+                        let bullet = currentScene.add.circle(enemy.x, enemy.y, 6, 0xff00ff);
+                        currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false);
+                        currentScene.physics.velocityFromRotation(enemy.rotation, 700, bullet.body.velocity);
+                        bullet.dmg = 15; enemyProjectiles.add(bullet);
+                        currentScene.time.delayedCall(1500, () => { if(bullet.active) bullet.destroy(); });
+                    }
+                }
+                return; // SKIP GRUNT AI
+            }
+
+            // --- GRUNT AI ---
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 if (distToPlayer < 75 && data.canAttack) {
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint(); enemy.anims.play('grunt_punch_right', true);
