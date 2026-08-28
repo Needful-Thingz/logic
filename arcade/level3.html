@@ -29,11 +29,11 @@
 
 <!-- HIDDEN PRELOADER -->
 <div style="display: none;">
-    <img src="assets/boss_spawn.gif?v=27">
-    <img src="assets/boss_idle.gif?v=27">
-    <img src="assets/boss_lava.gif?v=27">
-    <img src="assets/boss_laser.gif?v=27">
-    <img src="assets/boss_die.gif?v=27">
+    <img src="assets/boss_spawn.gif?v=28">
+    <img src="assets/boss_idle.gif?v=28">
+    <img src="assets/boss_lava.gif?v=28">
+    <img src="assets/boss_laser.gif?v=28">
+    <img src="assets/boss_die.gif?v=28">
 </div>
 
 <!-- The blank canvas where the GIF gets swapped -->
@@ -130,7 +130,6 @@
     function create() {
         currentScene = this; 
         
-        // BUMPED UP TO 5 POINTERS TO PREVENT ANY MULTI-TOUCH DROPS
         this.input.addPointer(5);
         
         let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
@@ -157,48 +156,45 @@
         grenadesGroup = this.physics.add.group(); enemiesGroup = this.physics.add.group(); enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup(); conveyorGroup = this.physics.add.staticGroup(); lavaGroup = this.physics.add.staticGroup();
 
-        // PLATFORMS
+        // ==========================================
+        // NEW PERFECT MAP - NO LAVA GAP > 200px WIDE!
+        // ==========================================
         platforms.add(this.add.tileSprite(150, 390, 300, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(800, 270, 150, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(2000, 260, 160, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(2400, 390, 400, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(4000, 390, 300, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(4800, 260, 200, 32, 'floorTile')); 
+        createConveyor(600, 390, 300, 1.5); 
+        createConveyor(1200, 390, 500, -2.0); 
+        platforms.add(this.add.tileSprite(1750, 390, 300, 32, 'floorTile')); 
+        createConveyor(2300, 390, 400, 2.0); 
+        platforms.add(this.add.tileSprite(2850, 390, 400, 32, 'floorTile')); 
+        createConveyor(3500, 390, 500, -2.5); 
+        platforms.add(this.add.tileSprite(4150, 390, 500, 32, 'floorTile')); 
+        createConveyor(4800, 390, 400, 1.5); 
         platforms.add(this.add.tileSprite(5800, 390, 1200, 32, 'floorTile')); 
 
-        // CONVEYORS
-        createConveyor(600, 390, 400, 1.5); 
-        createConveyor(1300, 390, 600, -2.0); 
-        createConveyor(1500, 250, 200, 1.5); 
-        createConveyor(3000, 390, 600, 2.5); 
-        createConveyor(3500, 200, 150, -1.0); 
-        createConveyor(4400, 390, 500, 3.0); 
-        createConveyor(5300, 390, 400, -2.5); 
-
-        // LAVA
-        createLavaPool(300, 400); 
-        createLavaPool(1000, 1200); 
-        createLavaPool(1600, 2200); 
-        createLavaPool(2600, 2700); 
-        createLavaPool(3300, 3850); 
-        createLavaPool(4150, 4650); 
-        createLavaPool(5100, 5500); 
+        createLavaPool(300, 450); 
+        createLavaPool(750, 950); 
+        createLavaPool(1450, 1600); 
+        createLavaPool(1900, 2100); 
+        createLavaPool(2500, 2650); 
+        createLavaPool(3050, 3250); 
+        createLavaPool(3750, 3900); 
+        createLavaPool(4400, 4600); 
+        createLavaPool(5000, 5200); 
+        // ==========================================
 
         bossWall = this.add.rectangle(5600, -400, 40, 400, 0x444444).setOrigin(0,0); this.physics.add.existing(bossWall, false); bossWall.body.setImmovable(true); bossWall.body.setAllowGravity(false); bossWall.body.checkCollision.none = true; 
 
-        // 10 GRUNTS
-        spawnEnemyAt(600, 300); spawnEnemyAt(1300, 300); spawnEnemyAt(1500, 150); 
-        spawnEnemyAt(2400, 300); spawnEnemyAt(3000, 300); spawnEnemyAt(3500, 100);
-        spawnEnemyAt(4000, 300); spawnEnemyAt(4400, 300); spawnEnemyAt(4800, 150);
-        spawnEnemyAt(5300, 300); 
+        // Grunts spawn exactly in the center of the solid ground!
+        spawnEnemyAt(600, 300); spawnEnemyAt(1200, 300); spawnEnemyAt(1750, 150); 
+        spawnEnemyAt(2300, 300); spawnEnemyAt(2850, 300); spawnEnemyAt(3500, 100);
+        spawnEnemyAt(4150, 300); spawnEnemyAt(4800, 300); spawnEnemyAt(5000, 150);
 
         // ==========================================
         // GHOST MUZZLES!
-        // Tweak the X and Y here to match the background guns perfectly!
-        // Once they are right, we will turn the purple dot invisible.
+        // X: 400 is dead center of the first screen.
+        // Left the purple glow on (0.6) so you can aim it perfectly!
         // ==========================================
+        spawnTurretAt(400, 80); 
         spawnTurretAt(2000, 80); 
-        spawnTurretAt(4000, 80); 
         // ==========================================
 
         boss = this.add.rectangle(6000, 120, 250, 180, 0xff0000, 0.0); 
@@ -252,7 +248,6 @@
 
         const btnFire = this.add.circle(670, 300, 45, 0xff0000).setAlpha(0.6).setInteractive(); uiElements.push(btnFire); uiElements.push(this.add.text(670, 300, 'FIRE', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnFire.on('pointerdown', () => { isFiring = true; }); btnFire.on('pointerup', () => { isFiring = false; }); btnFire.on('pointerout', () => { isFiring = false; });
         
-        // JUMP BUTTON PULLED UP SLIGHTLY TO AVOID SCREEN EDGE
         const btnJump = this.add.circle(700, 350, 45, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump); uiElements.push(this.add.text(700, 350, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5)); btnJump.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); } });
         
         const btnSwap = this.add.circle(550, 250, 25, 0x8800ff).setAlpha(0.7).setInteractive(); uiElements.push(btnSwap); uiElements.push(this.add.text(550, 250, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnSwap.on('pointerdown', () => { if (isSpawning || playerHealth <= 0) return; usingPrimaryGun = !usingPrimaryGun; activeGun = usingPrimaryGun ? (gunArmory[activeCharDef.gun1] || gunArmory['Rifle']) : (gunArmory[activeCharDef.gun2] || gunArmory['Shotgun']); gunText.setText('Gun: ' + activeGun.name); actionText.setText(`EQUIPPED: ${activeGun.name.toUpperCase()}`); });
@@ -272,7 +267,13 @@
     function createConveyor(centerX, y, width, speed) { let conveyor = currentScene.add.tileSprite(centerX, y, width, 32, 'floorTile'); currentScene.physics.add.existing(conveyor, true); conveyor.beltSpeed = speed; conveyorGroup.add(conveyor); conveyorBelts.push(conveyor); }
 
     function createLavaPool(startX, endX) {
-        let width = endX - startX; let centerX = startX + (width / 2); let pool = currentScene.add.rectangle(centerX, 388, width, 24, 0x000000, 0); lavaGroup.add(pool); let g = currentScene.add.graphics().setDepth(5); lavaGraphicLayers.push({ graphics: g, startX: startX, width: width });
+        let width = endX - startX; let centerX = startX + (width / 2); 
+        // LAVA HITBOX NOW REACHES HIGH ENOUGH TO NEVER MISS THE COLLISION
+        let pool = currentScene.add.rectangle(centerX, 400, width, 60, 0x000000, 0); 
+        currentScene.physics.add.existing(pool, true);
+        lavaGroup.add(pool); 
+        
+        let g = currentScene.add.graphics().setDepth(5); lavaGraphicLayers.push({ graphics: g, startX: startX, width: width });
         let sparkCount = Math.max(3, Math.floor(width / 50));
         for (let i = 0; i < sparkCount; i++) {
             let ventX = startX + 25 + (i * ((width - 50) / (sparkCount - 1))); currentScene.time.addEvent({ delay: Phaser.Math.Between(150, 400), loop: true, callback: () => {
@@ -282,21 +283,17 @@
         }
     }
 
-    // THE GHOST MUZZLE
+    // THE GHOST MUZZLE SYSTEM
     function spawnTurretAt(x, y) {
-        // Glowing purple dot instead of a box
         let enemy = currentScene.add.circle(x, y, 12, 0xff00ff, 0.6); 
         currentScene.physics.add.existing(enemy);
         enemiesGroup.add(enemy); 
         
-        // TURN OFF GRAVITY AFTER ADDING TO GROUP SO IT DOESN'T FALL!
         enemy.body.setAllowGravity(false);
         enemy.body.setImmovable(true);
         
-        // This invisible box is what takes damage from the player
         let hitbox = currentScene.add.rectangle(-100, -100, 40, 40, 0xffffff).setAlpha(0);
         currentScene.physics.add.existing(hitbox); hitbox.body.setAllowGravity(false);
-        
         let barGraphics = currentScene.add.graphics().setDepth(10);
         
         enemy.enemyData = { isBoss: false, isTurret: true, hp: 120, maxHp: 120, armor: 0, maxArmor: 0, state: 'idle', lastFired: 0, hitbox: hitbox, bars: barGraphics };
@@ -427,7 +424,7 @@
         
         let gif = document.getElementById('bossGif'); 
         if (gif) { 
-            gif.src = 'assets/boss_die.gif?v=27';
+            gif.src = 'assets/boss_die.gif?v=28';
             currentScene.time.delayedCall(2000, () => {
                 gif.style.transition = "all 1.5s ease"; 
                 gif.style.opacity = "0"; 
@@ -473,7 +470,7 @@
 
         let gif = document.getElementById('bossGif');
         if (gif) { 
-            gif.src = 'assets/boss_spawn.gif?v=27';
+            gif.src = 'assets/boss_spawn.gif?v=28';
             gif.style.display = 'block'; 
             gif.style.opacity = '1'; 
             gif.style.filter = 'none'; 
@@ -488,7 +485,7 @@
             currentScene.cameras.main.setBounds(5600, 0, 800, 400); currentScene.cameras.main.startFollow(player, true, 0.1, 0.1); showCenterMessage("WARNING: EXTERIOR PROTOCOL", '#ff5500'); 
             
             currentScene.time.delayedCall(1500, () => {
-                if (gif) gif.src = 'assets/boss_idle.gif?v=27';
+                if (gif) gif.src = 'assets/boss_idle.gif?v=28';
                 bossAIEvent = currentScene.time.addEvent({ delay: 3500, callback: runBossPattern, loop: true }); 
             });
         });
@@ -502,7 +499,7 @@
 
         if (attackType === 1) {
             actionText.setText('WARNING: TOXIC SLUDGE!');
-            if (gif) gif.src = 'assets/boss_lava.gif?v=27'; 
+            if (gif) gif.src = 'assets/boss_lava.gif?v=28'; 
             
             currentScene.time.delayedCall(1000, () => {
                 if (!boss.active || bossDefeated) return;
@@ -538,11 +535,11 @@
                 }
             });
 
-            currentScene.time.delayedCall(3000, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=27'; });
+            currentScene.time.delayedCall(3000, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=28'; });
 
         } else if (attackType === 2) {
             actionText.setText('WARNING: EYE BEAM!');
-            if (gif) gif.src = 'assets/boss_laser.gif?v=27'; 
+            if (gif) gif.src = 'assets/boss_laser.gif?v=28'; 
             
             currentScene.time.delayedCall(400, () => {
                 if (!boss.active || bossDefeated) return; 
@@ -568,11 +565,11 @@
                 currentScene.time.delayedCall(600, () => { if (laserBeam) laserBeam.destroy(); });
             });
 
-            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=27'; });
+            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=28'; });
             
         } else {
             actionText.setText('WARNING: CROSSFIRE!');
-            if (gif) gif.src = 'assets/boss_laser.gif?v=27'; 
+            if (gif) gif.src = 'assets/boss_laser.gif?v=28'; 
             
             currentScene.time.delayedCall(400, () => {
                 if (!boss.active || bossDefeated) return; 
@@ -596,7 +593,7 @@
                 currentScene.time.delayedCall(2500, () => { if (eyePulse.active) eyePulse.destroy(); });
             });
 
-            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=27'; });
+            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=28'; });
         }
     }
 
@@ -653,19 +650,29 @@
             let data = enemy.enemyData; if (data.isBoss) return; if (enemy.y > 450) { if (enemy.active) enemy.destroy(); return; } if (data.state === 'dead') return; 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); if (distToPlayer > 900) return; 
 
+            // --- THE NEW HOMING TURRET AI ---
             if (data.isTurret) {
                 if (distToPlayer < 700 && playerHealth > 0 && !isSpawning) {
-                    let gunAngle = Phaser.Math.Angle.Between(enemy.x, enemy.y, player.x, player.y);
                     if (currentTime > data.lastFired + 600) { 
                         data.lastFired = currentTime;
+                        
+                        // PERFECT TRACKING MATH
+                        let dx = player.x - enemy.x;
+                        let dy = player.y - enemy.y;
+                        let dist = Math.sqrt(dx*dx + dy*dy);
+                        
                         let bullet = currentScene.add.circle(enemy.x, enemy.y, 6, 0xff00ff);
-                        currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false);
-                        currentScene.physics.velocityFromRotation(gunAngle, 700, bullet.body.velocity);
-                        bullet.dmg = 15; enemyProjectiles.add(bullet);
+                        currentScene.physics.add.existing(bullet); 
+                        bullet.body.setAllowGravity(false);
+                        
+                        // SLOWED TO 450 SO YOU CAN SEE IT COMING
+                        bullet.body.setVelocity((dx/dist) * 450, (dy/dist) * 450); 
+                        bullet.dmg = 15; 
+                        enemyProjectiles.add(bullet);
+                        
                         currentScene.time.delayedCall(1500, () => { if(bullet.active) bullet.destroy(); });
                     }
                 }
-                // Hitbox perfectly follows the ghost dot!
                 data.hitbox.setPosition(enemy.x, enemy.y); 
                 return; 
             }
