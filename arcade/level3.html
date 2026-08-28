@@ -29,11 +29,11 @@
 
 <!-- HIDDEN PRELOADER -->
 <div style="display: none;">
-    <img src="assets/boss_spawn.gif?v=26">
-    <img src="assets/boss_idle.gif?v=26">
-    <img src="assets/boss_lava.gif?v=26">
-    <img src="assets/boss_laser.gif?v=26">
-    <img src="assets/boss_die.gif?v=26">
+    <img src="assets/boss_spawn.gif?v=27">
+    <img src="assets/boss_idle.gif?v=27">
+    <img src="assets/boss_lava.gif?v=27">
+    <img src="assets/boss_laser.gif?v=27">
+    <img src="assets/boss_die.gif?v=27">
 </div>
 
 <!-- The blank canvas where the GIF gets swapped -->
@@ -108,10 +108,7 @@
     let isFiring = false; 
     
     let enemiesGroup, enemyProjectiles;
-    
-    // --- MAP EXPANDED TO 6400 ---
     const WORLD_WIDTH = 6400; 
-    
     let boss, bossActive = false, bossDefeated = false, bossHpBar, bossWall, bossAIEvent;
     let lavaGraphicLayers = [];
     let conveyorBelts = [];
@@ -132,7 +129,9 @@
 
     function create() {
         currentScene = this; 
-        this.input.addPointer(2);
+        
+        // BUMPED UP TO 5 POINTERS TO PREVENT ANY MULTI-TOUCH DROPS
+        this.input.addPointer(5);
         
         let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
         dGraphics.fillStyle(0x222222, 1); dGraphics.fillRoundedRect(0, 6, 20, 12, 4); 
@@ -141,18 +140,10 @@
         dGraphics.fillStyle(0xffffff, 1); dGraphics.fillCircle(17, 11, 2); 
         dGraphics.generateTexture('drone_tex', 24, 24); 
 
-        // NEW TURRET TEXTURE
-        let tGraphics = this.make.graphics({x: 0, y: 0, add: false});
-        tGraphics.fillStyle(0x444444, 1); tGraphics.fillRect(0, 0, 40, 40); 
-        tGraphics.fillStyle(0x777777, 1); tGraphics.fillRect(4, 4, 32, 32); 
-        tGraphics.fillStyle(0xff00ff, 1); tGraphics.fillCircle(20, 20, 10); 
-        tGraphics.generateTexture('turret_tex', 40, 40);
-
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, 400);
         this.physics.world.setBoundsCollision(true, true, true, false); 
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, 400);
 
-        // Boss room background moved down
         arenaBg = this.add.rectangle(5600, 0, 800, 400, 0x000000).setOrigin(0,0).setDepth(-10);
 
         let bg1Img = this.textures.exists('bg1') ? 'bg1' : null;
@@ -166,16 +157,16 @@
         grenadesGroup = this.physics.add.group(); enemiesGroup = this.physics.add.group(); enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup(); conveyorGroup = this.physics.add.staticGroup(); lavaGroup = this.physics.add.staticGroup();
 
-        // MORE PLATFORMS
+        // PLATFORMS
         platforms.add(this.add.tileSprite(150, 390, 300, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(800, 270, 150, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2000, 260, 160, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2400, 390, 400, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(4000, 390, 300, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(4800, 260, 200, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(5800, 390, 1200, 32, 'floorTile')); // Boss Platform
+        platforms.add(this.add.tileSprite(5800, 390, 1200, 32, 'floorTile')); 
 
-        // MORE CONVEYORS
+        // CONVEYORS
         createConveyor(600, 390, 400, 1.5); 
         createConveyor(1300, 390, 600, -2.0); 
         createConveyor(1500, 250, 200, 1.5); 
@@ -184,7 +175,7 @@
         createConveyor(4400, 390, 500, 3.0); 
         createConveyor(5300, 390, 400, -2.5); 
 
-        // MORE LAVA
+        // LAVA
         createLavaPool(300, 400); 
         createLavaPool(1000, 1200); 
         createLavaPool(1600, 2200); 
@@ -193,20 +184,23 @@
         createLavaPool(4150, 4650); 
         createLavaPool(5100, 5500); 
 
-        // BOSS TRIGGER WALL
         bossWall = this.add.rectangle(5600, -400, 40, 400, 0x444444).setOrigin(0,0); this.physics.add.existing(bossWall, false); bossWall.body.setImmovable(true); bossWall.body.setAllowGravity(false); bossWall.body.checkCollision.none = true; 
 
-        // SPAWNING 10 GRUNTS INSTEAD OF 6
+        // 10 GRUNTS
         spawnEnemyAt(600, 300); spawnEnemyAt(1300, 300); spawnEnemyAt(1500, 150); 
         spawnEnemyAt(2400, 300); spawnEnemyAt(3000, 300); spawnEnemyAt(3500, 100);
         spawnEnemyAt(4000, 300); spawnEnemyAt(4400, 300); spawnEnemyAt(4800, 150);
         spawnEnemyAt(5300, 300); 
 
-        // SPAWN 2 NEW CEILING TURRETS
-        spawnTurretAt(2000, 40); 
-        spawnTurretAt(4800, 40); 
+        // ==========================================
+        // GHOST MUZZLES!
+        // Tweak the X and Y here to match the background guns perfectly!
+        // Once they are right, we will turn the purple dot invisible.
+        // ==========================================
+        spawnTurretAt(2000, 80); 
+        spawnTurretAt(4000, 80); 
+        // ==========================================
 
-        // BOSS AT END OF MAP
         boss = this.add.rectangle(6000, 120, 250, 180, 0xff0000, 0.0); 
         this.physics.add.existing(boss);
         boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
@@ -257,7 +251,10 @@
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
         const btnFire = this.add.circle(670, 300, 45, 0xff0000).setAlpha(0.6).setInteractive(); uiElements.push(btnFire); uiElements.push(this.add.text(670, 300, 'FIRE', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnFire.on('pointerdown', () => { isFiring = true; }); btnFire.on('pointerup', () => { isFiring = false; }); btnFire.on('pointerout', () => { isFiring = false; });
-        const btnJump = this.add.circle(710, 360, 45, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump); uiElements.push(this.add.text(710, 360, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5)); btnJump.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); } });
+        
+        // JUMP BUTTON PULLED UP SLIGHTLY TO AVOID SCREEN EDGE
+        const btnJump = this.add.circle(700, 350, 45, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump); uiElements.push(this.add.text(700, 350, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5)); btnJump.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); } });
+        
         const btnSwap = this.add.circle(550, 250, 25, 0x8800ff).setAlpha(0.7).setInteractive(); uiElements.push(btnSwap); uiElements.push(this.add.text(550, 250, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnSwap.on('pointerdown', () => { if (isSpawning || playerHealth <= 0) return; usingPrimaryGun = !usingPrimaryGun; activeGun = usingPrimaryGun ? (gunArmory[activeCharDef.gun1] || gunArmory['Rifle']) : (gunArmory[activeCharDef.gun2] || gunArmory['Shotgun']); gunText.setText('Gun: ' + activeGun.name); actionText.setText(`EQUIPPED: ${activeGun.name.toUpperCase()}`); });
         const btnDefend = this.add.circle(580, 300, 25, 0x888888).setAlpha(0.8).setInteractive(); uiElements.push(btnDefend); uiElements.push(this.add.text(580, 300, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnDefend.on('pointerdown', () => { if (isAttacking || isDashing || isSpawning) return; if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } else { isBlocking = true; player.setTint(0x888888); actionText.setText('BLOCKING'); } }); btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock); function releaseBlock() { if (isBlocking) { isBlocking = false; player.clearTint(); actionText.setText('Ready'); } }
         const btnMelee = this.add.circle(610, 230, 25, 0xffaa00).setAlpha(0.6).setInteractive(); uiElements.push(btnMelee); uiElements.push(this.add.text(610, 230, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5)); btnMelee.on('pointerdown', () => { if (isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
@@ -285,17 +282,24 @@
         }
     }
 
-    // THE NEW TURRET SPAWNER
+    // THE GHOST MUZZLE
     function spawnTurretAt(x, y) {
-        let enemy = currentScene.physics.add.sprite(x, y, 'turret_tex');
+        // Glowing purple dot instead of a box
+        let enemy = currentScene.add.circle(x, y, 12, 0xff00ff, 0.6); 
+        currentScene.physics.add.existing(enemy);
+        enemiesGroup.add(enemy); 
+        
+        // TURN OFF GRAVITY AFTER ADDING TO GROUP SO IT DOESN'T FALL!
         enemy.body.setAllowGravity(false);
         enemy.body.setImmovable(true);
+        
+        // This invisible box is what takes damage from the player
         let hitbox = currentScene.add.rectangle(-100, -100, 40, 40, 0xffffff).setAlpha(0);
         currentScene.physics.add.existing(hitbox); hitbox.body.setAllowGravity(false);
+        
         let barGraphics = currentScene.add.graphics().setDepth(10);
-        // Gives them 120 HP, 0 Armor, and a custom isTurret flag!
+        
         enemy.enemyData = { isBoss: false, isTurret: true, hp: 120, maxHp: 120, armor: 0, maxArmor: 0, state: 'idle', lastFired: 0, hitbox: hitbox, bars: barGraphics };
-        enemiesGroup.add(enemy);
     }
 
     function playAnim(animSuffix) { player.anims.play(`${activeCharDef.spriteKey}_${animSuffix}`, true); }
@@ -383,7 +387,7 @@
             if (enemy.active && enemy.enemyData.state !== 'dead') {
                 if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 6000, 120) < 180)) {
                     dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
-                    if(!enemy.enemyData.isBoss) { enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); }
+                    if(!enemy.enemyData.isBoss && !enemy.enemyData.isTurret) { enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); }
                 }
             }
         });
@@ -396,7 +400,7 @@
             let currentAngle = baseAngle + (i - Math.floor(activeGun.count / 2)) * 0.15; let bullet = currentScene.add.rectangle(player.x, player.y, 12, 4, activeGun.color);
             currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false); currentScene.physics.velocityFromRotation(currentAngle, activeGun.speed, bullet.body.velocity); bullet.rotation = currentAngle;
             currentScene.physics.add.overlap(bullet, enemiesGroup, (b, enemy) => {
-                if (enemy.enemyData.state !== 'dead') { b.destroy(); dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); if(!enemy.enemyData.isBoss) { enemy.setTint(activeGun.color); currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); } }
+                if (enemy.enemyData.state !== 'dead') { b.destroy(); dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); if(!enemy.enemyData.isBoss && !enemy.enemyData.isTurret) { enemy.setTint(activeGun.color); currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); } }
             });
             currentScene.time.delayedCall(activeGun.lifespan, () => { if(bullet.active) bullet.destroy(); });
         }
@@ -409,7 +413,6 @@
         if (enemy.enemyData.hitbox) enemy.enemyData.hitbox.destroy(); 
         
         if (enemy.enemyData.isTurret) {
-            // Turrets explode instead of falling down!
             let blast = currentScene.add.circle(enemy.x, enemy.y, 30, 0xff7700, 1).setDepth(20);
             currentScene.tweens.add({ targets: blast, scale: 1.5, alpha: 0, duration: 400, onComplete: () => blast.destroy() });
             enemy.destroy();
@@ -424,7 +427,7 @@
         
         let gif = document.getElementById('bossGif'); 
         if (gif) { 
-            gif.src = 'assets/boss_die.gif?v=26';
+            gif.src = 'assets/boss_die.gif?v=27';
             currentScene.time.delayedCall(2000, () => {
                 gif.style.transition = "all 1.5s ease"; 
                 gif.style.opacity = "0"; 
@@ -449,7 +452,7 @@
             let gif = document.getElementById('bossGif');
             if(gif) gif.style.filter = 'brightness(2) contrast(2) sepia(1) hue-rotate(-50deg) saturate(500%) drop-shadow(0 0 20px red)';
             currentScene.time.delayedCall(80, () => { if (enemy.active && !bossDefeated && gif) gif.style.filter = 'none'; });
-        } else if (stunDuration > 0 && !data.isTurret) { // Turrets don't get stunned
+        } else if (stunDuration > 0 && !data.isTurret) { 
             data.isStunned = true; data.state = 'stunned'; enemy.setTint(0x00ffff); currentScene.time.delayedCall(stunDuration * 1000, () => { if(enemy.active && data.state !== 'dead') { data.isStunned = false; data.state = 'idle'; enemy.clearTint(); } });
         }
 
@@ -470,7 +473,7 @@
 
         let gif = document.getElementById('bossGif');
         if (gif) { 
-            gif.src = 'assets/boss_spawn.gif?v=26';
+            gif.src = 'assets/boss_spawn.gif?v=27';
             gif.style.display = 'block'; 
             gif.style.opacity = '1'; 
             gif.style.filter = 'none'; 
@@ -485,7 +488,7 @@
             currentScene.cameras.main.setBounds(5600, 0, 800, 400); currentScene.cameras.main.startFollow(player, true, 0.1, 0.1); showCenterMessage("WARNING: EXTERIOR PROTOCOL", '#ff5500'); 
             
             currentScene.time.delayedCall(1500, () => {
-                if (gif) gif.src = 'assets/boss_idle.gif?v=26';
+                if (gif) gif.src = 'assets/boss_idle.gif?v=27';
                 bossAIEvent = currentScene.time.addEvent({ delay: 3500, callback: runBossPattern, loop: true }); 
             });
         });
@@ -499,7 +502,7 @@
 
         if (attackType === 1) {
             actionText.setText('WARNING: TOXIC SLUDGE!');
-            if (gif) gif.src = 'assets/boss_lava.gif?v=26'; 
+            if (gif) gif.src = 'assets/boss_lava.gif?v=27'; 
             
             currentScene.time.delayedCall(1000, () => {
                 if (!boss.active || bossDefeated) return;
@@ -535,11 +538,11 @@
                 }
             });
 
-            currentScene.time.delayedCall(3000, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=26'; });
+            currentScene.time.delayedCall(3000, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=27'; });
 
         } else if (attackType === 2) {
             actionText.setText('WARNING: EYE BEAM!');
-            if (gif) gif.src = 'assets/boss_laser.gif?v=26'; 
+            if (gif) gif.src = 'assets/boss_laser.gif?v=27'; 
             
             currentScene.time.delayedCall(400, () => {
                 if (!boss.active || bossDefeated) return; 
@@ -565,11 +568,11 @@
                 currentScene.time.delayedCall(600, () => { if (laserBeam) laserBeam.destroy(); });
             });
 
-            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=26'; });
+            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=27'; });
             
         } else {
             actionText.setText('WARNING: CROSSFIRE!');
-            if (gif) gif.src = 'assets/boss_laser.gif?v=26'; 
+            if (gif) gif.src = 'assets/boss_laser.gif?v=27'; 
             
             currentScene.time.delayedCall(400, () => {
                 if (!boss.active || bossDefeated) return; 
@@ -593,7 +596,7 @@
                 currentScene.time.delayedCall(2500, () => { if (eyePulse.active) eyePulse.destroy(); });
             });
 
-            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=26'; });
+            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=27'; });
         }
     }
 
@@ -615,7 +618,10 @@
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
             player.rotation = 0; 
             if (joyStickLeft.left) { player.body.setVelocityX(-250); playAnim('run_normal'); } else if (joyStickLeft.right) { player.body.setVelocityX(250); playAnim('run_normal'); } else { player.body.setVelocityX(0); playAnim('unarmed_idle'); }
-            if (player.body.touching.down) jumps = 0;
+            
+            // JUMP LOGIC MADE MUCH MORE FORGIVING FOR CONVEYOR BELTS
+            if (player.body.touching.down || player.body.blocked.down) jumps = 0;
+            
             let shootAngle = facingDirection; let nearestEnemy = null; let minDist = 600;
             if (isFiring) {
                 enemiesGroup.getChildren().forEach(enemy => { if (enemy.active && enemy.enemyData.state !== 'dead' && enemy.y <= 450) { let dist = Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y); if (dist < minDist) { minDist = dist; nearestEnemy = enemy; } } });
@@ -647,23 +653,23 @@
             let data = enemy.enemyData; if (data.isBoss) return; if (enemy.y > 450) { if (enemy.active) enemy.destroy(); return; } if (data.state === 'dead') return; 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); if (distToPlayer > 900) return; 
 
-            // --- TURRET AI ---
             if (data.isTurret) {
                 if (distToPlayer < 700 && playerHealth > 0 && !isSpawning) {
-                    enemy.rotation = Phaser.Math.Angle.Between(enemy.x, enemy.y, player.x, player.y);
-                    if (currentTime > data.lastFired + 600) { // Fires every 600ms
+                    let gunAngle = Phaser.Math.Angle.Between(enemy.x, enemy.y, player.x, player.y);
+                    if (currentTime > data.lastFired + 600) { 
                         data.lastFired = currentTime;
                         let bullet = currentScene.add.circle(enemy.x, enemy.y, 6, 0xff00ff);
                         currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false);
-                        currentScene.physics.velocityFromRotation(enemy.rotation, 700, bullet.body.velocity);
+                        currentScene.physics.velocityFromRotation(gunAngle, 700, bullet.body.velocity);
                         bullet.dmg = 15; enemyProjectiles.add(bullet);
                         currentScene.time.delayedCall(1500, () => { if(bullet.active) bullet.destroy(); });
                     }
                 }
-                return; // SKIP GRUNT AI
+                // Hitbox perfectly follows the ghost dot!
+                data.hitbox.setPosition(enemy.x, enemy.y); 
+                return; 
             }
 
-            // --- GRUNT AI ---
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 if (distToPlayer < 75 && data.canAttack) {
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint(); enemy.anims.play('grunt_punch_right', true);
