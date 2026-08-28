@@ -29,11 +29,11 @@
 
 <!-- HIDDEN PRELOADER -->
 <div style="display: none;">
-    <img src="assets/boss_spawn.gif?v=23">
-    <img src="assets/boss_idle.gif?v=23">
-    <img src="assets/boss_lava.gif?v=23">
-    <img src="assets/boss_laser.gif?v=23">
-    <img src="assets/boss_die.gif?v=23">
+    <img src="assets/boss_spawn.gif?v=25">
+    <img src="assets/boss_idle.gif?v=25">
+    <img src="assets/boss_lava.gif?v=25">
+    <img src="assets/boss_laser.gif?v=25">
+    <img src="assets/boss_die.gif?v=25">
 </div>
 
 <!-- The blank canvas where the GIF gets swapped -->
@@ -165,7 +165,7 @@
 
         spawnEnemyAt(600, 300); spawnEnemyAt(1300, 300); spawnEnemyAt(1500, 150); spawnEnemyAt(2400, 300); spawnEnemyAt(3000, 300); spawnEnemyAt(3500, 100);
 
-        boss = this.add.rectangle(4400, 120, 250, 180, 0xff0000, 0.0); // Invisible Box!
+        boss = this.add.rectangle(4400, 120, 250, 180, 0xff0000, 0.0); 
         this.physics.add.existing(boss);
         boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
         
@@ -354,7 +354,7 @@
         
         let gif = document.getElementById('bossGif'); 
         if (gif) { 
-            gif.src = 'assets/boss_die.gif?v=23';
+            gif.src = 'assets/boss_die.gif?v=25';
             currentScene.time.delayedCall(2000, () => {
                 gif.style.transition = "all 1.5s ease"; 
                 gif.style.opacity = "0"; 
@@ -399,7 +399,7 @@
 
         let gif = document.getElementById('bossGif');
         if (gif) { 
-            gif.src = 'assets/boss_spawn.gif?v=23';
+            gif.src = 'assets/boss_spawn.gif?v=25';
             gif.style.display = 'block'; 
             gif.style.opacity = '1'; 
             gif.style.filter = 'none'; 
@@ -414,9 +414,8 @@
             currentScene.cameras.main.setBounds(4000, 0, 800, 400); currentScene.cameras.main.startFollow(player, true, 0.1, 0.1); showCenterMessage("WARNING: EXTERIOR PROTOCOL", '#ff5500'); 
             
             currentScene.time.delayedCall(1500, () => {
-                if (gif) gif.src = 'assets/boss_idle.gif?v=23';
+                if (gif) gif.src = 'assets/boss_idle.gif?v=25';
                 
-                // RESTORED FULL 3-ATTACK RANDOMIZER
                 bossAIEvent = currentScene.time.addEvent({ delay: 3500, callback: runBossPattern, loop: true }); 
             });
         });
@@ -430,11 +429,12 @@
 
         if (attackType === 1) {
             actionText.setText('WARNING: TOXIC SLUDGE!');
-            if (gif) gif.src = 'assets/boss_lava.gif?v=23'; 
+            if (gif) gif.src = 'assets/boss_lava.gif?v=25'; 
             
             currentScene.time.delayedCall(1000, () => {
                 if (!boss.active || bossDefeated) return;
                 
+                // BACK TO INVISIBLE
                 let bossSpill = currentScene.add.rectangle(4400, 300, 140, 180, 0x00ff00, 0.0); 
                 currentScene.physics.add.existing(bossSpill);
                 bossSpill.body.setAllowGravity(false);
@@ -445,9 +445,11 @@
                         player.isBurned = true;
                         spawnDamageText(player.x, player.y - 40, "SLUDGE!", true, true);
                         playerTakeDamage(35, 4400); 
-                        let knockDir = (player.x < 4400) ? -400 : 400;
-                        player.body.setVelocity(knockDir, -250);
-                        currentScene.time.delayedCall(500, () => { player.isBurned = false; });
+                        
+                        let knockDir = (player.x < 4400) ? -550 : 550;
+                        player.body.setVelocity(knockDir, -300);
+                        
+                        currentScene.time.delayedCall(1000, () => { player.isBurned = false; });
                     }
                 });
 
@@ -464,15 +466,16 @@
                 }
             });
 
-            currentScene.time.delayedCall(3000, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=23'; });
+            currentScene.time.delayedCall(3000, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=25'; });
 
         } else if (attackType === 2) {
             actionText.setText('WARNING: EYE BEAM!');
-            if (gif) gif.src = 'assets/boss_laser.gif?v=23'; 
+            if (gif) gif.src = 'assets/boss_laser.gif?v=25'; 
             
             currentScene.time.delayedCall(400, () => {
                 if (!boss.active || bossDefeated) return; 
                 
+                // BACK TO INVISIBLE
                 let laserBeam = currentScene.add.rectangle(4460, 280, 30, 240, 0x00ffff, 0.0); 
                 currentScene.physics.add.existing(laserBeam);
                 laserBeam.body.setAllowGravity(false);
@@ -483,20 +486,22 @@
                         player.isBurned = true;
                         spawnDamageText(player.x, player.y - 40, "LASER!", true, true);
                         playerTakeDamage(45, 4460); 
-                        let knockDir = (player.x < 4460) ? -300 : 300;
+                        
+                        let knockDir = (player.x < 4460) ? -400 : 400;
                         player.body.setVelocity(knockDir, -150);
-                        currentScene.time.delayedCall(500, () => { player.isBurned = false; });
+                        
+                        currentScene.time.delayedCall(1000, () => { player.isBurned = false; });
                     }
                 });
 
                 currentScene.time.delayedCall(600, () => { if (laserBeam) laserBeam.destroy(); });
             });
 
-            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=23'; });
+            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=25'; });
             
         } else {
             actionText.setText('WARNING: CROSSFIRE!');
-            if (gif) gif.src = 'assets/boss_laser.gif?v=23'; 
+            if (gif) gif.src = 'assets/boss_laser.gif?v=25'; 
             
             currentScene.time.delayedCall(400, () => {
                 if (!boss.active || bossDefeated) return; 
@@ -520,7 +525,7 @@
                 currentScene.time.delayedCall(2500, () => { if (eyePulse.active) eyePulse.destroy(); });
             });
 
-            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=23'; });
+            currentScene.time.delayedCall(1200, () => { if (!bossDefeated && gif) gif.src = 'assets/boss_idle.gif?v=25'; });
         }
     }
 
