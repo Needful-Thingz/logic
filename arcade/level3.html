@@ -129,7 +129,6 @@
 
     function create() {
         currentScene = this; 
-        
         this.input.addPointer(5);
         
         let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
@@ -156,11 +155,6 @@
         grenadesGroup = this.physics.add.group(); enemiesGroup = this.physics.add.group(); enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup(); conveyorGroup = this.physics.add.staticGroup(); lavaGroup = this.physics.add.staticGroup();
 
-        // ==========================================
-        // FIXED PLATFORMS, CONVEYORS & LAVA
-        // Cleanly alternating to prevent visual overlap
-        // ==========================================
-        
         // PLATFORMS
         platforms.add(this.add.tileSprite(150, 390, 300, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(1000, 270, 200, 32, 'floorTile')); 
@@ -188,10 +182,7 @@
 
         bossWall = this.add.rectangle(5600, -400, 40, 400, 0x444444).setOrigin(0,0); this.physics.add.existing(bossWall, false); bossWall.body.setImmovable(true); bossWall.body.setAllowGravity(false); bossWall.body.checkCollision.none = true; 
 
-        // ==========================================
-        // ADJUSTED GRUNT SPAWNS (17 Enemies)
-        // Re-mapped to land safely on the updated floors
-        // ==========================================
+        // GRUNTS (Adjusted coordinates to keep them safe until you arrive)
         spawnEnemyAt(250, 300);
         spawnEnemyAt(600, 300);
         spawnEnemyAt(1000, 150);
@@ -205,11 +196,10 @@
         spawnEnemyAt(4000, 300);
         spawnEnemyAt(4150, 300);
         spawnEnemyAt(4400, 150);
-        spawnEnemyAt(4800, 300);
-        spawnEnemyAt(5000, 300);
-        spawnEnemyAt(5500, 300);
-        spawnEnemyAt(5700, 300);
-        // ==========================================
+        spawnEnemyAt(4900, 300); // Shifted right
+        spawnEnemyAt(5100, 300); // Shifted right
+        spawnEnemyAt(5600, 300); // Safely on platform
+        spawnEnemyAt(5800, 300); 
 
         boss = this.add.rectangle(6000, 120, 250, 180, 0xff0000, 0.0); 
         this.physics.add.existing(boss);
@@ -249,6 +239,14 @@
         
         this.physics.add.overlap(player, lavaGroup, () => { if (playerHealth > 0 && !isInvincible) { spawnDamageText(player.x, player.y - 20, 999, true, true); playerTakeDamage(1000, player.x); } });
 
+        // NEW: Enemies now die instantly if they fall or get pushed into lava!
+        this.physics.add.overlap(enemiesGroup, lavaGroup, (enemy, lava) => {
+            if (enemy.active && enemy.enemyData && !enemy.enemyData.isBoss && enemy.enemyData.state !== 'dead') {
+                spawnDamageText(enemy.x, enemy.y - 20, 999, true, false);
+                dealDamageToEnemy(enemy, 9999, 1.0, 0);
+            }
+        });
+
         uiElements.push(this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff', backgroundColor: '#000000' })); meleeText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00', backgroundColor: '#000000' })); gunText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(10, 40, `Ammo: ∞`, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' })); ammoText = uiElements[uiElements.length-1];
@@ -260,17 +258,18 @@
 
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        const btnFire = this.add.circle(670, 300, 45, 0xff0000).setAlpha(0.6).setInteractive(); uiElements.push(btnFire); uiElements.push(this.add.text(670, 300, 'FIRE', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnFire.on('pointerdown', () => { isFiring = true; }); btnFire.on('pointerup', () => { isFiring = false; }); btnFire.on('pointerout', () => { isFiring = false; });
+        // RE-MAPPED CONTROLS SO JUMP AND FIRE NEVER OVERLAP
+        const btnFire = this.add.circle(650, 340, 40, 0xff0000).setAlpha(0.6).setInteractive(); uiElements.push(btnFire); uiElements.push(this.add.text(650, 340, 'FIRE', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnFire.on('pointerdown', () => { isFiring = true; }); btnFire.on('pointerup', () => { isFiring = false; }); btnFire.on('pointerout', () => { isFiring = false; });
         
-        const btnJump = this.add.circle(700, 350, 45, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump); uiElements.push(this.add.text(700, 350, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5)); btnJump.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); } });
+        const btnJump = this.add.circle(740, 340, 40, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump); uiElements.push(this.add.text(740, 340, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5)); btnJump.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); } });
         
-        const btnSwap = this.add.circle(550, 250, 25, 0x8800ff).setAlpha(0.7).setInteractive(); uiElements.push(btnSwap); uiElements.push(this.add.text(550, 250, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnSwap.on('pointerdown', () => { if (isSpawning || playerHealth <= 0) return; usingPrimaryGun = !usingPrimaryGun; activeGun = usingPrimaryGun ? (gunArmory[activeCharDef.gun1] || gunArmory['Rifle']) : (gunArmory[activeCharDef.gun2] || gunArmory['Shotgun']); gunText.setText('Gun: ' + activeGun.name); actionText.setText(`EQUIPPED: ${activeGun.name.toUpperCase()}`); });
-        const btnDefend = this.add.circle(580, 300, 25, 0x888888).setAlpha(0.8).setInteractive(); uiElements.push(btnDefend); uiElements.push(this.add.text(580, 300, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnDefend.on('pointerdown', () => { if (isAttacking || isDashing || isSpawning) return; if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } else { isBlocking = true; player.setTint(0x888888); actionText.setText('BLOCKING'); } }); btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock); function releaseBlock() { if (isBlocking) { isBlocking = false; player.clearTint(); actionText.setText('Ready'); } }
-        const btnMelee = this.add.circle(610, 230, 25, 0xffaa00).setAlpha(0.6).setInteractive(); uiElements.push(btnMelee); uiElements.push(this.add.text(610, 230, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5)); btnMelee.on('pointerdown', () => { if (isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
-        const btnToss = this.add.circle(680, 210, 25, 0x00cc00).setAlpha(0.6).setInteractive(); uiElements.push(btnToss); uiElements.push(this.add.text(680, 210, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnToss.on('pointerdown', tossGrenade);
-        const btnHeavy = this.add.circle(630, 170, 25, 0xff3300).setAlpha(0.7).setInteractive(); uiElements.push(btnHeavy); uiElements.push(this.add.text(630, 170, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnHeavy.on('pointerdown', () => { if (!isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
+        const btnSwap = this.add.circle(560, 280, 25, 0x8800ff).setAlpha(0.7).setInteractive(); uiElements.push(btnSwap); uiElements.push(this.add.text(560, 280, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnSwap.on('pointerdown', () => { if (isSpawning || playerHealth <= 0) return; usingPrimaryGun = !usingPrimaryGun; activeGun = usingPrimaryGun ? (gunArmory[activeCharDef.gun1] || gunArmory['Rifle']) : (gunArmory[activeCharDef.gun2] || gunArmory['Shotgun']); gunText.setText('Gun: ' + activeGun.name); actionText.setText(`EQUIPPED: ${activeGun.name.toUpperCase()}`); });
+        const btnDefend = this.add.circle(560, 340, 25, 0x888888).setAlpha(0.8).setInteractive(); uiElements.push(btnDefend); uiElements.push(this.add.text(560, 340, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnDefend.on('pointerdown', () => { if (isAttacking || isDashing || isSpawning) return; if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } else { isBlocking = true; player.setTint(0x888888); actionText.setText('BLOCKING'); } }); btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock); function releaseBlock() { if (isBlocking) { isBlocking = false; player.clearTint(); actionText.setText('Ready'); } }
+        const btnMelee = this.add.circle(620, 270, 25, 0xffaa00).setAlpha(0.6).setInteractive(); uiElements.push(btnMelee); uiElements.push(this.add.text(620, 270, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5)); btnMelee.on('pointerdown', () => { if (isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
+        const btnToss = this.add.circle(680, 200, 25, 0x00cc00).setAlpha(0.6).setInteractive(); uiElements.push(btnToss); uiElements.push(this.add.text(680, 200, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnToss.on('pointerdown', tossGrenade);
+        const btnHeavy = this.add.circle(620, 190, 25, 0xff3300).setAlpha(0.7).setInteractive(); uiElements.push(btnHeavy); uiElements.push(this.add.text(620, 190, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnHeavy.on('pointerdown', () => { if (!isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
 
-        specialButton = this.add.circle(750, 210, 30, 0x555555).setAlpha(0.7).setInteractive(); uiElements.push(specialButton); uiElements.push(this.add.text(750, 210, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); specialGraphics = this.add.graphics(); uiElements.push(specialGraphics);
+        specialButton = this.add.circle(750, 200, 30, 0x555555).setAlpha(0.7).setInteractive(); uiElements.push(specialButton); uiElements.push(this.add.text(750, 200, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); specialGraphics = this.add.graphics(); uiElements.push(specialGraphics);
         specialButton.on('pointerdown', () => { if (specialReady && !isAttacking && !isBlocking && !isSpawning) { droneActive = true; actionText.setText('DRONE DEPLOYED!'); drone = currentScene.physics.add.sprite(player.x, player.y - 40, 'drone_tex'); drone.body.setAllowGravity(false); currentScene.time.delayedCall(10000, () => { droneActive = false; if(drone) drone.destroy(); actionText.setText('DRONE OFFLINE'); currentScene.time.delayedCall(1000, () => actionText.setText('Ready')); }); specialCharge = 0; specialReady = false; specialButton.setFillStyle(0x555555); specialGraphics.clear(); } });
 
         uiElements.forEach(el => { if (el.setScrollFactor) el.setScrollFactor(0); }); joyStickLeft.base.setScrollFactor(0); joyStickLeft.thumb.setScrollFactor(0);
@@ -586,13 +585,15 @@
     function update() {
         drawFloatingBars(); let currentTime = currentScene.time.now; let delta = game.loop.delta;
         conveyorBelts.forEach(belt => { belt.tilePositionX += belt.beltSpeed * (delta / 16); });
+        
+        // FIXED LAVA RENDERER - Stretched higher to cover the conveyor belts underneath
         lavaGraphicLayers.forEach(layer => {
-            let g = layer.graphics; g.clear(); g.fillStyle(0x330000, 0.95); g.fillRect(layer.startX, 385, layer.width, 25); g.fillStyle(0x992200, 0.85); g.beginPath(); g.moveTo(layer.startX, 400);
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) { let waveY = 384 + Math.sin((x * 0.05) + (currentTime * 0.002)) * 4 + Math.cos((x * 0.03) - (currentTime * 0.001)) * 2; g.lineTo(x, waveY); }
+            let g = layer.graphics; g.clear(); g.fillStyle(0x330000, 0.95); g.fillRect(layer.startX, 370, layer.width, 40); g.fillStyle(0x992200, 0.85); g.beginPath(); g.moveTo(layer.startX, 400);
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) { let waveY = 372 + Math.sin((x * 0.05) + (currentTime * 0.002)) * 4 + Math.cos((x * 0.03) - (currentTime * 0.001)) * 2; g.lineTo(x, waveY); }
             g.lineTo(layer.startX + layer.width, 400); g.closePath(); g.fillPath(); g.fillStyle(0xff5500, 0.9); g.beginPath(); g.moveTo(layer.startX, 400);
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 382 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; g.lineTo(x, waveY); }
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 375 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; g.lineTo(x, waveY); }
             g.lineTo(layer.startX + layer.width, 400); g.closePath(); g.fillPath(); g.lineStyle(2, 0xffcc00, 0.9); g.beginPath();
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 382 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; if (x === layer.startX) g.moveTo(x, waveY); else g.lineTo(x, waveY); } g.strokePath();
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 375 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; if (x === layer.startX) g.moveTo(x, waveY); else g.lineTo(x, waveY); } g.strokePath();
         });
 
         if (!bossActive && player.x > 5700) triggerBoss();
@@ -662,7 +663,7 @@
 
         if (!specialReady) {
             specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
-            specialGraphics.arc(750, 210, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false); specialGraphics.strokePath();
+            specialGraphics.arc(750, 200, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false); specialGraphics.strokePath();
             if (specialCharge >= specialMax) { specialReady = true; specialButton.setFillStyle(0x00ffff); }
         }
     }
