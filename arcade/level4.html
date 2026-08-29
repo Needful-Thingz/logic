@@ -131,48 +131,48 @@
         platforms = this.physics.add.staticGroup(); conveyorGroup = this.physics.add.staticGroup(); bioGroup = this.physics.add.staticGroup();
 
         // ==========================================
-        // BALANCED PLATFORM ROUTE
+        // ELEVATED PLATFORM ROUTE (Shifted UP 30px)
         // ==========================================
         
         // 1. Initial Start
-        platforms.add(this.add.tileSprite(200, 390, 400, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(200, 360, 400, 32, 'floorTile')); 
         createBioVat(400, 800); 
 
-        // 2. The Rest Area (Fixed the bottomless pit!)
-        platforms.add(this.add.tileSprite(1000, 390, 400, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1000, 250, 200, 32, 'floorTile')); 
+        // 2. The Rest Area
+        platforms.add(this.add.tileSprite(1000, 360, 400, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1000, 220, 200, 32, 'floorTile')); 
         
         // 3. The Long Vat 
         createBioVat(1200, 2000); 
-        platforms.add(this.add.tileSprite(1450, 260, 150, 32, 'floorTile')); // Safety Net 1
-        platforms.add(this.add.tileSprite(1750, 200, 150, 32, 'floorTile')); // Safety Net 2
+        platforms.add(this.add.tileSprite(1450, 230, 150, 32, 'floorTile')); // Safety Net 1
+        platforms.add(this.add.tileSprite(1750, 170, 150, 32, 'floorTile')); // Safety Net 2
 
         // 4. Moving Bridge
-        createConveyor(2250, 390, 500, 2.0); 
+        createConveyor(2250, 360, 500, 2.0); 
 
         // 5. The Second Long Vat
         createBioVat(2500, 3400); 
-        platforms.add(this.add.tileSprite(2750, 280, 150, 32, 'floorTile')); // Safety Net 3
-        platforms.add(this.add.tileSprite(3150, 220, 150, 32, 'floorTile')); // Safety Net 4
+        platforms.add(this.add.tileSprite(2750, 250, 150, 32, 'floorTile')); // Safety Net 3
+        platforms.add(this.add.tileSprite(3150, 190, 150, 32, 'floorTile')); // Safety Net 4
 
         // 6. Security Checkpoint
-        platforms.add(this.add.tileSprite(3600, 390, 400, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(3600, 250, 200, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(3600, 360, 400, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(3600, 220, 200, 32, 'floorTile')); 
 
         // 7. The Deep Trench
         createBioVat(3800, 4600); 
-        platforms.add(this.add.tileSprite(4050, 260, 150, 32, 'floorTile')); // Safety Net 5
-        platforms.add(this.add.tileSprite(4350, 180, 150, 32, 'floorTile')); // Safety Net 6
+        platforms.add(this.add.tileSprite(4050, 230, 150, 32, 'floorTile')); // Safety Net 5
+        platforms.add(this.add.tileSprite(4350, 150, 150, 32, 'floorTile')); // Safety Net 6
 
         // 8. Final Conveyor Run
-        createConveyor(4850, 390, 500, -2.5); 
+        createConveyor(4850, 360, 500, -2.5); 
         
         // 9. Last Jump
         createBioVat(5100, 5500); 
-        platforms.add(this.add.tileSprite(5300, 250, 150, 32, 'floorTile')); // Safety Net 7
+        platforms.add(this.add.tileSprite(5300, 220, 150, 32, 'floorTile')); // Safety Net 7
 
         // 10. Boss Arena
-        platforms.add(this.add.tileSprite(6000, 390, 1000, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(6000, 360, 1000, 32, 'floorTile')); 
         
         bossWall = this.add.rectangle(5600, -400, 40, 400, 0x00ffff).setOrigin(0,0); 
         this.physics.add.existing(bossWall, false); 
@@ -181,36 +181,36 @@
         bossWall.body.checkCollision.none = true; 
 
         // ==========================================
-        // STRATEGIC GRUNT PLACEMENTS
+        // ELEVATED GRUNT SPAWNS (-30px Y)
         // ==========================================
-        spawnEnemyAt(300, 300); // Start
-        spawnEnemyAt(900, 300); // Under platform
-        spawnEnemyAt(1100, 300); // Under platform
-        spawnEnemyAt(1000, 150); // High platform
+        spawnEnemyAt(300, 270); // Start
+        spawnEnemyAt(900, 270); // Under platform
+        spawnEnemyAt(1100, 270); // Under platform
+        spawnEnemyAt(1000, 120); // High platform
         
-        spawnEnemyAt(1450, 150); // Over Vat 1
-        spawnEnemyAt(1750, 100); // Over Vat 1
+        spawnEnemyAt(1450, 120); // Over Vat 1
+        spawnEnemyAt(1750, 70); // Over Vat 1
         
-        spawnEnemyAt(2150, 300); // Conveyor
-        spawnEnemyAt(2350, 300); // Conveyor
+        spawnEnemyAt(2150, 270); // Conveyor
+        spawnEnemyAt(2350, 270); // Conveyor
         
-        spawnEnemyAt(2750, 150); // Over Vat 2
-        spawnEnemyAt(3150, 100); // Over Vat 2
+        spawnEnemyAt(2750, 120); // Over Vat 2
+        spawnEnemyAt(3150, 70); // Over Vat 2
         
-        spawnEnemyAt(3500, 300); // Checkpoint
-        spawnEnemyAt(3700, 300); // Checkpoint
-        spawnEnemyAt(3600, 150); // High platform
+        spawnEnemyAt(3500, 270); // Checkpoint
+        spawnEnemyAt(3700, 270); // Checkpoint
+        spawnEnemyAt(3600, 120); // High platform
         
-        spawnEnemyAt(4050, 150); // Over Vat 3
+        spawnEnemyAt(4050, 120); // Over Vat 3
         
-        spawnEnemyAt(4750, 300); // Conveyor
-        spawnEnemyAt(4950, 300); // Conveyor
+        spawnEnemyAt(4750, 270); // Conveyor
+        spawnEnemyAt(4950, 270); // Conveyor
         
-        spawnEnemyAt(5650, 300); // Boss Guard
-        spawnEnemyAt(5800, 300); // Boss Guard
+        spawnEnemyAt(5650, 270); // Boss Guard
+        spawnEnemyAt(5800, 270); // Boss Guard
         // ==========================================
 
-        boss = this.add.rectangle(6100, 200, 160, 380, 0x00ffff, 0.15); 
+        boss = this.add.rectangle(6100, 170, 160, 380, 0x00ffff, 0.15); 
         boss.setStrokeStyle(4, 0x00ffff, 1);
         this.physics.add.existing(boss);
         boss.enemyData = { isBoss: true, hp: 1200, maxHp: 1200, armor: 500, maxArmor: 500, state: 'sleep', isStunned: false, attackStep: 1 };
@@ -292,10 +292,10 @@
         conveyorBelts.push(conveyor); 
     }
 
-    // --- GOLDILOCKS FIX: Lowered 5 more pixels! ---
+    // --- ELEVATED VAT PHYSICS (Raised by 30px) ---
     function createBioVat(startX, endX) {
         let width = endX - startX; let centerX = startX + (width / 2); 
-        let pool = currentScene.add.rectangle(centerX, 415, width, 100, 0x000000, 0); 
+        let pool = currentScene.add.rectangle(centerX, 380, width, 100, 0x000000, 0); 
         currentScene.physics.add.existing(pool, true); 
         
         bioGroup.add(pool); 
@@ -304,8 +304,8 @@
         for (let i = 0; i < sparkCount; i++) {
             let ventX = startX + 25 + (i * ((width - 50) / (sparkCount - 1))); currentScene.time.addEvent({ delay: Phaser.Math.Between(150, 400), loop: true, callback: () => {
                 let sx = ventX + Phaser.Math.Between(-20, 20); 
-                let spark = currentScene.add.circle(sx, 410, Phaser.Math.Between(1, 3), 0x00ffff, 1).setDepth(6);
-                currentScene.tweens.add({ targets: spark, y: 365 + Phaser.Math.Between(-30, 10), x: sx + Phaser.Math.Between(-15, 15), alpha: 0, duration: Phaser.Math.Between(400, 700), onComplete: () => spark.destroy() });
+                let spark = currentScene.add.circle(sx, 375, Phaser.Math.Between(1, 3), 0x00ffff, 1).setDepth(6);
+                currentScene.tweens.add({ targets: spark, y: 330 + Phaser.Math.Between(-30, 10), x: sx + Phaser.Math.Between(-15, 15), alpha: 0, duration: Phaser.Math.Between(400, 700), onComplete: () => spark.destroy() });
             }});
         }
     }
@@ -393,7 +393,7 @@
         let blastVisual = currentScene.add.circle(exX, exY, activeOrdnance.radius, 0xff7700, 0.8).setDepth(20); currentScene.tweens.add({ targets: blastVisual, scale: 1.2, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() });
         enemiesGroup.getChildren().forEach(enemy => {
             if (enemy.active && enemy.enemyData.state !== 'dead') {
-                if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 6100, 200) < 180)) {
+                if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, 6100, 170) < 180)) {
                     dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
                     if(!enemy.enemyData.isBoss) { enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); }
                 }
@@ -508,10 +508,10 @@
             for (let i = 0; i < 4; i++) {
                 currentScene.time.delayedCall(i * 400, () => {
                     if (!boss.active || bossDefeated) return; 
-                    let laser = currentScene.add.rectangle(6000, 260, 25, 6, 0x00ffff); 
+                    let laser = currentScene.add.rectangle(6000, 230, 25, 6, 0x00ffff); 
                     currentScene.physics.add.existing(laser); enemyProjectiles.add(laser); laser.body.setAllowGravity(false);
                     let pX = player.x; let pY = player.y;
-                    let angle = Phaser.Math.Angle.Between(6000, 260, pX, pY);
+                    let angle = Phaser.Math.Angle.Between(6000, 230, pX, pY);
                     currentScene.physics.velocityFromRotation(angle, 450, laser.body.velocity); laser.rotation = angle;
                     laser.dmg = 35;
                     currentScene.time.delayedCall(4000, () => { if (laser.active) laser.destroy(); });
@@ -526,7 +526,7 @@
             for (let j = 0; j < 5; j++) {
                 currentScene.time.delayedCall(j * 200, () => {
                     if (!boss.active || bossDefeated) return; 
-                    let wave = currentScene.add.circle(6000, 350, 15, 0x39ff14); 
+                    let wave = currentScene.add.circle(6000, 320, 15, 0x39ff14); 
                     currentScene.physics.add.existing(wave); enemyProjectiles.add(wave); wave.body.setAllowGravity(false);
                     wave.body.setVelocityX(-500); 
                     wave.dmg = 25; 
@@ -536,26 +536,27 @@
         }
     }
 
-    // --- GOLDILOCKS WAVE RENDER MATH: Y 382 (Lowered again) ---
+    // --- ELEVATED LIQUID RENDER MATH (-30px Y across the board) ---
     function update() {
         drawFloatingBars(); let currentTime = currentScene.time.now; let delta = game.loop.delta;
         conveyorBelts.forEach(belt => { belt.tilePositionX += belt.beltSpeed * (delta / 16); });
         
         bioGraphicLayers.forEach(layer => {
             let g = layer.graphics; g.clear(); 
-            g.fillStyle(0x001122, 0.95); g.fillRect(layer.startX, 382, layer.width, 40); 
-            g.fillStyle(0x004433, 0.85); g.beginPath(); g.moveTo(layer.startX, 420);
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) { let waveY = 384 + Math.sin((x * 0.05) + (currentTime * 0.002)) * 4 + Math.cos((x * 0.03) - (currentTime * 0.001)) * 2; g.lineTo(x, waveY); }
-            g.lineTo(layer.startX + layer.width, 420); g.closePath(); g.fillPath(); 
-            g.fillStyle(0x00ffcc, 0.9); g.beginPath(); g.moveTo(layer.startX, 420);
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 387 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; g.lineTo(x, waveY); }
-            g.lineTo(layer.startX + layer.width, 420); g.closePath(); g.fillPath(); 
+            g.fillStyle(0x001122, 0.95); g.fillRect(layer.startX, 345, layer.width, 55); 
+            g.fillStyle(0x004433, 0.85); g.beginPath(); g.moveTo(layer.startX, 400);
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) { let waveY = 347 + Math.sin((x * 0.05) + (currentTime * 0.002)) * 4 + Math.cos((x * 0.03) - (currentTime * 0.001)) * 2; g.lineTo(x, waveY); }
+            g.lineTo(layer.startX + layer.width, 400); g.closePath(); g.fillPath(); 
+            g.fillStyle(0x00ffcc, 0.9); g.beginPath(); g.moveTo(layer.startX, 400);
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 350 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; g.lineTo(x, waveY); }
+            g.lineTo(layer.startX + layer.width, 400); g.closePath(); g.fillPath(); 
             g.lineStyle(2, 0xffffff, 0.9); g.beginPath();
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 387 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; if (x === layer.startX) g.moveTo(x, waveY); else g.lineTo(x, waveY); } g.strokePath();
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 350 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; if (x === layer.startX) g.moveTo(x, waveY); else g.lineTo(x, waveY); } g.strokePath();
         });
 
         if (!bossActive && player.x > 5700) triggerBoss();
-        if (player.y > 450 && playerHealth > 0 && !isSpawning) playerTakeDamage(1000, player.x); 
+        // Slightly raised death plane to match new heights
+        if (player.y > 420 && playerHealth > 0 && !isSpawning) playerTakeDamage(1000, player.x); 
 
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
             player.rotation = 0; 
@@ -565,7 +566,7 @@
             
             let shootAngle = facingDirection; let nearestEnemy = null; let minDist = 600;
             if (isFiring) {
-                enemiesGroup.getChildren().forEach(enemy => { if (enemy.active && enemy.enemyData.state !== 'dead' && enemy.y <= 450) { let dist = Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y); if (dist < minDist) { minDist = dist; nearestEnemy = enemy; } } });
+                enemiesGroup.getChildren().forEach(enemy => { if (enemy.active && enemy.enemyData.state !== 'dead' && enemy.y <= 420) { let dist = Phaser.Math.Distance.Between(player.x, player.y, enemy.x, enemy.y); if (dist < minDist) { minDist = dist; nearestEnemy = enemy; } } });
                 if (nearestEnemy) { shootAngle = Phaser.Math.Angle.Between(player.x, player.y, nearestEnemy.x, nearestEnemy.y); facingDirection = (nearestEnemy.x < player.x) ? Math.PI : 0; } 
                 else { if (joyStickLeft.force > 0) { shootAngle = joyStickLeft.rotation; facingDirection = Math.abs(shootAngle) > Math.PI/2 ? Math.PI : 0; } }
                 if (currentTime > lastFiredTime + activeGun.fireRate) { shootGun(shootAngle); lastFiredTime = currentTime; }
@@ -578,7 +579,7 @@
             drone.x = Phaser.Math.Linear(drone.x, targetX, 0.1); drone.y = Phaser.Math.Linear(drone.y, targetY, 0.1);
             if (currentTime > lastDroneFire + 300) {
                 let nearestEnemy = null; let minDist = 500;
-                enemiesGroup.getChildren().forEach(enemy => { if (enemy.active && enemy.enemyData.state !== 'dead' && enemy.y <= 450) { let dist = Phaser.Math.Distance.Between(drone.x, drone.y, enemy.x, enemy.y); if (dist < minDist) { minDist = dist; nearestEnemy = enemy; } } });
+                enemiesGroup.getChildren().forEach(enemy => { if (enemy.active && enemy.enemyData.state !== 'dead' && enemy.y <= 420) { let dist = Phaser.Math.Distance.Between(drone.x, drone.y, enemy.x, enemy.y); if (dist < minDist) { minDist = dist; nearestEnemy = enemy; } } });
                 if (nearestEnemy) {
                     let angle = Phaser.Math.Angle.Between(drone.x, drone.y, nearestEnemy.x, nearestEnemy.y); drone.rotation = angle;
                     let laser = currentScene.add.rectangle(drone.x, drone.y, 10, 3, 0x00ffff); currentScene.physics.add.existing(laser); laser.body.setAllowGravity(false); currentScene.physics.velocityFromRotation(angle, 900, laser.body.velocity); laser.rotation = angle;
@@ -591,7 +592,7 @@
         } else if (droneActive && playerHealth <= 0) { droneActive = false; if(drone) drone.destroy(); }
         
         enemiesGroup.getChildren().forEach(enemy => {
-            let data = enemy.enemyData; if (data.isBoss) return; if (enemy.y > 450) { if (enemy.active) enemy.destroy(); return; } if (data.state === 'dead') return; 
+            let data = enemy.enemyData; if (data.isBoss) return; if (enemy.y > 420) { if (enemy.active) enemy.destroy(); return; } if (data.state === 'dead') return; 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); if (distToPlayer > 900) return; 
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
