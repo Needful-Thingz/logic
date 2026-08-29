@@ -47,7 +47,6 @@
     };
     let gunKeys = ['Pistol', 'Shotgun', 'Rifle', 'Sniper', 'GrenadeL', 'Rocket'];
     
-    // UPDATED ORDNANCE ARMORY: Fast fuse, wider radius
     const ordnanceArmory = { 
         'Frag': { name: 'Frag Grenade', damage: 55, radius: 120, fuse: 750, maxAmmo: 3, cooldown: 800, color: 0x00ff00 } 
     };
@@ -100,7 +99,7 @@
 
     function create() {
         currentScene = this; 
-        this.input.addPointer(2);
+        this.input.addPointer(5);
         
         let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
         dGraphics.fillStyle(0x222222, 1);
@@ -233,67 +232,29 @@
         this.physics.add.overlap(player, enemyProjectiles, (p, proj) => { proj.destroy(); playerTakeDamage(proj.dmg, proj.x); });
 
         // --- UI SETUP ---
-        meleeText = this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff', backgroundColor: '#000000' }); uiElements.push(meleeText);
-        gunText = this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00', backgroundColor: '#000000' }); uiElements.push(gunText);
-        ammoText = this.add.text(10, 40, `Ammo: ∞`, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }); uiElements.push(ammoText);
-        grenadeText = this.add.text(10, 60, `Nades: `, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold', backgroundColor: '#000000' }); uiElements.push(grenadeText);
-        actionText = this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5); uiElements.push(actionText);
-        rosterText = this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5); uiElements.push(rosterText);
-        scoreText = this.add.text(400, 65, 'SCORE: 0', { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5); uiElements.push(scoreText);
-        centerMsgText = this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0);
-        uiElements.push(centerMsgText);
+        uiElements.push(this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff', backgroundColor: '#000000' })); meleeText = uiElements[uiElements.length-1];
+        uiElements.push(this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00', backgroundColor: '#000000' })); gunText = uiElements[uiElements.length-1];
+        uiElements.push(this.add.text(10, 40, `Ammo: ∞`, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' })); ammoText = uiElements[uiElements.length-1];
+        uiElements.push(this.add.text(10, 60, `Nades: `, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold', backgroundColor: '#000000' })); grenadeText = uiElements[uiElements.length-1];
+        uiElements.push(this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); actionText = uiElements[uiElements.length-1];
+        uiElements.push(this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); rosterText = uiElements[uiElements.length-1];
+        uiElements.push(this.add.text(400, 65, 'SCORE: 0', { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); scoreText = uiElements[uiElements.length-1];
+        uiElements.push(this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0)); centerMsgText = uiElements[uiElements.length-1];
 
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        const btnFire = this.add.circle(670, 300, 45, 0xff0000).setAlpha(0.6).setInteractive(); uiElements.push(btnFire);
-        const btnFireT = this.add.text(670, 300, 'FIRE', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnFireT);
-        btnFire.on('pointerdown', () => { isFiring = true; });
-        btnFire.on('pointerup', () => { isFiring = false; });
-        btnFire.on('pointerout', () => { isFiring = false; });
+        // --- UPGRADED MOBILE CONTROLS (From Level 3/4) ---
+        const btnFire = this.add.circle(650, 340, 40, 0xff0000).setAlpha(0.6).setInteractive(); uiElements.push(btnFire); uiElements.push(this.add.text(650, 340, 'FIRE', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnFire.on('pointerdown', () => { isFiring = true; }); btnFire.on('pointerup', () => { isFiring = false; }); btnFire.on('pointerout', () => { isFiring = false; });
+        
+        const btnJump = this.add.circle(740, 340, 40, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump); uiElements.push(this.add.text(740, 340, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5)); btnJump.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); } });
+        
+        const btnSwap = this.add.circle(560, 280, 25, 0x8800ff).setAlpha(0.7).setInteractive(); uiElements.push(btnSwap); uiElements.push(this.add.text(560, 280, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnSwap.on('pointerdown', () => { if (isSpawning || playerHealth <= 0) return; usingPrimaryGun = !usingPrimaryGun; activeGun = usingPrimaryGun ? (gunArmory[activeCharDef.gun1] || gunArmory['Rifle']) : (gunArmory[activeCharDef.gun2] || gunArmory['Shotgun']); gunText.setText('Gun: ' + activeGun.name); actionText.setText(`EQUIPPED: ${activeGun.name.toUpperCase()}`); });
+        const btnDefend = this.add.circle(560, 340, 25, 0x888888).setAlpha(0.8).setInteractive(); uiElements.push(btnDefend); uiElements.push(this.add.text(560, 340, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnDefend.on('pointerdown', () => { if (isAttacking || isDashing || isSpawning) return; if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } else { isBlocking = true; player.setTint(0x888888); actionText.setText('BLOCKING'); } }); btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock); function releaseBlock() { if (isBlocking) { isBlocking = false; player.clearTint(); actionText.setText('Ready'); } }
+        const btnMelee = this.add.circle(620, 270, 25, 0xffaa00).setAlpha(0.6).setInteractive(); uiElements.push(btnMelee); uiElements.push(this.add.text(620, 270, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5)); btnMelee.on('pointerdown', () => { if (isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
+        const btnToss = this.add.circle(680, 200, 25, 0x00cc00).setAlpha(0.6).setInteractive(); uiElements.push(btnToss); uiElements.push(this.add.text(680, 200, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnToss.on('pointerdown', tossGrenade);
+        const btnHeavy = this.add.circle(620, 190, 25, 0xff3300).setAlpha(0.7).setInteractive(); uiElements.push(btnHeavy); uiElements.push(this.add.text(620, 190, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnHeavy.on('pointerdown', () => { if (!isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
 
-        const btnJump = this.add.circle(710, 360, 45, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump);
-        const btnJumpT = this.add.text(710, 360, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnJumpT);
-        btnJump.on('pointerdown', () => { 
-            if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { 
-                player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); 
-            } 
-        });
-
-        const btnSwap = this.add.circle(550, 250, 25, 0x8800ff).setAlpha(0.7).setInteractive(); uiElements.push(btnSwap);
-        const btnSwapT = this.add.text(550, 250, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnSwapT);
-        btnSwap.on('pointerdown', () => {
-            if (isSpawning || playerHealth <= 0) return;
-            usingPrimaryGun = !usingPrimaryGun;
-            activeGun = usingPrimaryGun ? (gunArmory[activeCharDef.gun1] || gunArmory['Rifle']) : (gunArmory[activeCharDef.gun2] || gunArmory['Shotgun']);
-            gunText.setText('Gun: ' + activeGun.name);
-            actionText.setText(`EQUIPPED: ${activeGun.name.toUpperCase()}`);
-        });
-
-        const btnDefend = this.add.circle(580, 300, 25, 0x888888).setAlpha(0.8).setInteractive(); uiElements.push(btnDefend);
-        const btnDefendT = this.add.text(580, 300, 'DEF', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnDefendT);
-        btnDefend.on('pointerdown', () => {
-            if (isAttacking || isDashing || isSpawning) return;
-            if (joyStickLeft.left || joyStickLeft.right) { if (canDash) executeDash(); } 
-            else { isBlocking = true; player.setTint(0x888888); actionText.setText('BLOCKING'); }
-        });
-        btnDefend.on('pointerup', releaseBlock); btnDefend.on('pointerout', releaseBlock);
-        function releaseBlock() { if (isBlocking) { isBlocking = false; player.clearTint(); actionText.setText('Ready'); } }
-
-        const btnMelee = this.add.circle(610, 230, 25, 0xffaa00).setAlpha(0.6).setInteractive(); uiElements.push(btnMelee);
-        const btnMeleeT = this.add.text(610, 230, 'HIT', { fontSize: '14px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnMeleeT);
-        btnMelee.on('pointerdown', () => { if (isBlocking || isDashing || isSpawning) return; if (!isAttacking) executeAttack(1); else { inputBuffered = true; if (canCancel && comboStep < 3) triggerNextHit(); } });
-
-        const btnToss = this.add.circle(680, 210, 25, 0x00cc00).setAlpha(0.6).setInteractive(); uiElements.push(btnToss);
-        const btnTossT = this.add.text(680, 210, 'TOSS', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnTossT);
-        btnToss.on('pointerdown', tossGrenade);
-
-        const btnHeavy = this.add.circle(630, 170, 25, 0xff3300).setAlpha(0.7).setInteractive(); uiElements.push(btnHeavy);
-        const btnHeavyT = this.add.text(630, 170, 'HVY', { fontSize: '14px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(btnHeavyT);
-        btnHeavy.on('pointerdown', () => { if (!isBlocking && !isDashing && !isAttacking && !isSpawning) executeHeavyAttack(); });
-
-        specialButton = this.add.circle(750, 210, 30, 0x555555).setAlpha(0.7).setInteractive(); uiElements.push(specialButton);
-        const specialButtonT = this.add.text(750, 210, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5); uiElements.push(specialButtonT);
-        specialGraphics = this.add.graphics(); uiElements.push(specialGraphics);
+        specialButton = this.add.circle(750, 200, 30, 0x555555).setAlpha(0.7).setInteractive(); uiElements.push(specialButton); uiElements.push(this.add.text(750, 200, 'ULT', { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); specialGraphics = this.add.graphics(); uiElements.push(specialGraphics);
         
         specialButton.on('pointerdown', () => {
             if (specialReady && !isAttacking && !isBlocking && !isSpawning) {
@@ -366,7 +327,7 @@
 
     function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) {
         let fontSize = isCritical ? '26px' : '16px'; let color = isPlayerHit ? '#ff3333' : '#ffdd00'; 
-        let floatText = currentScene.add.text(x, y, Math.round(amount).toString(), { fontSize: fontSize, fill: color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5);
+        let floatText = currentScene.add.text(x, y, Math.round(amount).toString(), { fontSize: fontSize, fill: color, fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5).setDepth(25);
         currentScene.tweens.add({ targets: floatText, x: floatText.x + Phaser.Math.Between(-25, 25), y: floatText.y - 60, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() });
     }
 
@@ -483,7 +444,6 @@
         } 
     }
 
-    // --- ENHANCED GRENADE TOSS LOGIC ---
     function tossGrenade() {
         if (currentOrdnanceAmmo <= 0 || isAttacking || isBlocking || isDashing || isSpawning || currentScene.time.now < lastTossedTime + activeOrdnance.cooldown) return;
         currentOrdnanceAmmo--; updateUI(); lastTossedTime = currentScene.time.now; actionText.setText("TOSS!");
@@ -491,13 +451,11 @@
         let nade = currentScene.add.circle(player.x + (facingDirection === 0 ? 15 : -15), player.y - 10, 6, activeOrdnance.color);
         currentScene.physics.add.existing(nade); 
         
-        // Low bounce, high drag for tactical positioning
         nade.body.setBounce(0.2); 
         nade.body.setDrag(350, 0); 
         nade.body.setCollideWorldBounds(true);
         grenadesGroup.add(nade); 
         
-        // Tighter combat arc
         let throwX = (facingDirection === 0) ? 280 : -280;
         nade.body.setVelocity(throwX, -260);
         
@@ -556,7 +514,6 @@
         currentScene.tweens.add({ targets: enemy, alpha: 0, delay: 1500, duration: 1000, onComplete: () => enemy.destroy() });
     }
 
-    // --- EXTRAVAGANT BOSS DEFEAT CINEMATIC ---
     function triggerBossDefeat(bossEnemy) {
         bossDefeated = true;
         if (bossAIEvent) bossAIEvent.remove();
@@ -564,54 +521,31 @@
         bossEnemy.body.setAllowGravity(false);
         bossEnemy.body.enable = false;
 
-        // 1. Initial Shockwave & Camera Trauma
         currentScene.cameras.main.shake(2000, 0.025);
         currentScene.cameras.main.flash(300, 255, 255, 255);
 
-        // 2. Cascade of 12 staggered fireball explosions across the chassis
         for (let i = 0; i < 12; i++) {
             currentScene.time.delayedCall(i * 150, () => {
                 if (!bossEnemy || !bossEnemy.active) return;
                 let exX = bossEnemy.x + Phaser.Math.Between(-70, 70);
                 let exY = bossEnemy.y + Phaser.Math.Between(-70, 70);
                 let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(20, 50), (i % 2 === 0 ? 0xff3300 : 0xffaa00), 0.9).setDepth(25);
-                currentScene.tweens.add({
-                    targets: blast,
-                    scale: 1.8,
-                    alpha: 0,
-                    duration: 350,
-                    onComplete: () => blast.destroy()
-                });
+                currentScene.tweens.add({ targets: blast, scale: 1.8, alpha: 0, duration: 350, onComplete: () => blast.destroy() });
             });
         }
 
-        // 3. Eject flying mechanical shrapnel chunks
         for (let j = 0; j < 14; j++) {
             let chunk = currentScene.add.rectangle(bossEnemy.x, bossEnemy.y, Phaser.Math.Between(8, 16), Phaser.Math.Between(8, 16), 0x333333).setDepth(26);
             currentScene.physics.add.existing(chunk);
             chunk.body.setVelocity(Phaser.Math.Between(-400, 400), Phaser.Math.Between(-600, -150));
             chunk.body.setAngularVelocity(Phaser.Math.Between(-300, 300));
-            currentScene.tweens.add({
-                targets: chunk,
-                alpha: 0,
-                delay: 1000,
-                duration: 800,
-                onComplete: () => chunk.destroy()
-            });
+            currentScene.tweens.add({ targets: chunk, alpha: 0, delay: 1000, duration: 800, onComplete: () => chunk.destroy() });
         }
 
-        // 4. Grand Final Blast, Death Animation & Lockdown Release
         currentScene.time.delayedCall(1800, () => {
             currentScene.cameras.main.flash(500, 255, 255, 255);
             let finalWave = currentScene.add.circle(bossEnemy.x, bossEnemy.y, 25, 0x00ffff, 0.9).setDepth(30);
-            currentScene.tweens.add({
-                targets: finalWave,
-                scale: 14,
-                alpha: 0,
-                duration: 500,
-                onComplete: () => finalWave.destroy()
-            });
-
+            currentScene.tweens.add({ targets: finalWave, scale: 14, alpha: 0, duration: 500, onComplete: () => finalWave.destroy() });
             bossEnemy.anims.play('boss_die', true);
             bossWall.body.checkCollision.none = true; 
             bossWall.setAlpha(0);
@@ -634,11 +568,8 @@
         }
         if (data.hp <= 0) { 
             score += data.isBoss ? 1000 : 10; scoreText.setText('SCORE: ' + score); 
-            if (data.isBoss) { 
-                triggerBossDefeat(enemy);
-            } else { 
-                triggerEnemyDeath(enemy); 
-            } 
+            if (data.isBoss) { triggerBossDefeat(enemy); } 
+            else { triggerEnemyDeath(enemy); } 
         }
     }
 
@@ -731,7 +662,9 @@
             if (joyStickLeft.left) { player.body.setVelocityX(-250); playAnim('run_normal'); }
             else if (joyStickLeft.right) { player.body.setVelocityX(250); playAnim('run_normal'); }
             else { player.body.setVelocityX(0); playAnim('unarmed_idle'); }
-            if (player.body.touching.down) jumps = 0;
+            
+            // UPGRADED JUMP LOGIC
+            if (player.body.touching.down || player.body.blocked.down) jumps = 0;
 
             let shootAngle = facingDirection;
             let nearestEnemy = null;
@@ -767,7 +700,7 @@
 
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
-        // --- AUTO-TURRET DRONE LOGIC ---
+        // --- UPGRADED AUTO-TURRET DRONE LOGIC ---
         if (droneActive && drone && playerHealth > 0) {
             let targetX = player.x + (facingDirection === 0 ? -30 : 30);
             let targetY = player.y - 40 + (Math.sin(currentTime / 200) * 8); 
@@ -798,8 +731,10 @@
                         if (enemy.enemyData.state !== 'dead') {
                             l.destroy(); 
                             dealDamageToEnemy(enemy, 15, 0.8, 0); 
-                            enemy.setTint(0x00ffff); 
-                            currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
+                            if(!enemy.enemyData.isBoss) {
+                                enemy.setTint(0x00ffff); 
+                                currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
+                            }
                         }
                     });
                     currentScene.time.delayedCall(1000, () => { if(laser.active) laser.destroy(); });
@@ -813,7 +748,7 @@
             if(drone) drone.destroy();
         }
         
-        // Grunt AI Loop
+        // --- UPGRADED GRUNT AI LOOP ---
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (data.isBoss) return; 
@@ -837,8 +772,8 @@
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
                     
                 } else if (distToPlayer >= 100 && distToPlayer <= 350 && data.canAttack && data.state !== 'attack') {
-                    data.state = 'shoot'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
-                    
+                    // FASTER SHOOTING COOLDOWN APPLIED HERE
+                    data.state = 'shoot'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint(); 
                     let dir = (player.x > enemy.x) ? 1 : -1; 
                     enemy.setFlipX(dir === -1);
                     enemy.anims.play('grunt_punch_left', true);
@@ -857,7 +792,8 @@
                         if (data.state !== 'dead') data.state = 'idle';
                     });
                     
-                    currentScene.time.delayedCall(2500, () => { data.canAttack = true; });
+                    // Dropped from 2500ms to 1500ms
+                    currentScene.time.delayedCall(1500, () => { data.canAttack = true; });
                     
                 } else if (distToPlayer > 75 && data.state !== 'attack' && data.state !== 'shoot') {
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
@@ -879,7 +815,7 @@
 
         if (!specialReady) {
             specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
-            specialGraphics.arc(750, 210, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false); specialGraphics.strokePath();
+            specialGraphics.arc(750, 200, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false); specialGraphics.strokePath();
             if (specialCharge >= specialMax) { specialReady = true; specialButton.setFillStyle(0x00ffff); }
         }
     }
