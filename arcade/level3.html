@@ -279,10 +279,9 @@
 
     function createLavaPool(startX, endX) {
         let width = endX - startX; let centerX = startX + (width / 2); 
-        let pool = currentScene.add.rectangle(centerX, 388, width, 24, 0x000000, 0); 
         
-        // THIS IS THE CRITICAL LINE THAT GOT DELETED! 
-        // It gives the lava a physical presence so the enemy-overlap math doesn't instantly crash the engine.
+        // DEEPENED HITBOX: 100 pixels tall so nothing can fall fast enough to clip through it
+        let pool = currentScene.add.rectangle(centerX, 400, width, 100, 0x000000, 0); 
         currentScene.physics.add.existing(pool, true); 
         
         lavaGroup.add(pool); 
@@ -592,7 +591,6 @@
         drawFloatingBars(); let currentTime = currentScene.time.now; let delta = game.loop.delta;
         conveyorBelts.forEach(belt => { belt.tilePositionX += belt.beltSpeed * (delta / 16); });
         
-        // FIXED LAVA RENDERER - Stretched higher to cover the conveyor belts underneath
         lavaGraphicLayers.forEach(layer => {
             let g = layer.graphics; g.clear(); g.fillStyle(0x330000, 0.95); g.fillRect(layer.startX, 370, layer.width, 40); g.fillStyle(0x992200, 0.85); g.beginPath(); g.moveTo(layer.startX, 400);
             for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) { let waveY = 372 + Math.sin((x * 0.05) + (currentTime * 0.002)) * 4 + Math.cos((x * 0.03) - (currentTime * 0.001)) * 2; g.lineTo(x, waveY); }
