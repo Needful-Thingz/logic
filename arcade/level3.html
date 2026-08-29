@@ -27,7 +27,6 @@
 </head>
 <body>
 
-<!-- HIDDEN PRELOADER -->
 <div style="display: none;">
     <img src="assets/boss_spawn.gif?v=27">
     <img src="assets/boss_idle.gif?v=27">
@@ -36,7 +35,6 @@
     <img src="assets/boss_die.gif?v=27">
 </div>
 
-<!-- The blank canvas where the GIF gets swapped -->
 <img id="bossGif" src="" alt="Foundry Boss">
 
 <script>
@@ -203,7 +201,8 @@
 
         boss = this.add.rectangle(6000, 120, 250, 180, 0xff0000, 0.0); 
         this.physics.add.existing(boss);
-        boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false };
+        // Added attackStep: 1 here to keep track of the sequence!
+        boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false, attackStep: 1 };
         
         enemiesGroup.add(boss);
         boss.body.setAllowGravity(false); 
@@ -279,8 +278,6 @@
 
     function createLavaPool(startX, endX) {
         let width = endX - startX; let centerX = startX + (width / 2); 
-        
-        // DEEPENED HITBOX: 100 pixels tall so nothing can fall fast enough to clip through it
         let pool = currentScene.add.rectangle(centerX, 400, width, 100, 0x000000, 0); 
         currentScene.physics.add.existing(pool, true); 
         
@@ -481,10 +478,16 @@
         });
     }
 
+    // THE FIXED LOOPING AI
     function runBossPattern() {
         if (!boss.active || bossDefeated || playerHealth <= 0) return; 
         
-        let attackType = Phaser.Math.Between(1, 3);
+        let attackType = boss.enemyData.attackStep;
+        
+        // Move to the next attack in the sequence
+        boss.enemyData.attackStep++;
+        if (boss.enemyData.attackStep > 3) boss.enemyData.attackStep = 1;
+
         let gif = document.getElementById('bossGif');
 
         if (attackType === 1) {
