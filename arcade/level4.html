@@ -131,7 +131,7 @@
         platforms = this.physics.add.staticGroup(); conveyorGroup = this.physics.add.staticGroup(); bioGroup = this.physics.add.staticGroup();
 
         // ==========================================
-        // ELEVATED PLATFORM ROUTE (Shifted UP 30px)
+        // ELEVATED PLATFORM ROUTE
         // ==========================================
         
         // 1. Initial Start
@@ -181,7 +181,7 @@
         bossWall.body.checkCollision.none = true; 
 
         // ==========================================
-        // ELEVATED GRUNT SPAWNS (-30px Y)
+        // ELEVATED GRUNT SPAWNS 
         // ==========================================
         spawnEnemyAt(300, 270); // Start
         spawnEnemyAt(900, 270); // Under platform
@@ -292,10 +292,11 @@
         conveyorBelts.push(conveyor); 
     }
 
-    // --- ELEVATED VAT PHYSICS (Raised by 30px) ---
+    // --- LIQUID PHYSICS LOWERED ---
     function createBioVat(startX, endX) {
         let width = endX - startX; let centerX = startX + (width / 2); 
-        let pool = currentScene.add.rectangle(centerX, 380, width, 100, 0x000000, 0); 
+        // Death box lowered by 10 pixels to sit inside the trench
+        let pool = currentScene.add.rectangle(centerX, 400, width, 100, 0x000000, 0); 
         currentScene.physics.add.existing(pool, true); 
         
         bioGroup.add(pool); 
@@ -304,8 +305,8 @@
         for (let i = 0; i < sparkCount; i++) {
             let ventX = startX + 25 + (i * ((width - 50) / (sparkCount - 1))); currentScene.time.addEvent({ delay: Phaser.Math.Between(150, 400), loop: true, callback: () => {
                 let sx = ventX + Phaser.Math.Between(-20, 20); 
-                let spark = currentScene.add.circle(sx, 375, Phaser.Math.Between(1, 3), 0x00ffff, 1).setDepth(6);
-                currentScene.tweens.add({ targets: spark, y: 330 + Phaser.Math.Between(-30, 10), x: sx + Phaser.Math.Between(-15, 15), alpha: 0, duration: Phaser.Math.Between(400, 700), onComplete: () => spark.destroy() });
+                let spark = currentScene.add.circle(sx, 385, Phaser.Math.Between(1, 3), 0x00ffff, 1).setDepth(6);
+                currentScene.tweens.add({ targets: spark, y: 345 + Phaser.Math.Between(-20, 10), x: sx + Phaser.Math.Between(-15, 15), alpha: 0, duration: Phaser.Math.Between(400, 700), onComplete: () => spark.destroy() });
             }});
         }
     }
@@ -536,26 +537,26 @@
         }
     }
 
-    // --- ELEVATED LIQUID RENDER MATH (-30px Y across the board) ---
+    // --- LIQUID GRAPHICS LOWERED ---
     function update() {
         drawFloatingBars(); let currentTime = currentScene.time.now; let delta = game.loop.delta;
         conveyorBelts.forEach(belt => { belt.tilePositionX += belt.beltSpeed * (delta / 16); });
         
         bioGraphicLayers.forEach(layer => {
             let g = layer.graphics; g.clear(); 
-            g.fillStyle(0x001122, 0.95); g.fillRect(layer.startX, 345, layer.width, 55); 
+            g.fillStyle(0x001122, 0.95); g.fillRect(layer.startX, 355, layer.width, 45); 
             g.fillStyle(0x004433, 0.85); g.beginPath(); g.moveTo(layer.startX, 400);
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) { let waveY = 347 + Math.sin((x * 0.05) + (currentTime * 0.002)) * 4 + Math.cos((x * 0.03) - (currentTime * 0.001)) * 2; g.lineTo(x, waveY); }
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) { let waveY = 357 + Math.sin((x * 0.05) + (currentTime * 0.002)) * 4 + Math.cos((x * 0.03) - (currentTime * 0.001)) * 2; g.lineTo(x, waveY); }
             g.lineTo(layer.startX + layer.width, 400); g.closePath(); g.fillPath(); 
             g.fillStyle(0x00ffcc, 0.9); g.beginPath(); g.moveTo(layer.startX, 400);
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 350 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; g.lineTo(x, waveY); }
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 360 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; g.lineTo(x, waveY); }
             g.lineTo(layer.startX + layer.width, 400); g.closePath(); g.fillPath(); 
             g.lineStyle(2, 0xffffff, 0.9); g.beginPath();
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 350 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; if (x === layer.startX) g.moveTo(x, waveY); else g.lineTo(x, waveY); } g.strokePath();
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 360 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; if (x === layer.startX) g.moveTo(x, waveY); else g.lineTo(x, waveY); } g.strokePath();
         });
 
         if (!bossActive && player.x > 5700) triggerBoss();
-        // Slightly raised death plane to match new heights
+        // Death plane adjusted to match lowered fluid
         if (player.y > 420 && playerHealth > 0 && !isSpawning) playerTakeDamage(1000, player.x); 
 
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
