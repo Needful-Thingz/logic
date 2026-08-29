@@ -27,6 +27,7 @@
 </head>
 <body>
 
+<!-- HIDDEN PRELOADER -->
 <div style="display: none;">
     <img src="assets/boss_spawn.gif?v=27">
     <img src="assets/boss_idle.gif?v=27">
@@ -35,6 +36,7 @@
     <img src="assets/boss_die.gif?v=27">
 </div>
 
+<!-- The blank canvas where the GIF gets swapped -->
 <img id="bossGif" src="" alt="Foundry Boss">
 
 <script>
@@ -180,28 +182,31 @@
 
         bossWall = this.add.rectangle(5600, -400, 40, 400, 0x444444).setOrigin(0,0); this.physics.add.existing(bossWall, false); bossWall.body.setImmovable(true); bossWall.body.setAllowGravity(false); bossWall.body.checkCollision.none = true; 
 
-        // GRUNTS 
-        spawnEnemyAt(250, 300);
-        spawnEnemyAt(600, 300);
-        spawnEnemyAt(1000, 150);
-        spawnEnemyAt(1400, 300);
-        spawnEnemyAt(1900, 150);
-        spawnEnemyAt(2300, 300);
-        spawnEnemyAt(2500, 300);
-        spawnEnemyAt(3000, 300);
-        spawnEnemyAt(3300, 300);
-        spawnEnemyAt(3600, 100);
-        spawnEnemyAt(4000, 300);
-        spawnEnemyAt(4150, 300);
-        spawnEnemyAt(4400, 150);
-        spawnEnemyAt(4900, 300); 
-        spawnEnemyAt(5100, 300); 
-        spawnEnemyAt(5600, 300); 
-        spawnEnemyAt(5800, 300); 
+        // ==========================================
+        // GRUNTS ON SOLID GROUND ONLY
+        // Moved off the belts entirely so they wait for you!
+        // ==========================================
+        spawnEnemyAt(250, 300);  // Platform 150
+        spawnEnemyAt(950, 150);  // Platform 1000
+        spawnEnemyAt(1050, 150); // Platform 1000
+        spawnEnemyAt(2250, 300); // Platform 2400
+        spawnEnemyAt(2400, 300); // Platform 2400
+        spawnEnemyAt(2550, 300); // Platform 2400
+        spawnEnemyAt(3550, 100); // Platform 3600 (Floating)
+        spawnEnemyAt(3650, 100); // Platform 3600 (Floating)
+        spawnEnemyAt(3850, 300); // Platform 4000
+        spawnEnemyAt(4000, 300); // Platform 4000
+        spawnEnemyAt(4150, 300); // Platform 4000
+        spawnEnemyAt(4350, 150); // Platform 4400
+        spawnEnemyAt(4450, 150); // Platform 4400
+        spawnEnemyAt(5500, 300); // Platform 5900
+        spawnEnemyAt(5600, 300); // Platform 5900
+        spawnEnemyAt(5700, 300); // Platform 5900
+        spawnEnemyAt(5800, 300); // Platform 5900
+        // ==========================================
 
         boss = this.add.rectangle(6000, 120, 250, 180, 0xff0000, 0.0); 
         this.physics.add.existing(boss);
-        // Added attackStep: 1 here to keep track of the sequence!
         boss.enemyData = { isBoss: true, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'sleep', isStunned: false, attackStep: 1 };
         
         enemiesGroup.add(boss);
@@ -478,13 +483,11 @@
         });
     }
 
-    // THE FIXED LOOPING AI
     function runBossPattern() {
         if (!boss.active || bossDefeated || playerHealth <= 0) return; 
         
         let attackType = boss.enemyData.attackStep;
         
-        // Move to the next attack in the sequence
         boss.enemyData.attackStep++;
         if (boss.enemyData.attackStep > 3) boss.enemyData.attackStep = 1;
 
