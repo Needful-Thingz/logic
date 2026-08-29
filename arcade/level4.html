@@ -90,7 +90,6 @@
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
         
-        // LEVEL 4 SPECIFIC ASSETS
         this.load.image('bg1', 'assets/bg1_lvl4.png');
         this.load.image('bg2', 'assets/bg2_lvl4.png'); 
         this.load.image('bg3', 'assets/bg3_lvl4.png');
@@ -131,59 +130,86 @@
         grenadesGroup = this.physics.add.group(); enemiesGroup = this.physics.add.group(); enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup(); conveyorGroup = this.physics.add.staticGroup(); bioGroup = this.physics.add.staticGroup();
 
-        // SOLID PLATFORMS
+        // ==========================================
+        // NEW BALANCED PLATFORM ROUTE
+        // ==========================================
+        
+        // 1. Initial Start
         platforms.add(this.add.tileSprite(200, 390, 400, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1000, 270, 200, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(1400, 390, 400, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(2400, 390, 500, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(2900, 230, 200, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(3800, 390, 500, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(4500, 260, 200, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(5900, 390, 1000, 32, 'floorTile')); 
-
-        // ASSEMBLY LINE CONVEYORS
-        createConveyor(600, 390, 400, 1.8); 
-        createConveyor(1800, 390, 400, -2.5); 
-        createConveyor(2100, 260, 300, 1.5); 
-        createConveyor(3300, 390, 500, 2.5); 
-        createConveyor(4200, 390, 300, -3.0); 
-        createConveyor(4900, 390, 500, 3.5); 
-
-        // BIO-FLUID VATS
         createBioVat(400, 800); 
-        createBioVat(1200, 1600); 
-        createBioVat(1600, 2150); 
-        createBioVat(2650, 3050); 
-        createBioVat(3550, 4050); 
-        createBioVat(4050, 4650); 
-        createBioVat(5150, 5400); 
 
-        // Secure Lockdown Door
+        // 2. The Rest Area (Fixed the bottomless pit!)
+        platforms.add(this.add.tileSprite(1000, 390, 400, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1000, 250, 200, 32, 'floorTile')); 
+        
+        // 3. The Long Vat 
+        createBioVat(1200, 2000); 
+        platforms.add(this.add.tileSprite(1450, 260, 150, 32, 'floorTile')); // Safety Net 1
+        platforms.add(this.add.tileSprite(1750, 200, 150, 32, 'floorTile')); // Safety Net 2
+
+        // 4. Moving Bridge
+        createConveyor(2250, 390, 500, 2.0); 
+
+        // 5. The Second Long Vat
+        createBioVat(2500, 3400); 
+        platforms.add(this.add.tileSprite(2750, 280, 150, 32, 'floorTile')); // Safety Net 3
+        platforms.add(this.add.tileSprite(3150, 220, 150, 32, 'floorTile')); // Safety Net 4
+
+        // 6. Security Checkpoint
+        platforms.add(this.add.tileSprite(3600, 390, 400, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(3600, 250, 200, 32, 'floorTile')); 
+
+        // 7. The Deep Trench
+        createBioVat(3800, 4600); 
+        platforms.add(this.add.tileSprite(4050, 260, 150, 32, 'floorTile')); // Safety Net 5
+        platforms.add(this.add.tileSprite(4350, 180, 150, 32, 'floorTile')); // Safety Net 6
+
+        // 8. Final Conveyor Run
+        createConveyor(4850, 390, 500, -2.5); 
+        
+        // 9. Last Jump
+        createBioVat(5100, 5500); 
+        platforms.add(this.add.tileSprite(5300, 250, 150, 32, 'floorTile')); // Safety Net 7
+
+        // 10. Boss Arena
+        platforms.add(this.add.tileSprite(6000, 390, 1000, 32, 'floorTile')); 
+        
         bossWall = this.add.rectangle(5600, -400, 40, 400, 0x00ffff).setOrigin(0,0); 
         this.physics.add.existing(bossWall, false); 
         bossWall.body.setImmovable(true); 
         bossWall.body.setAllowGravity(false); 
         bossWall.body.checkCollision.none = true; 
 
-        // GRUNT SPAWNS
-        spawnEnemyAt(300, 300);
-        spawnEnemyAt(1000, 150);
-        spawnEnemyAt(1300, 300);
-        spawnEnemyAt(1500, 300);
-        spawnEnemyAt(2300, 300);
-        spawnEnemyAt(2500, 300);
-        spawnEnemyAt(2600, 300);
-        spawnEnemyAt(2900, 100);
-        spawnEnemyAt(3700, 300);
-        spawnEnemyAt(3900, 300);
-        spawnEnemyAt(4500, 150);
-        spawnEnemyAt(4600, 150);
-        spawnEnemyAt(5500, 300);
-        spawnEnemyAt(5650, 300);
-        spawnEnemyAt(5800, 300);
-        spawnEnemyAt(5900, 300);
+        // ==========================================
+        // STRATEGIC GRUNT PLACEMENTS
+        // ==========================================
+        spawnEnemyAt(300, 300); // Start
+        spawnEnemyAt(900, 300); // Under platform
+        spawnEnemyAt(1100, 300); // Under platform
+        spawnEnemyAt(1000, 150); // High platform
+        
+        spawnEnemyAt(1450, 150); // Over Vat 1
+        spawnEnemyAt(1750, 100); // Over Vat 1
+        
+        spawnEnemyAt(2150, 300); // Conveyor
+        spawnEnemyAt(2350, 300); // Conveyor
+        
+        spawnEnemyAt(2750, 150); // Over Vat 2
+        spawnEnemyAt(3150, 100); // Over Vat 2
+        
+        spawnEnemyAt(3500, 300); // Checkpoint
+        spawnEnemyAt(3700, 300); // Checkpoint
+        spawnEnemyAt(3600, 150); // High platform
+        
+        spawnEnemyAt(4050, 150); // Over Vat 3
+        
+        spawnEnemyAt(4750, 300); // Conveyor
+        spawnEnemyAt(4950, 300); // Conveyor
+        
+        spawnEnemyAt(5650, 300); // Boss Guard
+        spawnEnemyAt(5800, 300); // Boss Guard
+        // ==========================================
 
-        // CUSTOM BOSS: CENTRAL ASSEMBLY CORE
         boss = this.add.rectangle(6100, 200, 160, 380, 0x00ffff, 0.15); 
         boss.setStrokeStyle(4, 0x00ffff, 1);
         this.physics.add.existing(boss);
@@ -266,10 +292,10 @@
         conveyorBelts.push(conveyor); 
     }
 
-    // --- SHIFTED DOWN 15 PIXELS TO HIDE UNDER THIN FLOORS ---
+    // --- HITBOXES SHIFTED DOWN DEEPER ---
     function createBioVat(startX, endX) {
         let width = endX - startX; let centerX = startX + (width / 2); 
-        let pool = currentScene.add.rectangle(centerX, 415, width, 100, 0x000000, 0); 
+        let pool = currentScene.add.rectangle(centerX, 430, width, 100, 0x000000, 0); 
         currentScene.physics.add.existing(pool, true); 
         
         bioGroup.add(pool); 
@@ -278,8 +304,8 @@
         for (let i = 0; i < sparkCount; i++) {
             let ventX = startX + 25 + (i * ((width - 50) / (sparkCount - 1))); currentScene.time.addEvent({ delay: Phaser.Math.Between(150, 400), loop: true, callback: () => {
                 let sx = ventX + Phaser.Math.Between(-20, 20); 
-                let spark = currentScene.add.circle(sx, 410, Phaser.Math.Between(1, 3), 0x00ffff, 1).setDepth(6);
-                currentScene.tweens.add({ targets: spark, y: 365 + Phaser.Math.Between(-30, 10), x: sx + Phaser.Math.Between(-15, 15), alpha: 0, duration: Phaser.Math.Between(400, 700), onComplete: () => spark.destroy() });
+                let spark = currentScene.add.circle(sx, 425, Phaser.Math.Between(1, 3), 0x00ffff, 1).setDepth(6);
+                currentScene.tweens.add({ targets: spark, y: 380 + Phaser.Math.Between(-30, 10), x: sx + Phaser.Math.Between(-15, 15), alpha: 0, duration: Phaser.Math.Between(400, 700), onComplete: () => spark.destroy() });
             }});
         }
     }
@@ -510,22 +536,22 @@
         }
     }
 
-    // --- SHIFTED DOWN 15 PIXELS IN THE RENDER LOOP ---
+    // --- LIQUID RENDERED DEEPER ---
     function update() {
         drawFloatingBars(); let currentTime = currentScene.time.now; let delta = game.loop.delta;
         conveyorBelts.forEach(belt => { belt.tilePositionX += belt.beltSpeed * (delta / 16); });
         
         bioGraphicLayers.forEach(layer => {
             let g = layer.graphics; g.clear(); 
-            g.fillStyle(0x001122, 0.95); g.fillRect(layer.startX, 385, layer.width, 40); 
-            g.fillStyle(0x004433, 0.85); g.beginPath(); g.moveTo(layer.startX, 415);
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) { let waveY = 387 + Math.sin((x * 0.05) + (currentTime * 0.002)) * 4 + Math.cos((x * 0.03) - (currentTime * 0.001)) * 2; g.lineTo(x, waveY); }
-            g.lineTo(layer.startX + layer.width, 415); g.closePath(); g.fillPath(); 
-            g.fillStyle(0x00ffcc, 0.9); g.beginPath(); g.moveTo(layer.startX, 415);
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 390 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; g.lineTo(x, waveY); }
-            g.lineTo(layer.startX + layer.width, 415); g.closePath(); g.fillPath(); 
+            g.fillStyle(0x001122, 0.95); g.fillRect(layer.startX, 400, layer.width, 40); 
+            g.fillStyle(0x004433, 0.85); g.beginPath(); g.moveTo(layer.startX, 440);
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) { let waveY = 402 + Math.sin((x * 0.05) + (currentTime * 0.002)) * 4 + Math.cos((x * 0.03) - (currentTime * 0.001)) * 2; g.lineTo(x, waveY); }
+            g.lineTo(layer.startX + layer.width, 440); g.closePath(); g.fillPath(); 
+            g.fillStyle(0x00ffcc, 0.9); g.beginPath(); g.moveTo(layer.startX, 440);
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 405 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; g.lineTo(x, waveY); }
+            g.lineTo(layer.startX + layer.width, 440); g.closePath(); g.fillPath(); 
             g.lineStyle(2, 0xffffff, 0.9); g.beginPath();
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 390 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; if (x === layer.startX) g.moveTo(x, waveY); else g.lineTo(x, waveY); } g.strokePath();
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 405 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; if (x === layer.startX) g.moveTo(x, waveY); else g.lineTo(x, waveY); } g.strokePath();
         });
 
         if (!bossActive && player.x > 5700) triggerBoss();
