@@ -156,56 +156,59 @@
         grenadesGroup = this.physics.add.group(); enemiesGroup = this.physics.add.group(); enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup(); conveyorGroup = this.physics.add.staticGroup(); lavaGroup = this.physics.add.staticGroup();
 
+        // ==========================================
+        // FIXED PLATFORMS, CONVEYORS & LAVA
+        // Cleanly alternating to prevent visual overlap
+        // ==========================================
+        
         // PLATFORMS
         platforms.add(this.add.tileSprite(150, 390, 300, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(800, 270, 150, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(2000, 260, 160, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(1000, 270, 200, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(2400, 390, 400, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(4000, 390, 300, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(4800, 260, 200, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(5800, 390, 1200, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(3600, 200, 150, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(4000, 390, 400, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(4400, 260, 200, 32, 'floorTile')); 
+        platforms.add(this.add.tileSprite(5900, 390, 1000, 32, 'floorTile')); 
 
         // CONVEYORS
         createConveyor(600, 390, 400, 1.5); 
-        createConveyor(1300, 390, 600, -2.0); 
-        createConveyor(1500, 250, 200, 1.5); 
-        createConveyor(3000, 390, 600, 2.5); 
-        createConveyor(3500, 200, 150, -1.0); 
-        createConveyor(4400, 390, 500, 3.0); 
-        createConveyor(5300, 390, 400, -2.5); 
+        createConveyor(1400, 390, 400, -2.0); 
+        createConveyor(1900, 250, 300, 1.5); 
+        createConveyor(3100, 390, 600, 2.5); 
+        createConveyor(4900, 390, 600, -3.0); 
 
         // LAVA
         createLavaPool(300, 400); 
-        createLavaPool(1000, 1200); 
+        createLavaPool(800, 1200); 
         createLavaPool(1600, 2200); 
-        createLavaPool(2600, 2700); 
-        createLavaPool(3300, 3850); 
-        createLavaPool(4150, 4650); 
-        createLavaPool(5100, 5500); 
+        createLavaPool(2600, 2800); 
+        createLavaPool(3400, 3800); 
+        createLavaPool(4200, 4600); 
+        createLavaPool(5200, 5400); 
 
         bossWall = this.add.rectangle(5600, -400, 40, 400, 0x444444).setOrigin(0,0); this.physics.add.existing(bossWall, false); bossWall.body.setImmovable(true); bossWall.body.setAllowGravity(false); bossWall.body.checkCollision.none = true; 
 
         // ==========================================
-        // EXTENDED GRUNT SPAWNS (18 Enemies across the Gauntlet)
+        // ADJUSTED GRUNT SPAWNS (17 Enemies)
+        // Re-mapped to land safely on the updated floors
         // ==========================================
-        spawnEnemyAt(600, 300);  
-        spawnEnemyAt(900, 300);  
-        spawnEnemyAt(1300, 300); 
-        spawnEnemyAt(1500, 150); 
-        spawnEnemyAt(1800, 300);
-        spawnEnemyAt(2400, 300); 
-        spawnEnemyAt(2700, 300);
-        spawnEnemyAt(3000, 300); 
-        spawnEnemyAt(3200, 300);
-        spawnEnemyAt(3500, 100);
-        spawnEnemyAt(3800, 300);
-        spawnEnemyAt(4000, 300); 
-        spawnEnemyAt(4400, 300); 
-        spawnEnemyAt(4600, 300);
-        spawnEnemyAt(4800, 150);
-        spawnEnemyAt(5100, 300);
-        spawnEnemyAt(5300, 300); 
+        spawnEnemyAt(250, 300);
+        spawnEnemyAt(600, 300);
+        spawnEnemyAt(1000, 150);
+        spawnEnemyAt(1400, 300);
+        spawnEnemyAt(1900, 150);
+        spawnEnemyAt(2300, 300);
+        spawnEnemyAt(2500, 300);
+        spawnEnemyAt(3000, 300);
+        spawnEnemyAt(3300, 300);
+        spawnEnemyAt(3600, 100);
+        spawnEnemyAt(4000, 300);
+        spawnEnemyAt(4150, 300);
+        spawnEnemyAt(4400, 150);
+        spawnEnemyAt(4800, 300);
+        spawnEnemyAt(5000, 300);
         spawnEnemyAt(5500, 300);
+        spawnEnemyAt(5700, 300);
         // ==========================================
 
         boss = this.add.rectangle(6000, 120, 250, 180, 0xff0000, 0.0); 
@@ -643,14 +646,12 @@
                     });
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
                 } else if (distToPlayer >= 100 && distToPlayer <= 350 && data.canAttack && data.state !== 'attack') {
-                    // MUCH FASTER SHOOTING AI
                     data.state = 'shoot'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint(); let dir = (player.x > enemy.x) ? 1 : -1; enemy.setFlipX(dir === -1); enemy.anims.play('grunt_punch_left', true);
                     currentScene.time.delayedCall(300, () => {
                         if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return; 
                         let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0xffaa00); currentScene.physics.add.existing(enemyBullet); enemyBullet.body.setAllowGravity(false); enemyBullet.body.setVelocityX(dir * 500); enemyBullet.dmg = 10; enemyProjectiles.add(enemyBullet);
                         currentScene.time.delayedCall(1500, () => { if(enemyBullet.active) enemyBullet.destroy(); }); if (data.state !== 'dead') data.state = 'idle';
                     });
-                    // DROPPED COOLDOWN FROM 2500ms TO 1500ms SO THEY ACTUALLY SHOOT FREQUENTLY
                     currentScene.time.delayedCall(1500, () => { data.canAttack = true; });
                 } else if (distToPlayer > 75 && data.state !== 'attack' && data.state !== 'shoot') {
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); enemy.setFlipX(dir === -1); enemy.anims.play('grunt_run_normal', true);
