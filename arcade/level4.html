@@ -92,7 +92,7 @@
         
         // LEVEL 4 SPECIFIC ASSETS
         this.load.image('bg1', 'assets/bg1_lvl4.png');
-        this.load.image('bg2', 'assets/bg2_lvl4.png'); // Glass tubes go here!
+        this.load.image('bg2', 'assets/bg2_lvl4.png'); 
         this.load.image('bg3', 'assets/bg3_lvl4.png');
         this.load.image('floorTile', 'assets/floor_lvl4.png');
 
@@ -131,12 +131,7 @@
         grenadesGroup = this.physics.add.group(); enemiesGroup = this.physics.add.group(); enemyProjectiles = this.physics.add.group();
         platforms = this.physics.add.staticGroup(); conveyorGroup = this.physics.add.staticGroup(); bioGroup = this.physics.add.staticGroup();
 
-        // ==========================================
-        // LEVEL 4 LAB LAYOUT
-        // Clean sterile jumps over alien bio-fluid vats
-        // ==========================================
-        
-        // SOLID PLATFORMS (Sterile Metal)
+        // SOLID PLATFORMS
         platforms.add(this.add.tileSprite(200, 390, 400, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(1000, 270, 200, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(1400, 390, 400, 32, 'floorTile')); 
@@ -144,9 +139,9 @@
         platforms.add(this.add.tileSprite(2900, 230, 200, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(3800, 390, 500, 32, 'floorTile')); 
         platforms.add(this.add.tileSprite(4500, 260, 200, 32, 'floorTile')); 
-        platforms.add(this.add.tileSprite(5900, 390, 1000, 32, 'floorTile')); // Boss Arena Floor
+        platforms.add(this.add.tileSprite(5900, 390, 1000, 32, 'floorTile')); 
 
-        // ASSEMBLY LINE CONVEYORS (Fast moving rails)
+        // ASSEMBLY LINE CONVEYORS
         createConveyor(600, 390, 400, 1.8); 
         createConveyor(1800, 390, 400, -2.5); 
         createConveyor(2100, 260, 300, 1.5); 
@@ -154,7 +149,7 @@
         createConveyor(4200, 390, 300, -3.0); 
         createConveyor(4900, 390, 500, 3.5); 
 
-        // BIO-FLUID VATS (Cyan/Green Glowing Liquid)
+        // BIO-FLUID VATS
         createBioVat(400, 800); 
         createBioVat(1200, 1600); 
         createBioVat(1600, 2150); 
@@ -170,9 +165,7 @@
         bossWall.body.setAllowGravity(false); 
         bossWall.body.checkCollision.none = true; 
 
-        // ==========================================
-        // GRUNT SPAWNS (18 Enemies, only on safe floors)
-        // ==========================================
+        // GRUNT SPAWNS
         spawnEnemyAt(300, 300);
         spawnEnemyAt(1000, 150);
         spawnEnemyAt(1300, 300);
@@ -189,9 +182,8 @@
         spawnEnemyAt(5650, 300);
         spawnEnemyAt(5800, 300);
         spawnEnemyAt(5900, 300);
-        // ==========================================
 
-        // CUSTOM BOSS: CENTRAL ASSEMBLY CORE (Massive Glowing Pillar)
+        // CUSTOM BOSS: CENTRAL ASSEMBLY CORE
         boss = this.add.rectangle(6100, 200, 160, 380, 0x00ffff, 0.15); 
         boss.setStrokeStyle(4, 0x00ffff, 1);
         this.physics.add.existing(boss);
@@ -201,7 +193,6 @@
         boss.body.setAllowGravity(false); 
         boss.body.setImmovable(true);
 
-        // Core pulsating effect
         this.tweens.add({ targets: boss, alpha: 0.4, yoyo: true, repeat: -1, duration: 800 });
 
         const charKeys = ['vanguard', 'recon', 'heavy', 'grunt'];
@@ -268,16 +259,17 @@
 
     function createConveyor(centerX, y, width, speed) { 
         let conveyor = currentScene.add.tileSprite(centerX, y, width, 32, 'floorTile'); 
-        conveyor.setTint(0x88ccff); // Gives it a metallic blue sci-fi tint
+        conveyor.setTint(0x88ccff); 
         currentScene.physics.add.existing(conveyor, true); 
         conveyor.beltSpeed = speed; 
         conveyorGroup.add(conveyor); 
         conveyorBelts.push(conveyor); 
     }
 
+    // --- SHIFTED DOWN 15 PIXELS TO HIDE UNDER THIN FLOORS ---
     function createBioVat(startX, endX) {
         let width = endX - startX; let centerX = startX + (width / 2); 
-        let pool = currentScene.add.rectangle(centerX, 400, width, 100, 0x000000, 0); 
+        let pool = currentScene.add.rectangle(centerX, 415, width, 100, 0x000000, 0); 
         currentScene.physics.add.existing(pool, true); 
         
         bioGroup.add(pool); 
@@ -285,8 +277,9 @@
         let sparkCount = Math.max(3, Math.floor(width / 50));
         for (let i = 0; i < sparkCount; i++) {
             let ventX = startX + 25 + (i * ((width - 50) / (sparkCount - 1))); currentScene.time.addEvent({ delay: Phaser.Math.Between(150, 400), loop: true, callback: () => {
-                let sx = ventX + Phaser.Math.Between(-20, 20); let spark = currentScene.add.circle(sx, 395, Phaser.Math.Between(1, 3), 0x00ffff, 1).setDepth(6);
-                currentScene.tweens.add({ targets: spark, y: 350 + Phaser.Math.Between(-30, 10), x: sx + Phaser.Math.Between(-15, 15), alpha: 0, duration: Phaser.Math.Between(400, 700), onComplete: () => spark.destroy() });
+                let sx = ventX + Phaser.Math.Between(-20, 20); 
+                let spark = currentScene.add.circle(sx, 410, Phaser.Math.Between(1, 3), 0x00ffff, 1).setDepth(6);
+                currentScene.tweens.add({ targets: spark, y: 365 + Phaser.Math.Between(-30, 10), x: sx + Phaser.Math.Between(-15, 15), alpha: 0, duration: Phaser.Math.Between(400, 700), onComplete: () => spark.destroy() });
             }});
         }
     }
@@ -517,17 +510,22 @@
         }
     }
 
+    // --- SHIFTED DOWN 15 PIXELS IN THE RENDER LOOP ---
     function update() {
         drawFloatingBars(); let currentTime = currentScene.time.now; let delta = game.loop.delta;
         conveyorBelts.forEach(belt => { belt.tilePositionX += belt.beltSpeed * (delta / 16); });
         
         bioGraphicLayers.forEach(layer => {
-            let g = layer.graphics; g.clear(); g.fillStyle(0x001122, 0.95); g.fillRect(layer.startX, 370, layer.width, 40); g.fillStyle(0x004433, 0.85); g.beginPath(); g.moveTo(layer.startX, 400);
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) { let waveY = 372 + Math.sin((x * 0.05) + (currentTime * 0.002)) * 4 + Math.cos((x * 0.03) - (currentTime * 0.001)) * 2; g.lineTo(x, waveY); }
-            g.lineTo(layer.startX + layer.width, 400); g.closePath(); g.fillPath(); g.fillStyle(0x00ffcc, 0.9); g.beginPath(); g.moveTo(layer.startX, 400);
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 375 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; g.lineTo(x, waveY); }
-            g.lineTo(layer.startX + layer.width, 400); g.closePath(); g.fillPath(); g.lineStyle(2, 0xffffff, 0.9); g.beginPath();
-            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 375 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; if (x === layer.startX) g.moveTo(x, waveY); else g.lineTo(x, waveY); } g.strokePath();
+            let g = layer.graphics; g.clear(); 
+            g.fillStyle(0x001122, 0.95); g.fillRect(layer.startX, 385, layer.width, 40); 
+            g.fillStyle(0x004433, 0.85); g.beginPath(); g.moveTo(layer.startX, 415);
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 8) { let waveY = 387 + Math.sin((x * 0.05) + (currentTime * 0.002)) * 4 + Math.cos((x * 0.03) - (currentTime * 0.001)) * 2; g.lineTo(x, waveY); }
+            g.lineTo(layer.startX + layer.width, 415); g.closePath(); g.fillPath(); 
+            g.fillStyle(0x00ffcc, 0.9); g.beginPath(); g.moveTo(layer.startX, 415);
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 390 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; g.lineTo(x, waveY); }
+            g.lineTo(layer.startX + layer.width, 415); g.closePath(); g.fillPath(); 
+            g.lineStyle(2, 0xffffff, 0.9); g.beginPath();
+            for (let x = layer.startX; x <= layer.startX + layer.width; x += 6) { let waveY = 390 + Math.sin((x * 0.07) - (currentTime * 0.003)) * 3 + Math.sin((x * 0.04) + (currentTime * 0.002)) * 3; if (x === layer.startX) g.moveTo(x, waveY); else g.lineTo(x, waveY); } g.strokePath();
         });
 
         if (!bossActive && player.x > 5700) triggerBoss();
@@ -597,7 +595,7 @@
 
         if (!specialReady) {
             specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
-            specialGraphics.arc(750, 200, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false); specialGraphics.strokePath();
+            specialGraphics.arc(750, 210, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false); specialGraphics.strokePath();
             if (specialCharge >= specialMax) { specialReady = true; specialButton.setFillStyle(0x00ffff); }
         }
     }
