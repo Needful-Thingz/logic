@@ -83,11 +83,10 @@
     
     let enemiesGroup, enemyProjectiles;
     const WORLD_WIDTH = 6400; 
-    let boss, bossActive = false, bossDefeated = false, bossHpBar, bossWall;
+    let boss, bossActive = false, bossDefeated = false, bossHpBar, bossWall, arenaRightWall;
     let bioGraphicLayers = [];
     let conveyorBelts = [];
     
-    // --- PAUSE SYSTEM VARIABLES ---
     let isPaused = false, pauseOverlay, pauseMsg;
 
     function preload() {
@@ -169,6 +168,10 @@
         this.physics.add.existing(bossWall, false); 
         bossWall.body.setImmovable(true); bossWall.body.setAllowGravity(false); bossWall.body.checkCollision.none = true; 
 
+        // --- NEW IMPENETRABLE RIGHT WALL SO HE CAN'T ESCAPE ---
+        arenaRightWall = this.add.rectangle(6380, 200, 40, 400, 0x00ffff).setAlpha(0);
+        this.physics.add.existing(arenaRightWall, true); // true sets it as static and immovable
+
         let floorHitboxOffset = 14; 
         platforms.getChildren().forEach(p => { p.body.y += floorHitboxOffset; });
         conveyorGroup.getChildren().forEach(c => { c.body.y += floorHitboxOffset; });
@@ -185,9 +188,10 @@
         boss = this.physics.add.sprite(6100, 150, 'boss_idle');
         boss.setScale(2.2); 
         
-        // --- FLOATING FIX: Adjusted physical hitbox down 10 pixels ---
-        boss.body.setSize(34, 76); 
-        boss.body.setOffset(23, 4);
+        // --- FLOATING FIX V2: Drastically reduced height to pull the box UP into his body ---
+        // This will lower his drawn sprite onto the floor perfectly.
+        boss.body.setSize(30, 45); 
+        boss.body.setOffset(25, 15);
         
         boss.body.setCollideWorldBounds(true);
         boss.enemyData = { isBoss: true, hp: 1500, maxHp: 1500, armor: 500, maxArmor: 500, state: 'sleep', isStunned: false, actionTimer: 0, lastShot: 0, lastMelee: 0 };
@@ -220,12 +224,14 @@
         playerHealthBar = this.add.graphics().setDepth(10); bossHpBar = this.add.graphics().setScrollFactor(0).setDepth(20);
 
         this.physics.add.collider(player, platforms); 
+        
+        // Solid wall colliders to keep everyone boxed in!
         this.physics.add.collider(player, bossWall); 
-        this.physics.add.collider(enemiesGroup, platforms); 
-        
-        // --- ESCAPE FIX: Boss now physically crashes into the arena wall ---
+        this.physics.add.collider(player, arenaRightWall); 
         this.physics.add.collider(enemiesGroup, bossWall); 
+        this.physics.add.collider(enemiesGroup, arenaRightWall); 
         
+        this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
         this.physics.add.collider([player, enemiesGroup, grenadesGroup], conveyorGroup, (entity, conveyor) => { if (entity.body.touching.down && conveyor.body.touching.up) { entity.x += conveyor.beltSpeed; } });
         
@@ -244,7 +250,6 @@
         uiElements.push(this.add.text(400, 65, 'SCORE: 0', { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); scoreText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0)); centerMsgText = uiElements[uiElements.length-1];
 
-        // --- NEW PAUSE BUTTON ---
         const btnPause = this.add.circle(760, 40, 20, 0xaaaaaa).setAlpha(0.8).setInteractive().setScrollFactor(0);
         uiElements.push(btnPause);
         const pauseText = this.add.text(760, 40, '||', { fontSize: '18px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0);
@@ -393,7 +398,7 @@
     }
 
     function update() {
-        if (isPaused) return; // Completely freeze the loop if paused
+        if (isPaused) return; 
 
         drawFloatingBars(); let currentTime = currentScene.time.now; let delta = game.loop.delta;
         conveyorBelts.forEach(belt => { belt.tilePositionX += belt.beltSpeed * (delta / 16); });
