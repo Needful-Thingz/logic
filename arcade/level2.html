@@ -891,15 +891,20 @@
             if(drone) drone.destroy();
         }
         
-        // --- UPGRADED GRUNT AI LOOP ---
+        // --- UPGRADED GRUNT AI LOOP (LEVEL 2 EDITION) ---
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (data.isBoss) return; 
-            if (enemy.y > 450) { if (enemy.active) enemy.destroy(); return; }
+            if (enemy.y > 450) { if (enemy.active) enemy.destroy(); return; } // Level 2 Kill Plane
             if (data.state === 'dead') return; 
 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
-            if (distToPlayer > 900) return; 
+            
+            // Level 4 AI: Idle if player is too far (400px instead of 900px)
+            if (distToPlayer > 400) {
+                if (data.state !== 'dead') { data.state = 'idle'; enemy.body.setVelocityX(0); enemy.anims.play('grunt_unarmed_idle', true); }
+                return;
+            }
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 if (distToPlayer < 75 && data.canAttack) {
@@ -915,7 +920,6 @@
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
                     
                 } else if (distToPlayer >= 100 && distToPlayer <= 350 && data.canAttack && data.state !== 'attack') {
-                    // FASTER SHOOTING COOLDOWN APPLIED HERE
                     data.state = 'shoot'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint(); 
                     let dir = (player.x > enemy.x) ? 1 : -1; 
                     enemy.setFlipX(dir === -1);
@@ -924,26 +928,28 @@
                     currentScene.time.delayedCall(300, () => {
                         if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return; 
                         
-                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0x39ff14);
+                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0x39ff14); // Level 2 Toxic Green
                         currentScene.physics.add.existing(enemyBullet);
-                        enemyBullet.body.setAllowGravity(false);
+                        enemyProjectiles.add(enemyBullet); // ADDED TO GROUP FIRST
+                        enemyBullet.body.setAllowGravity(false); // GRAVITY STRIPPED SECOND
                         enemyBullet.body.setVelocityX(dir * 500); 
                         enemyBullet.dmg = 10;
-                        enemyProjectiles.add(enemyBullet);
                         
                         currentScene.time.delayedCall(1500, () => { if(enemyBullet.active) enemyBullet.destroy(); });
                         if (data.state !== 'dead') data.state = 'idle';
                     });
-                    
-                    // Dropped from 2500ms to 1500ms
                     currentScene.time.delayedCall(1500, () => { data.canAttack = true; });
                     
                 } else if (distToPlayer > 75 && data.state !== 'attack' && data.state !== 'shoot') {
-                    data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
-                    enemy.setFlipX(dir === -1);
-                    enemy.anims.play('grunt_run_normal', true);
-
-                    if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
+                    // Level 4 AI: Y-axis check so they don't blindly run into walls if player is on a higher platform
+                    if (Math.abs(player.y - enemy.y) < 40) {
+                        data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
+                        enemy.setFlipX(dir === -1);
+                        enemy.anims.play('grunt_run_normal', true);
+                        if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
+                    } else {
+                        data.state = 'idle'; enemy.body.setVelocityX(0); enemy.anims.play('grunt_unarmed_idle', true);
+                    }
                 } else if (data.state !== 'attack' && data.state !== 'shoot') { 
                     data.state = 'idle'; enemy.body.setVelocityX(0); 
                     enemy.anims.play('grunt_unarmed_idle', true);
