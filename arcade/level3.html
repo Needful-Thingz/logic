@@ -27,7 +27,6 @@
 </head>
 <body>
 
-<!-- HIDDEN PRELOADER -->
 <div style="display: none;">
     <img src="assets/boss_spawn.gif?v=27">
     <img src="assets/boss_idle.gif?v=27">
@@ -36,7 +35,6 @@
     <img src="assets/boss_die.gif?v=27">
 </div>
 
-<!-- The blank canvas where the GIF gets swapped -->
 <img id="bossGif" src="" alt="Foundry Boss">
 
 <script>
@@ -642,13 +640,26 @@
             }
         } else if (droneActive && playerHealth <= 0) { droneActive = false; if(drone) drone.destroy(); }
         
+        // --- UPGRADED GRUNT AI LOOP (LEVEL 3 EDITION) ---
         enemiesGroup.getChildren().forEach(enemy => {
-            let data = enemy.enemyData; if (data.isBoss) return; if (enemy.y > 450) { if (enemy.active) enemy.destroy(); return; } if (data.state === 'dead') return; 
-            let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); if (distToPlayer > 900) return; 
+            let data = enemy.enemyData; 
+            if (data.isBoss) return; 
+            if (enemy.y > 450) { if (enemy.active) enemy.destroy(); return; } 
+            if (data.state === 'dead') return; 
+
+            let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
+            
+            // Reduced aggro radius from 900 to 400
+            if (distToPlayer > 400) {
+                if (data.state !== 'dead') { data.state = 'idle'; enemy.body.setVelocityX(0); enemy.anims.play('grunt_unarmed_idle', true); }
+                return;
+            }
 
             if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 if (distToPlayer < 75 && data.canAttack) {
-                    data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint(); enemy.anims.play('grunt_punch_right', true);
+                    data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint(); 
+                    enemy.anims.play('grunt_punch_right', true);
+                    
                     currentScene.time.delayedCall(400, () => {
                         if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return; 
                         data.hitbox.setPosition(enemy.x + (enemy.x < player.x ? 25 : -25), enemy.y); data.hitbox.setAlpha(1);
@@ -657,18 +668,43 @@
                     });
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
                 } else if (distToPlayer >= 100 && distToPlayer <= 350 && data.canAttack && data.state !== 'attack') {
-                    data.state = 'shoot'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint(); let dir = (player.x > enemy.x) ? 1 : -1; enemy.setFlipX(dir === -1); enemy.anims.play('grunt_punch_left', true);
+                    data.state = 'shoot'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint(); 
+                    let dir = (player.x > enemy.x) ? 1 : -1; 
+                    enemy.setFlipX(dir === -1); 
+                    enemy.anims.play('grunt_punch_left', true);
+                    
                     currentScene.time.delayedCall(300, () => {
                         if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return; 
-                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0xffaa00); currentScene.physics.add.existing(enemyBullet); enemyBullet.body.setAllowGravity(false); enemyBullet.body.setVelocityX(dir * 500); enemyBullet.dmg = 10; enemyProjectiles.add(enemyBullet);
-                        currentScene.time.delayedCall(1500, () => { if(enemyBullet.active) enemyBullet.destroy(); }); if (data.state !== 'dead') data.state = 'idle';
+                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0xffaa00); // Level 3 uses 0xffaa00
+                        currentScene.physics.add.existing(enemyBullet); 
+                        enemyProjectiles.add(enemyBullet); // Order fixed
+                        enemyBullet.body.setAllowGravity(false); 
+                        enemyBullet.body.setVelocityX(dir * 500); 
+                        enemyBullet.dmg = 10; 
+                        currentScene.time.delayedCall(1500, () => { if(enemyBullet.active) enemyBullet.destroy(); }); 
+                        if (data.state !== 'dead') data.state = 'idle';
                     });
-                    currentScene.time.delayedCall(1500, () => { data.canAttack = true; });
+                    currentScene.time.delayedCall(1500, () => { data.canAttack = true; }); // Faster cooldown
                 } else if (distToPlayer > 75 && data.state !== 'attack' && data.state !== 'shoot') {
-                    data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); enemy.setFlipX(dir === -1); enemy.anims.play('grunt_run_normal', true);
-                    if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
-                } else if (data.state !== 'attack' && data.state !== 'shoot') { data.state = 'idle'; enemy.body.setVelocityX(0); enemy.anims.play('grunt_unarmed_idle', true); }
-            } else { if (data.state !== 'attack' && data.state !== 'shoot') { enemy.body.setVelocityX(0); if(enemy.active && data.state !== 'dead') enemy.anims.play('grunt_unarmed_idle', true); } }
+                    // Added Y-axis check
+                    if (Math.abs(player.y - enemy.y) < 40) {
+                        data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
+                        enemy.setFlipX(dir === -1); 
+                        enemy.anims.play('grunt_run_normal', true);
+                        if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
+                    } else {
+                        data.state = 'idle'; enemy.body.setVelocityX(0); enemy.anims.play('grunt_unarmed_idle', true);
+                    }
+                } else if (data.state !== 'attack' && data.state !== 'shoot') { 
+                    data.state = 'idle'; enemy.body.setVelocityX(0); 
+                    enemy.anims.play('grunt_unarmed_idle', true); 
+                }
+            } else { 
+                if (data.state !== 'attack' && data.state !== 'shoot') { 
+                    enemy.body.setVelocityX(0); 
+                    if(enemy.active && data.state !== 'dead') enemy.anims.play('grunt_unarmed_idle', true); 
+                } 
+            }
         });
 
         if (!specialReady) {
