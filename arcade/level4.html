@@ -168,9 +168,8 @@
         this.physics.add.existing(bossWall, false); 
         bossWall.body.setImmovable(true); bossWall.body.setAllowGravity(false); bossWall.body.checkCollision.none = true; 
 
-        // --- NEW IMPENETRABLE RIGHT WALL SO HE CAN'T ESCAPE ---
         arenaRightWall = this.add.rectangle(6380, 200, 40, 400, 0x00ffff).setAlpha(0);
-        this.physics.add.existing(arenaRightWall, true); // true sets it as static and immovable
+        this.physics.add.existing(arenaRightWall, true);
 
         let floorHitboxOffset = 14; 
         platforms.getChildren().forEach(p => { p.body.y += floorHitboxOffset; });
@@ -188,8 +187,6 @@
         boss = this.physics.add.sprite(6100, 150, 'boss_idle');
         boss.setScale(2.2); 
         
-        // --- FLOATING FIX V2: Drastically reduced height to pull the box UP into his body ---
-        // This will lower his drawn sprite onto the floor perfectly.
         boss.body.setSize(30, 45); 
         boss.body.setOffset(25, 15);
         
@@ -224,8 +221,6 @@
         playerHealthBar = this.add.graphics().setDepth(10); bossHpBar = this.add.graphics().setScrollFactor(0).setDepth(20);
 
         this.physics.add.collider(player, platforms); 
-        
-        // Solid wall colliders to keep everyone boxed in!
         this.physics.add.collider(player, bossWall); 
         this.physics.add.collider(player, arenaRightWall); 
         this.physics.add.collider(enemiesGroup, bossWall); 
@@ -320,7 +315,7 @@
 
     function applyCharacterLoadout() { activeCharDef = playerRoster[currentRosterIndex]; player.clearTint(); player.setTexture(activeCharDef.spriteKey); currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife']; usingPrimaryGun = true; activeGun = gunArmory[activeCharDef.gun1] || gunArmory['Rifle']; playerHealth = 100; currentOrdnanceAmmo = activeOrdnance.maxAmmo; isSpawning = false; meleeText.setText('Melee: ' + activeWeapon.name); gunText.setText('Gun: ' + activeGun.name); rosterText.setText(`TEAM: ${3 - currentRosterIndex} LIVES`); actionText.setText(`${activeCharDef.name} DROPS IN!`); updateUI(); }
     function spawnNextCharacter() { if (currentRosterIndex >= 3) return; isSpawning = true; isInvincible = true; player.x = currentScene.cameras.main.scrollX + 100; player.y = -50; player.body.setVelocityY(800); applyCharacterLoadout(); player.setAlpha(0.5); currentScene.time.delayedCall(1500, () => { isInvincible = false; player.setAlpha(1); actionText.setText('Ready'); }); }
-    function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) { let textContent = amount >= 900 ? "BIO-BURN!" : Math.round(amount).toString(); if(isNaN(amount)) textContent = amount; let floatText = currentScene.add.text(x, y, textContent, { fontSize: isCritical ? '36px' : '22px', fill: isPlayerHit ? '#ff3300' : '#00ffff', fontStyle: 'bold', stroke: '#000000', strokeThickness: 5 }).setOrigin(0.5).setDepth(25); currentScene.tweens.add({ targets: floatText, x: floatText.x + Phaser.Math.Between(-25, 25), y: floatText.y - 60, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() }); }
+    function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) { let textContent = amount >= 900 ? "BIO-BURN!" : Math.round(amount).toString(); if(isNaN(amount)) textContent = amount; let floatText = currentScene.add.text(x, y, textContent, { fontSize: isCritical ? '36px' : '22px', fill: isPlayerHit ? '#ff3300' : '#00ffff', fontStyle: 'bold', stroke: '#000000', strokeThickness: 5 }).setOrigin(0.5).setDepth(25); currentScene.tweens.add({ targets: floatText, x: floatText.x + Math.random()*50-25, y: floatText.y - 60, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() }); }
     
     function drawWhipFX(isHeavy) { let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(isHeavy ? 10 : 4, activeWeapon.color, 1); slashGraphic.beginPath(); let whipLength = (facingDirection === 0) ? activeWeapon.reach : -activeWeapon.reach; let startY = player.y - 5; slashGraphic.moveTo(player.x, startY); slashGraphic.lineTo(player.x + whipLength * 0.4, startY - 15); slashGraphic.lineTo(player.x + whipLength * 0.8, startY + 10); slashGraphic.lineTo(player.x + whipLength, startY); slashGraphic.strokePath(); let crack = currentScene.add.circle(player.x + whipLength, startY, isHeavy ? 25 : 12, 0xffffff, 0.9); currentScene.tweens.add({ targets: crack, scale: 1.5, alpha: 0, duration: 150, onComplete: () => crack.destroy() }); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 150, onComplete: () => slashGraphic.destroy() }); }
     function executeHeavyAttack() { isAttacking = true; inputBuffered = false; canCancel = false; if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove(); actionText.setText(`WINDUP: ${activeWeapon.name}!`); if (activeWeapon.name === 'Energy Whip') playAnim('whip_stand'); else playAnim('punch_right'); currentScene.time.delayedCall(activeWeapon.speed * 1.5, () => { actionText.setText(`HEAVY STRIKE!`); let currentReach = activeWeapon.reach * 1.5; meleeHitbox.width = currentReach; meleeHitbox.height = 40; meleeHitbox.setAlpha(0); let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection; if (activeWeapon.name === 'Energy Whip') { drawWhipFX(true); } else { let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(10, activeWeapon.color, 1); slashGraphic.beginPath(); slashGraphic.arc(player.x, player.y, 50, Phaser.Math.DegToRad(facingDirection === 0 ? -90 : 270), Phaser.Math.DegToRad(90), false); slashGraphic.strokePath(); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 300, onComplete: () => slashGraphic.destroy() }); } enemiesGroup.getChildren().forEach(enemy => { if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds()) && enemy.enemyData.state !== 'dead') { let heavyStun = activeWeapon.stun > 0 ? activeWeapon.stun * 2 : 0.5; dealDamageToEnemy(enemy, activeWeapon.damage * 2.5, activeWeapon.pierce, heavyStun); if(!enemy.enemyData.isBoss) { enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); enemy.body.setVelocityX(facingDirection === 0 ? 300 : -300); } } }); attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => { meleeHitbox.setPosition(-100, -100); attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; playAnim('unarmed_idle'); actionText.setText('Ready'); }); }); }); }
@@ -499,10 +494,10 @@
                 if (currentTime > boss.enemyData.lastShot + 300) { 
                     let plasma = currentScene.add.rectangle(boss.x + (bossDir * 40), boss.y - 15, 20, 6, 0xff00ff);
                     currentScene.physics.add.existing(plasma);
-                    plasma.body.setAllowGravity(false);
+                    enemyProjectiles.add(plasma); // ADDED TO GROUP FIRST
+                    plasma.body.setAllowGravity(false); // GRAVITY STRIPPED SECOND
                     plasma.body.setVelocityX(bossDir * 800);
                     plasma.dmg = 20; 
-                    enemyProjectiles.add(plasma);
                     currentScene.time.delayedCall(2000, () => { if(plasma.active) plasma.destroy(); });
                     
                     boss.enemyData.lastShot = currentTime;
@@ -543,7 +538,12 @@
                     data.state = 'shoot'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint(); let dir = (player.x > enemy.x) ? 1 : -1; enemy.setFlipX(dir === -1); enemy.anims.play('grunt_punch_left', true);
                     currentScene.time.delayedCall(300, () => {
                         if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return; 
-                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0x00ffff); currentScene.physics.add.existing(enemyBullet); enemyBullet.body.setAllowGravity(false); enemyBullet.body.setVelocityX(dir * 500); enemyBullet.dmg = 10; enemyProjectiles.add(enemyBullet);
+                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0x00ffff); 
+                        currentScene.physics.add.existing(enemyBullet); 
+                        enemyProjectiles.add(enemyBullet); // ADDED TO GROUP FIRST
+                        enemyBullet.body.setAllowGravity(false); // GRAVITY STRIPPED SECOND
+                        enemyBullet.body.setVelocityX(dir * 500); 
+                        enemyBullet.dmg = 10; 
                         currentScene.time.delayedCall(1500, () => { if(enemyBullet.active) enemyBullet.destroy(); }); if (data.state !== 'dead') data.state = 'idle';
                     });
                     currentScene.time.delayedCall(1500, () => { data.canAttack = true; });
