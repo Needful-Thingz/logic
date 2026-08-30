@@ -100,14 +100,12 @@
         this.load.spritesheet('heavy', 'assets/heavy.png', { frameWidth: 56, frameHeight: 37 });
         this.load.spritesheet('grunt', 'assets/enemy.grunt.png', { frameWidth: 56, frameHeight: 37 });
         
-        // --- EXACT BOSS SPRITE SHEETS ---
         this.load.spritesheet('boss_idle', 'assets/boss_idle_lvl4.png', { frameWidth: 80, frameHeight: 80 });
         this.load.spritesheet('boss_run', 'assets/boss_run_lvl4.png', { frameWidth: 80, frameHeight: 80 });
         this.load.spritesheet('boss_run_shot', 'assets/boss_run-shoot_lvl4.png', { frameWidth: 80, frameHeight: 80 });
         this.load.spritesheet('boss_jump', 'assets/boss_jump_lvl4.png', { frameWidth: 80, frameHeight: 80 });
         this.load.spritesheet('boss_hurt', 'assets/boss_hurt_lvl4.png', { frameWidth: 80, frameHeight: 80 });
         
-        // Loaded for future AI attacks
         this.load.spritesheet('boss_shoot', 'assets/boss_shoot_lvl4.png', { frameWidth: 80, frameHeight: 80 });
         this.load.spritesheet('boss_duck', 'assets/boss_duck_lvl4.png', { frameWidth: 80, frameHeight: 80 });
         this.load.spritesheet('boss_cling', 'assets/boss_cling_lvl4.png', { frameWidth: 80, frameHeight: 80 });
@@ -180,9 +178,6 @@
         this.physics.add.existing(bossWall, false); 
         bossWall.body.setImmovable(true); bossWall.body.setAllowGravity(false); bossWall.body.checkCollision.none = true; 
 
-        // ==========================================
-        // FLOATING FIX
-        // ==========================================
         let floorHitboxOffset = 14; 
         platforms.getChildren().forEach(p => { p.body.y += floorHitboxOffset; });
         conveyorGroup.getChildren().forEach(c => { c.body.y += floorHitboxOffset; });
@@ -215,17 +210,15 @@
         boss.body.setSize(30, 65); 
         boss.body.setOffset(25, 15);
         boss.body.setCollideWorldBounds(true);
-        boss.enemyData = { isBoss: true, hp: 1500, maxHp: 1500, armor: 500, maxArmor: 500, state: 'sleep', isStunned: false, actionTimer: 0 };
+        boss.enemyData = { isBoss: true, hp: 1500, maxHp: 1500, armor: 500, maxArmor: 500, state: 'sleep', isStunned: false, actionTimer: 0, lastShot: 0, lastMelee: 0 };
         enemiesGroup.add(boss); 
         
-        // Create Boss Animations mapped to your frame counts
         this.anims.create({ key: 'boss_anim_idle', frames: this.anims.generateFrameNumbers('boss_idle', { start: 0, end: 3 }), frameRate: 8, repeat: -1 });
         this.anims.create({ key: 'boss_anim_run', frames: this.anims.generateFrameNumbers('boss_run', { start: 0, end: 9 }), frameRate: 15, repeat: -1 });
         this.anims.create({ key: 'boss_anim_run_shot', frames: this.anims.generateFrameNumbers('boss_run_shot', { start: 0, end: 9 }), frameRate: 15, repeat: -1 });
         this.anims.create({ key: 'boss_anim_jump', frames: this.anims.generateFrameNumbers('boss_jump', { start: 0, end: 5 }), frameRate: 10, repeat: -1 });
         this.anims.create({ key: 'boss_anim_hurt', frames: this.anims.generateFrameNumbers('boss_hurt', { start: 0, end: 1 }), frameRate: 8, repeat: 0 }); 
         
-        // Extra animations ready for future use
         this.anims.create({ key: 'boss_anim_shoot', frames: this.anims.generateFrameNumbers('boss_shoot', { start: 0, end: 2 }), frameRate: 10, repeat: -1 });
         this.anims.create({ key: 'boss_anim_duck', frames: this.anims.generateFrameNumbers('boss_duck', { start: 0, end: 0 }), frameRate: 1 });
         this.anims.create({ key: 'boss_anim_cling', frames: this.anims.generateFrameNumbers('boss_cling', { start: 0, end: 0 }), frameRate: 1 });
@@ -314,7 +307,6 @@
     function spawnNextCharacter() { if (currentRosterIndex >= 3) return; isSpawning = true; isInvincible = true; player.x = currentScene.cameras.main.scrollX + 100; player.y = -50; player.body.setVelocityY(800); applyCharacterLoadout(); player.setAlpha(0.5); currentScene.time.delayedCall(1500, () => { isInvincible = false; player.setAlpha(1); actionText.setText('Ready'); }); }
     function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) { let textContent = amount >= 900 ? "BIO-BURN!" : Math.round(amount).toString(); if(isNaN(amount)) textContent = amount; let floatText = currentScene.add.text(x, y, textContent, { fontSize: isCritical ? '36px' : '22px', fill: isPlayerHit ? '#ff3300' : '#00ffff', fontStyle: 'bold', stroke: '#000000', strokeThickness: 5 }).setOrigin(0.5).setDepth(25); currentScene.tweens.add({ targets: floatText, x: floatText.x + Phaser.Math.Between(-25, 25), y: floatText.y - 60, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() }); }
     
-    // --- MELEE & COMBAT LOGIC ---
     function drawWhipFX(isHeavy) { let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(isHeavy ? 10 : 4, activeWeapon.color, 1); slashGraphic.beginPath(); let whipLength = (facingDirection === 0) ? activeWeapon.reach : -activeWeapon.reach; let startY = player.y - 5; slashGraphic.moveTo(player.x, startY); slashGraphic.lineTo(player.x + whipLength * 0.4, startY - 15); slashGraphic.lineTo(player.x + whipLength * 0.8, startY + 10); slashGraphic.lineTo(player.x + whipLength, startY); slashGraphic.strokePath(); let crack = currentScene.add.circle(player.x + whipLength, startY, isHeavy ? 25 : 12, 0xffffff, 0.9); currentScene.tweens.add({ targets: crack, scale: 1.5, alpha: 0, duration: 150, onComplete: () => crack.destroy() }); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 150, onComplete: () => slashGraphic.destroy() }); }
     function executeHeavyAttack() { isAttacking = true; inputBuffered = false; canCancel = false; if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove(); actionText.setText(`WINDUP: ${activeWeapon.name}!`); if (activeWeapon.name === 'Energy Whip') playAnim('whip_stand'); else playAnim('punch_right'); currentScene.time.delayedCall(activeWeapon.speed * 1.5, () => { actionText.setText(`HEAVY STRIKE!`); let currentReach = activeWeapon.reach * 1.5; meleeHitbox.width = currentReach; meleeHitbox.height = 40; meleeHitbox.setAlpha(0); let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection; if (activeWeapon.name === 'Energy Whip') { drawWhipFX(true); } else { let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(10, activeWeapon.color, 1); slashGraphic.beginPath(); slashGraphic.arc(player.x, player.y, 50, Phaser.Math.DegToRad(facingDirection === 0 ? -90 : 270), Phaser.Math.DegToRad(90), false); slashGraphic.strokePath(); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 300, onComplete: () => slashGraphic.destroy() }); } enemiesGroup.getChildren().forEach(enemy => { if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds()) && enemy.enemyData.state !== 'dead') { let heavyStun = activeWeapon.stun > 0 ? activeWeapon.stun * 2 : 0.5; dealDamageToEnemy(enemy, activeWeapon.damage * 2.5, activeWeapon.pierce, heavyStun); if(!enemy.enemyData.isBoss) { enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); enemy.body.setVelocityX(facingDirection === 0 ? 300 : -300); } } }); attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => { meleeHitbox.setPosition(-100, -100); attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; playAnim('unarmed_idle'); actionText.setText('Ready'); }); }); }); }
     function executeAttack(step) { isAttacking = true; comboStep = step; inputBuffered = false; canCancel = false; if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove(); if (activeWeapon.name === 'Energy Whip') playAnim('whip_stand'); else if (step === 1) playAnim('punch_right'); else playAnim('punch_left'); let currentReach = step === 3 ? activeWeapon.reach * 1.5 : activeWeapon.reach; meleeHitbox.width = currentReach; meleeHitbox.height = step === 3 ? 40 : 20; meleeHitbox.setAlpha(0); let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection; currentScene.time.delayedCall(activeWeapon.speed * 0.5, () => { if (activeWeapon.name === 'Energy Whip') { drawWhipFX(false); } else { let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(6, activeWeapon.color, 1); slashGraphic.beginPath(); slashGraphic.arc(player.x, player.y, 30, Phaser.Math.DegToRad(facingDirection === 0 ? -45 : 225), Phaser.Math.DegToRad(facingDirection === 0 ? 45 : 135), false); slashGraphic.strokePath(); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 200, onComplete: () => slashGraphic.destroy() }); } enemiesGroup.getChildren().forEach(enemy => { if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds()) && enemy.enemyData.state !== 'dead') { dealDamageToEnemy(enemy, activeWeapon.damage * (step === 3 ? 2 : 1), activeWeapon.pierce, activeWeapon.stun); if(!enemy.enemyData.isBoss) { enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); if(step === 3) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150); } } }); }); attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => { meleeHitbox.setPosition(-100, -100); canCancel = true; if (inputBuffered && step < 3) triggerNextHit(); else { attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; playAnim('unarmed_idle'); }); } }); }
@@ -328,7 +320,6 @@
     
     function triggerEnemyDeath(enemy) { enemy.enemyData.state = 'dead'; enemy.body.enable = false; if (enemy.enemyData.bars) enemy.enemyData.bars.destroy(); if (enemy.enemyData.hitbox) enemy.enemyData.hitbox.destroy(); enemy.anims.play('grunt_die', true); currentScene.tweens.add({ targets: enemy, alpha: 0, delay: 1500, duration: 1000, onComplete: () => enemy.destroy() }); }
     
-    // --- NEW BOSS DEATH SEQUENCE ---
     function triggerBossDefeat(bossEnemy) { 
         bossDefeated = true; 
         bossEnemy.enemyData.state = 'dead';
@@ -337,8 +328,8 @@
         bossEnemy.anims.play('boss_anim_hurt', true);
         
         currentScene.time.delayedCall(50, () => { 
-            bossEnemy.anims.stop(); // Freeze on the falling back frame
-            bossEnemy.setTint(0x555555); // Darken the sprite
+            bossEnemy.anims.stop(); 
+            bossEnemy.setTint(0x555555); 
         });
 
         currentScene.cameras.main.shake(2200, 0.03); 
@@ -368,7 +359,6 @@
     function dealDamageToEnemy(enemy, dmg, piercePercent, stunDuration) { if (!enemy.active || enemy.enemyData.state === 'dead') return; let data = enemy.enemyData; let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg; if (data.armor > 0) { data.armor -= standardDmg; if (data.armor < 0) { data.hp += data.armor; data.armor = 0; } } else { data.hp -= standardDmg; } data.hp -= piercingDmg; let dmgX = enemy.x + (enemy.enemyData.isBoss ? Phaser.Math.Between(-30, 30) : Phaser.Math.Between(-10, 10)); spawnDamageText(dmgX, enemy.y + (enemy.enemyData.isBoss ? Phaser.Math.Between(-60, 20) : -30), Math.round(dmg), dmg >= 40, false); if (data.isBoss) { enemy.setTint(0xff0000); currentScene.time.delayedCall(80, () => { if (enemy.active && !bossDefeated) enemy.clearTint(); }); } else if (stunDuration > 0) { data.isStunned = true; data.state = 'stunned'; enemy.setTint(0x00ffff); currentScene.time.delayedCall(stunDuration * 1000, () => { if(enemy.active && data.state !== 'dead') { data.isStunned = false; data.state = 'idle'; enemy.clearTint(); } }); } if (data.hp <= 0) { score += data.isBoss ? 5000 : 10; scoreText.setText('SCORE: ' + score); if (data.isBoss) triggerBossDefeat(enemy); else triggerEnemyDeath(enemy); } }
     function drawFloatingBars() { playerHealthBar.clear(); if (playerHealth > 0 && !isSpawning) { playerHealthBar.fillStyle(0x333333, 1).fillRect(player.x - 20, player.y - 40, 40, 5); playerHealthBar.fillStyle(0x00ff00, 1).fillRect(player.x - 20, player.y - 40, 40 * (playerHealth / 100), 5); } enemiesGroup.getChildren().forEach(enemy => { let data = enemy.enemyData; if (!data.isBoss && data.bars && data.state !== 'dead') { let bars = data.bars; bars.clear(); bars.fillStyle(0x333333, 1).fillRect(enemy.x - 25, enemy.y - 45, 50, 6); bars.fillStyle(0x333333, 1).fillRect(enemy.x - 25, enemy.y - 36, 50, 6); bars.fillStyle(0x00ff00, 1).fillRect(enemy.x - 25, enemy.y - 45, 50 * (data.hp / data.maxHp), 6); bars.fillStyle(0xcccccc, 1).fillRect(enemy.x - 25, enemy.y - 36, 50 * (data.armor / data.maxArmor), 6); } }); }
     
-    // --- WAKE UP THE BOSS ---
     function triggerBoss() { 
         bossActive = true; 
         currentScene.cameras.main.stopFollow(); 
@@ -385,7 +375,6 @@
             currentScene.cameras.main.startFollow(player, true, 0.1, 0.1); 
             showCenterMessage("WARNING: PROTOTYPE ANDROID", '#ff00ff'); 
             
-            // Start the AI Sequence
             currentScene.time.delayedCall(1500, () => { 
                 boss.enemyData.state = 'chase'; 
                 boss.anims.play('boss_anim_run', true);
@@ -446,32 +435,38 @@
             }
         } else if (droneActive && playerHealth <= 0) { droneActive = false; if(drone) drone.destroy(); }
         
-        // --- PROTOTYPE ANDROID BOSS AI LOOP ---
+        // --- COMPLETELY REBUILT BOSS AI LOOP ---
         if (bossActive && !bossDefeated && boss.active && boss.enemyData.state !== 'sleep' && boss.enemyData.state !== 'dead') {
-            let distToPlayer = Phaser.Math.Distance.Between(boss.x, boss.y, player.x, player.y);
+            let distToPlayer = Math.abs(boss.x - player.x); 
             let bossDir = (player.x > boss.x) ? 1 : -1;
             
-            // Only flip the sprite if he isn't mid-jump
             if (boss.enemyData.state !== 'jump') boss.setFlipX(bossDir === -1); 
             
-            if (currentTime > boss.enemyData.actionTimer) {
+            // 1. Stricter Landing Enforcement (Prevents sliding/sticking to walls)
+            if (boss.enemyData.state === 'jump') {
+                if (boss.body.blocked.down && boss.body.velocity.y >= 0) {
+                    boss.enemyData.state = 'chase';
+                    boss.body.setVelocityX(0);
+                    boss.enemyData.actionTimer = currentTime + 200; // Small pause after landing
+                }
+            }
+
+            // 2. Decide Next Move (Guaranteed to only happen if on the ground)
+            if (currentTime > boss.enemyData.actionTimer && boss.enemyData.state !== 'jump' && boss.body.blocked.down) {
                 let randMove = Math.random();
                 
-                // If player is too close, backflip away!
-                if (distToPlayer < 180 && randMove < 0.6) {
+                if (distToPlayer < 200 && randMove < 0.6) {
                     boss.enemyData.state = 'jump';
                     boss.body.setVelocityY(-550);
-                    boss.body.setVelocityX(bossDir * -350); 
+                    boss.body.setVelocityX(bossDir * -400); 
                     boss.anims.play('boss_anim_jump', true);
-                    boss.enemyData.actionTimer = currentTime + 1200;
+                    boss.enemyData.actionTimer = currentTime + 3000; 
                 } 
-                // Mid range: Run and Gun
                 else if (distToPlayer > 300 || randMove < 0.4) {
                     boss.enemyData.state = 'run_gun';
                     boss.anims.play('boss_anim_run_shot', true);
                     boss.enemyData.actionTimer = currentTime + 2000;
                 } 
-                // Close the gap aggressively
                 else {
                     boss.enemyData.state = 'chase';
                     boss.anims.play('boss_anim_run', true);
@@ -479,27 +474,34 @@
                 }
             }
 
-            // Execute the decided state
+            // 3. Execute Current State
             if (boss.enemyData.state === 'chase') {
                 boss.body.setVelocityX(bossDir * 280); 
             } 
             else if (boss.enemyData.state === 'run_gun') {
                 boss.body.setVelocityX(bossDir * 180);
-                if (currentTime % 400 < 20) { 
+                
+                // Rock-Solid Shooting Timer
+                boss.enemyData.lastShot = boss.enemyData.lastShot || 0;
+                if (currentTime > boss.enemyData.lastShot + 300) { 
                     let plasma = currentScene.add.rectangle(boss.x + (bossDir * 40), boss.y - 15, 20, 6, 0xff00ff);
                     currentScene.physics.add.existing(plasma);
                     plasma.body.setAllowGravity(false);
                     plasma.body.setVelocityX(bossDir * 800);
-                    plasma.dmg = 35;
+                    plasma.dmg = 20; 
                     enemyProjectiles.add(plasma);
                     currentScene.time.delayedCall(2000, () => { if(plasma.active) plasma.destroy(); });
+                    
+                    boss.enemyData.lastShot = currentTime;
                 }
-            } 
-            else if (boss.enemyData.state === 'jump') {
-                if (boss.body.touching.down && boss.body.velocity.y >= 0) {
-                    boss.enemyData.state = 'chase';
-                    boss.body.setVelocityX(0);
-                    boss.enemyData.actionTimer = currentTime; // Instantly decide next move upon landing
+            }
+            
+            // 4. Contact Damage (Player can no longer stand inside the boss!)
+            if (Phaser.Geom.Intersects.RectangleToRectangle(boss.getBounds(), player.getBounds()) && playerHealth > 0) {
+                boss.enemyData.lastMelee = boss.enemyData.lastMelee || 0;
+                if (currentTime > boss.enemyData.lastMelee + 1000) {
+                    playerTakeDamage(30, boss.x);
+                    boss.enemyData.lastMelee = currentTime;
                 }
             }
         }
