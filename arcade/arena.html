@@ -7,11 +7,15 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
         body { margin: 0; padding: 0; background-color: #121a12; overflow: hidden; } 
         canvas { display: block; margin: 0 auto; }
     </style>
 </head>
 <body>
+
+<!-- GLOBAL HTML PAUSE BUTTON -->
+<div id="pauseBtn" style="position: absolute; top: 15px; right: 15px; background: #333; border: 2px solid #58a6ff; color: #fff; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-family: 'Share Tech Mono', monospace; font-weight: bold; z-index: 100; font-size: 16px;">PAUSE</div>
 
 <script>
     const config = {
@@ -184,14 +188,21 @@
 
         this.physics.add.overlap(player, enemyProjectiles, (p, proj) => { proj.destroy(); playerTakeDamage(proj.dmg, proj.x); });
 
-        // --- UI SETUP ---
+        // --- UI SETUP & ECONOMY INITIALIZATION ---
+        let savedCredits = parseInt(localStorage.getItem('nt_credits')) || 0;
+        this.registry.set('credits', savedCredits);
+
         uiElements.push(this.add.text(10, 10, 'Melee: ', { fontSize: '12px', fill: '#ffffff', backgroundColor: '#000000' })); meleeText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(10, 25, 'Gun: ', { fontSize: '12px', fill: '#ffff00', backgroundColor: '#000000' })); gunText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(10, 40, `Ammo: ∞`, { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' })); ammoText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(10, 60, `Nades: `, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold', backgroundColor: '#000000' })); grenadeText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); actionText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); rosterText = uiElements[uiElements.length-1];
-        uiElements.push(this.add.text(400, 65, 'SCORE: 0', { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); scoreText = uiElements[uiElements.length-1];
+        
+        // Upgraded Score/Credit Display
+        uiElements.push(this.add.text(400, 65, 'SCORE: 0 | CREDITS: ' + savedCredits, { fontSize: '20px', fill: '#ffaa00', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); 
+        scoreText = uiElements[uiElements.length-1];
+        
         uiElements.push(this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0)); centerMsgText = uiElements[uiElements.length-1];
 
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
@@ -657,10 +668,15 @@
             currentScene.time.delayedCall(stunDuration * 1000, () => { if(enemy.active && data.state !== 'dead') { data.isStunned = false; data.state = 'idle'; enemy.clearTint(); } });
         }
 
+        // --- UPGRADED ECONOMY PAYOUT ---
         if (data.hp <= 0) { 
+            let currentCredits = currentScene.registry.get('credits');
             if (data.isBoss) {
                 score += 5000; 
-                scoreText.setText('SCORE: ' + score);
+                let newBalance = currentCredits + 500; // 500 Credit Boss Bonus
+                currentScene.registry.set('credits', newBalance);
+                localStorage.setItem('nt_credits', newBalance);
+                scoreText.setText('SCORE: ' + score + ' | CREDITS: ' + newBalance);
                 
                 if (data.bossType === 1) goliathDefeated = true;
                 if (data.bossType === 2) siegeTankDefeated = true;
@@ -668,7 +684,10 @@
                 triggerArenaBossDefeat(enemy);
             } else {
                 score += 10; 
-                scoreText.setText('SCORE: ' + score); 
+                let newBalance = currentCredits + 15; // 15 Credit Grunt Bounty
+                currentScene.registry.set('credits', newBalance);
+                localStorage.setItem('nt_credits', newBalance);
+                scoreText.setText('SCORE: ' + score + ' | CREDITS: ' + newBalance);
                 triggerEnemyDeath(enemy); 
             }
         }
@@ -797,8 +816,17 @@
             if (data.state === 'dead') return; 
 
             let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
+            let yDistance = Math.abs(player.y - enemy.y);
 
-            if (!data.isStunned && playerHealth > 0 && !isSpawning) {
+            // AGGRO UPGRADE: If player is far away, or on a different vertical platform, go idle
+            if (distToPlayer > 400 || yDistance > 40) {
+                if (data.state !== 'attack' && data.state !== 'shoot') { 
+                    data.state = 'idle'; 
+                    enemy.body.setVelocityX(0); 
+                    if(enemy.active && data.state !== 'dead') enemy.anims.play('grunt_unarmed_idle', true); 
+                }
+            }
+            else if (!data.isStunned && playerHealth > 0 && !isSpawning) {
                 if (distToPlayer < 75 && data.canAttack) {
                     data.state = 'attack'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
                     enemy.anims.play('grunt_punch_right', true);
@@ -824,10 +852,13 @@
                         
                         let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0xffaa00);
                         currentScene.physics.add.existing(enemyBullet);
-                        enemyBullet.body.setAllowGravity(false);
+                        
+                        // FIX: Add to group BEFORE stripping gravity
+                        enemyProjectiles.add(enemyBullet); 
+                        enemyBullet.body.setAllowGravity(false); 
+                        
                         enemyBullet.body.setVelocityX(dir * 500); 
                         enemyBullet.dmg = 10;
-                        enemyProjectiles.add(enemyBullet);
                         
                         currentScene.time.delayedCall(1500, () => { if(enemyBullet.active) enemyBullet.destroy(); });
                         if (data.state !== 'dead') data.state = 'idle';
@@ -859,6 +890,24 @@
             if (specialCharge >= specialMax) { specialReady = true; specialButton.setFillStyle(0x00ffff); }
         }
     }
+
+    // --- GLOBAL HTML PAUSE CONTROLLER ---
+    let isGamePaused = false;
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+        if (!isGamePaused) {
+            game.scene.scenes[0].scene.pause();
+            isGamePaused = true;
+            document.getElementById('pauseBtn').innerText = 'RESUME';
+            document.getElementById('pauseBtn').style.background = '#00aaff';
+            document.getElementById('pauseBtn').style.color = '#000';
+        } else {
+            game.scene.scenes[0].scene.resume();
+            isGamePaused = false;
+            document.getElementById('pauseBtn').innerText = 'PAUSE';
+            document.getElementById('pauseBtn').style.background = '#333';
+            document.getElementById('pauseBtn').style.color = '#fff';
+        }
+    });
 </script>
 
 </body>
