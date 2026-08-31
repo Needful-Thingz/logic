@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Needful Thingz - Squad Deployment</title>
+    
+    <!-- SUPABASE V2 CDN SCRIPT ADDED HERE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
@@ -240,6 +244,32 @@
     </div>
 
     <script>
+        // ==========================================
+        // SUPABASE INITIALIZATION & DATA FETCHING
+        // ==========================================
+        const { createClient } = supabase;
+        const supabaseUrl = 'https://zndgwxlnwftschvwwvob.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        async function loadPlayerData(userId) {
+            const { data, error } = await supabaseClient
+                .from('player_progression')
+                .select('credits, levels_completed, bosses_defeated')
+                .eq('user_id', userId)
+                .single();
+
+            if (error) {
+                console.error('Error fetching data:', error.message);
+                return;
+            }
+            
+            console.log('Player loaded:', data);
+            // You can add logic here to update the UI with the fetched data
+        }
+        // ==========================================
+
+
         // Maps class names to their hex colors for the game engine
         const colorMap = {
             "Vanguard": 0x00aaff, // Blue
