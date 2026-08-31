@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Needful Thingz - System Login</title>
+    
+    <!-- SUPABASE V2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 90vh;
+            overflow-x: hidden;
+        }
+
+        .login-container {
+            background: #161b22;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        h1 {
+            color: #00aaff;
+            font-size: 28px;
+            margin-top: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 170, 255, 0.5);
+        }
+
+        p {
+            color: #8b949e;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 90%;
+            background: #0d1117;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 16px;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #00aaff;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            border: none;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        .btn-login {
+            background: linear-gradient(180deg, #00aaff 0%, #0077cc 100%);
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 170, 255, 0.4);
+        }
+
+        .btn-login:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 25px rgba(0, 170, 255, 0.7);
+        }
+
+        .btn-register {
+            background: transparent;
+            color: #8b949e;
+            border: 1px solid #30363d;
+        }
+
+        .btn-register:hover {
+            border-color: #ffaa00;
+            color: #ffaa00;
+        }
+
+        #error-msg {
+            color: #ff5555;
+            margin-top: 15px;
+            font-size: 14px;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h1>Secure Uplink</h1>
+        <p>AUTHENTICATE TO ACCESS DEPLOYMENT PROTOCOLS</p>
+        
+        <input type="email" id="email" placeholder="OPERATOR EMAIL" required>
+        <input type="password" id="password" placeholder="PASSWORD" required>
+        
+        <button class="btn btn-login" onclick="handleLogin()">LOGIN</button>
+        <button class="btn btn-register" onclick="handleRegister()">REGISTER NEW OPERATOR</button>
+        
+        <div id="error-msg"></div>
+    </div>
+
+    <script>
+        // ==========================================
+        // SUPABASE INITIALIZATION
+        // ==========================================
+        const { createClient } = supabase;
+        const supabaseUrl = 'https://zndgwxlnwftschvwwvob.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const errorMsg = document.getElementById('error-msg');
+
+        // ==========================================
+        // AUTHENTICATION LOGIC
+        // ==========================================
+        async function handleLogin() {
+            errorMsg.textContent = "Authenticating...";
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: emailInput.value,
+                password: passwordInput.value
+            });
+
+            if (error) {
+                errorMsg.textContent = error.message;
+            } else {
+                errorMsg.style.color = "#00ff00";
+                errorMsg.textContent = "Access Granted. Rerouting...";
+                // Redirect to the squad config screen on success
+                setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+            }
+        }
+
+        async function handleRegister() {
+            errorMsg.textContent = "Registering...";
+            const { data, error } = await supabaseClient.auth.signUp({
+                email: emailInput.value,
+                password: passwordInput.value
+            });
+
+            if (error) {
+                errorMsg.textContent = error.message;
+            } else {
+                errorMsg.style.color = "#00aaff";
+                errorMsg.textContent = "Registration Successful! You may now Login.";
+                // Note: The database trigger (handle_new_user) will run in the background right now!
+            }
+        }
+    </script>
+</body>
+</html>
