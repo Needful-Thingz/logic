@@ -269,6 +269,27 @@
         }
         // ==========================================
 
+        // ==========================================
+        // AUTHENTICATION GUARD
+        // ==========================================
+        async function checkAuth() {
+            // Check the browser for an active secure session
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+            if (error || !session) {
+                // No session found - redirect immediately to login
+                console.warn('Unauthorized access detected. Rerouting...');
+                window.location.href = 'login.html';
+            } else {
+                // Session verified - fetch this specific operator's data
+                console.log('Operator verified:', session.user.email);
+                loadPlayerData(session.user.id);
+            }
+        }
+
+        // Execute the guard immediately when the page loads
+        checkAuth();
+        // ==========================================
 
         // Maps class names to their hex colors for the game engine
         const colorMap = {
