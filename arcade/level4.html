@@ -402,6 +402,8 @@
                             console.error('Error saving progress:', error);
                         }
                     }
+                    
+                    // WIPE ROUTING: Correctly routes to debrief screen with lose status
                     window.location.href = 'debrief.html?status=lose'; 
                 }); 
             } 
@@ -466,6 +468,8 @@
                     console.error('Error saving progress:', error);
                 }
             }
+            
+            // FINAL LEVEL ROUTING: Bypasses Armory and routes directly to triumphant debrief screen
             window.location.href = 'debrief.html?status=win'; 
         }); 
     }
