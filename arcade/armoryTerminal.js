@@ -93,8 +93,9 @@ class ArmoryTerminal extends Phaser.Scene {
         endlessBtn.btn.on('pointerdown', () => window.location.href = 'arena.html?mode=endless');
         this.menuGroup.addMultiple([endlessBtn.btn, endlessBtn.descText]);
 
-        const pvpBtn = this.createInteractiveButton(this.cameras.main.centerX, 480, '[ PROVING GROUNDS ]', 'Local PvP: Head-to-Head', '#ffffff');
-        pvpBtn.btn.on('pointerdown', () => window.location.href = 'arena.html?mode=pvp');
+        // Proving Grounds (PvP) with Matchmaking Integration
+        const pvpBtn = this.createInteractiveButton(this.cameras.main.centerX, 480, '[ PROVING GROUNDS ]', 'Enter the 10-Player PvP Matchmaking Queue', '#ffffff');
+        pvpBtn.btn.on('pointerdown', () => this.joinMatchmakingQueue());
         this.menuGroup.addMultiple([pvpBtn.btn, pvpBtn.descText]);
     }
 
@@ -189,6 +190,59 @@ class ArmoryTerminal extends Phaser.Scene {
         } catch (err) {
             console.error("Equip sequence failed:", err.message);
             this.flashMessage('EQUIP FAILED: ' + err.message.toUpperCase(), '#ff0000');
+        }
+    }
+
+    // MATCHMAKING QUEUE LOGIC
+    async joinMatchmakingQueue() {
+        this.flashMessage('ENTERING QUEUE...', '#00ffff');
+        
+        try {
+            // 1. Get the player's hidden grade
+            const { data: playerData, error: fetchError } = await supabase
+                .from('players')
+                .select('hidden_grade')
+                .eq('id', this.currentUserId)
+                .single();
+                
+            if (fetchError) throw fetchError;
+            
+            // 2. Insert into the waiting room
+            const { error: queueError } = await supabase.from('matchmaking_queue').upsert([{ 
+                player_id: this.currentUserId, 
+                hidden_grade: playerData.hidden_grade || 500 
+            }]);
+            
+            if (queueError) throw queueError;
+            
+            this.flashMessage('SEARCHING FOR LOBBY...', '#ffff00');
+
+            // 3. Subscribe to Realtime to listen for our player ID landing in a match
+            const matchSubscription = supabase.channel('match-listener')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'match_participants', filter: `player_id=eq.${this.currentUserId}` },
+                    (payload) => {
+                        console.log('Match found! Payload:', payload);
+                        this.flashMessage('MATCH FOUND! PREPARING DROP...', '#00ff00');
+                        
+                        // Clean up the listener so it doesn't leak memory
+                        supabase.removeChannel(matchSubscription);
+
+                        // Redirect to the arena, carrying the unique match_id in the URL
+                        setTimeout(() => {
+                            window.location.href = `arena.html?mode=pvp&match_id=${payload.new.match_id}`;
+                        }, 1500);
+                    }
+                )
+                .subscribe();
+
+            // 4. Ping the server to see if a lobby can be built right now
+            await supabase.rpc('attempt_matchmaking');
+
+        } catch (err) {
+            console.error("Matchmaking error:", err.message);
+            this.flashMessage('QUEUE ENTRY FAILED', '#ff0000');
         }
     }
 
