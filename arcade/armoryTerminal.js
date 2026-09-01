@@ -8,6 +8,9 @@ class ArmoryTerminal extends Phaser.Scene {
     constructor() {
         super({ key: 'ArmoryTerminal' });
         this.playerCredits = 0;
+        this.activePrimary = 'assault_rifle';
+        this.activeMelee = 'combat_knife';
+        this.unlocked = { sniper: false }; // Track unlock states
         this.currentUserId = null;
         this.menuGroup = null;
         this.shopGroup = null;
@@ -24,8 +27,8 @@ class ArmoryTerminal extends Phaser.Scene {
             this.currentUserId = session.user.id;
         }
 
-        // Fetch actual credits from database
-        await this.fetchPlayerCredits();
+        // Fetch actual credits and loadout from database
+        await this.fetchPlayerData();
 
         // 2. Build the UI Foundation
         this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x111111).setOrigin(0, 0);
@@ -59,16 +62,19 @@ class ArmoryTerminal extends Phaser.Scene {
             });
     }
 
-    async fetchPlayerCredits() {
-        // Query the public.players table for the current user's credits
+    async fetchPlayerData() {
+        // Query the public.players table for credits, active loadout, and unlocks
         const { data, error } = await supabase
             .from('players')
-            .select('credits')
+            .select('credits, active_primary, active_melee, unlock_sniper')
             .eq('id', this.currentUserId)
             .single();
 
         if (data) {
             this.playerCredits = data.credits;
+            this.activePrimary = data.active_primary || 'assault_rifle';
+            this.activeMelee = data.active_melee || 'combat_knife';
+            this.unlocked.sniper = data.unlock_sniper || false;
         }
     }
 
@@ -79,37 +85,55 @@ class ArmoryTerminal extends Phaser.Scene {
         // Armory Shop Toggle
         const shopBtn = this.createInteractiveButton(this.cameras.main.centerX, 260, '[ ACCESS QUARTERMASTER ]', 'Spend credits to unlock permanent gear', '#00ffff');
         shopBtn.btn.on('pointerdown', () => this.toggleView('shop'));
-        this.menuGroup.addMultiple([shopBtn.btn, shopBtn.desc]);
+        this.menuGroup.addMultiple([shopBtn.btn, shopBtn.descText]);
 
         // Endless Survival
         const endlessBtn = this.createInteractiveButton(this.cameras.main.centerX, 360, '[ ENDLESS SURVIVAL ]', 'Horde Mode: Infinite Grunts', '#ffffff');
         endlessBtn.btn.on('pointerdown', () => window.location.href = 'arena.html?mode=endless');
-        this.menuGroup.addMultiple([endlessBtn.btn, endlessBtn.desc]);
+        this.menuGroup.addMultiple([endlessBtn.btn, endlessBtn.descText]);
 
         // Proving Grounds (PvP)
         const pvpBtn = this.createInteractiveButton(this.cameras.main.centerX, 460, '[ PROVING GROUNDS ]', 'Local PvP: Head-to-Head', '#ffffff');
         pvpBtn.btn.on('pointerdown', () => window.location.href = 'arena.html?mode=pvp');
-        this.menuGroup.addMultiple([pvpBtn.btn, pvpBtn.desc]);
+        this.menuGroup.addMultiple([pvpBtn.btn, pvpBtn.descText]);
     }
 
     buildShopMenu() {
+        // Clear the group so we can dynamically rebuild it when states change
+        this.shopGroup.clear(true, true);
+
         const header = this.add.text(this.cameras.main.centerX, 180, '--- QUARTERMASTER ARMORY ---', { fontSize: '20px', fill: '#aaaaaa', fontFamily: 'Courier' }).setOrigin(0.5);
         this.shopGroup.add(header);
 
-        // Example Weapon Purchase: Heavy Sniper
+        // Dynamic Weapon Display: Heavy Sniper
         const weaponCost = 1500;
-        const sniperBtn = this.createInteractiveButton(this.cameras.main.centerX, 280, `[ BUY HEAVY SNIPER - ${weaponCost} CR ]`, 'High damage, slow fire rate, pierces armor', '#ff00ff');
-        
-        sniperBtn.btn.on('pointerdown', () => this.purchaseWeapon('Heavy Sniper', 'unlock_sniper', weaponCost));
-        this.shopGroup.addMultiple([sniperBtn.btn, sniperBtn.desc]);
+        let sniperText, sniperAction, sniperColor;
+
+        if (!this.unlocked.sniper) {
+            sniperText = `[ BUY HEAVY SNIPER - ${weaponCost} CR ]`;
+            sniperColor = '#ff00ff';
+            sniperAction = () => this.purchaseWeapon('Heavy Sniper', 'unlock_sniper', weaponCost, 'sniper');
+        } else if (this.activePrimary === 'sniper') {
+            sniperText = `[ HEAVY SNIPER - EQUIPPED ]`;
+            sniperColor = '#00ff00';
+            sniperAction = () => this.flashMessage('ALREADY EQUIPPED', '#00ff00');
+        } else {
+            sniperText = `[ EQUIP HEAVY SNIPER ]`;
+            sniperColor = '#00ffff';
+            sniperAction = () => this.equipWeapon('primary', 'sniper');
+        }
+
+        const sniperBtn = this.createInteractiveButton(this.cameras.main.centerX, 280, sniperText, 'High damage, slow fire rate, pierces armor', sniperColor);
+        sniperBtn.btn.on('pointerdown', sniperAction);
+        this.shopGroup.addMultiple([sniperBtn.btn, sniperBtn.descText]);
 
         // Back to Menu Button
         const backBtn = this.createInteractiveButton(this.cameras.main.centerX, 500, '[ RETURN TO DEPLOYMENT ]', '', '#ff0000');
         backBtn.btn.on('pointerdown', () => this.toggleView('menu'));
-        this.shopGroup.addMultiple([backBtn.btn, backBtn.desc]);
+        this.shopGroup.addMultiple([backBtn.btn, backBtn.descText]);
     }
 
-    async purchaseWeapon(weaponName, dbColumn, cost) {
+    async purchaseWeapon(weaponName, dbColumn, cost, weaponId) {
         if (this.playerCredits < cost) {
             this.flashMessage('INSUFFICIENT CREDITS', '#ff0000');
             return;
@@ -122,7 +146,7 @@ class ArmoryTerminal extends Phaser.Scene {
             .from('players')
             .update({ 
                 credits: this.playerCredits - cost,
-                [dbColumn]: true // Assuming you have boolean columns for unlocks like 'unlock_sniper'
+                [dbColumn]: true 
             })
             .eq('id', this.currentUserId);
 
@@ -134,8 +158,43 @@ class ArmoryTerminal extends Phaser.Scene {
 
         // 2. Update local state and UI
         this.playerCredits -= cost;
+        this.unlocked[weaponId] = true;
         this.creditDisplay.setText(`AVAILABLE CREDITS: ${this.playerCredits}`);
         this.flashMessage(`${weaponName.toUpperCase()} UNLOCKED!`, '#00ff00');
+        
+        // Rebuild the shop menu to turn the Buy button into an Equip button
+        this.buildShopMenu();
+    }
+
+    async equipWeapon(slot, weaponId) {
+        this.flashMessage('EQUIPPING...', '#ffff00');
+
+        try {
+            // Trigger the secure Supabase Stored Procedure
+            const { data, error } = await supabase.rpc('equip_item', {
+                p_slot: slot,
+                p_weapon_id: weaponId
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            console.log(`Success! ${weaponId} equipped to ${slot} slot.`);
+            
+            // Update local state
+            if (slot === 'primary') this.activePrimary = weaponId;
+            if (slot === 'melee') this.activeMelee = weaponId;
+
+            this.flashMessage('EQUIPPED SUCCESSFULLY', '#00ff00');
+
+            // Rebuild shop to show the EQUIPPED tag
+            this.buildShopMenu();
+
+        } catch (err) {
+            console.error("Equip sequence failed:", err.message);
+            this.flashMessage('EQUIP FAILED: ' + err.message.toUpperCase(), '#ff0000');
+        }
     }
 
     toggleView(view) {
@@ -158,7 +217,7 @@ class ArmoryTerminal extends Phaser.Scene {
         btn.on('pointerover', () => { btn.setFill(hoverColor); descText.setAlpha(1); });
         btn.on('pointerout', () => { btn.setFill('#ffffff'); descText.setAlpha(0); });
 
-        return { btn, descText }; // Fixed variable return name
+        return { btn, descText }; 
     }
 
     flashMessage(text, color) {
