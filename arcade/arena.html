@@ -41,6 +41,10 @@
     let facingDirection = 0, currentScene, grenadesGroup; 
     let score = 0;
     
+    // --- STAT TRACKING VARIABLES ---
+    let currentMatchShotsFired = 0;
+    let currentMatchShotsHit = 0;
+    
     const weaponArmory = {
         'Knife': { name: 'Combat Knife', damage: 28, reach: 40, pierce: 0.15, stun: 0, speed: 80, color: 0xcccccc },
         'Sword': { name: 'Broadsword', damage: 35, reach: 75, pierce: 0.50, stun: 0, speed: 150, color: 0xff3333 },
@@ -570,8 +574,8 @@
                 sendMatchResults({
                     playerId: "REPLACE_WITH_LOGGED_IN_USER_ID", // We will wire up auth later
                     kills: Math.floor(score / 15), // Temporary estimation based on your grunt credit payout
-                    shotsFired: 100, // Placeholder until we add ammo tracking to this file
-                    shotsHit: 45,    // Placeholder
+                    shotsFired: currentMatchShotsFired, // NOW DYNAMIC
+                    shotsHit: currentMatchShotsHit,     // NOW DYNAMIC
                     veteranTakedowns: (goliathDefeated ? 1 : 0) + (siegeTankDefeated ? 1 : 0),
                     placedBottomHalf: true // They died, so it counts as a loss
                 });
@@ -626,9 +630,16 @@
             let bullet = currentScene.add.rectangle(player.x, player.y, 12, 4, activeGun.color);
             currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false); 
             currentScene.physics.velocityFromRotation(currentAngle, activeGun.speed, bullet.body.velocity); bullet.rotation = currentAngle;
+            
+            // TRACKING: Shot Fired
+            currentMatchShotsFired++;
+
             currentScene.physics.add.overlap(bullet, enemiesGroup, (b, enemy) => {
                 if (enemy.enemyData.state !== 'dead') {
-                    b.destroy(); dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); enemy.setTint(enemy.enemyData.isBoss ? 0xffffff : activeGun.color); 
+                    b.destroy(); 
+                    // TRACKING: Shot Hit
+                    currentMatchShotsHit++; 
+                    dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); enemy.setTint(enemy.enemyData.isBoss ? 0xffffff : activeGun.color); 
                     currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
                 }
             });
