@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Needful Thingz - Mission Debrief</title>
+    
+    <!-- Supabase CDN Added -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
@@ -44,7 +48,16 @@
         h2 {
             color: #00aaff;
             font-size: 24px;
+            margin: 10px 0;
+        }
+
+        /* New Score Styling */
+        .score-display {
+            color: #ffaa00;
+            font-size: 32px;
             margin: 20px 0;
+            text-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
+            font-weight: bold;
         }
 
         p {
@@ -108,6 +121,9 @@
         <h1 id="status-title">STANDBY...</h1>
         <h2 id="hook-text">Processing Mission Data</h2>
         
+        <!-- Final Score Display -->
+        <div id="score-display" class="score-display">FINAL SCORE: CALCULATING...</div>
+        
         <p>
             The arcade may be chaotic, but your property management doesn't have to be. 
             Join the <strong>Kill the Clipboard</strong> campaign and streamline your maintenance triage, technician routing, and vendor management.
@@ -128,6 +144,7 @@
 
         const title = document.getElementById('status-title');
         const hook = document.getElementById('hook-text');
+        const scoreDisplay = document.getElementById('score-display');
 
         if (result === 'win') {
             title.textContent = "SECTOR CLEARED";
@@ -137,6 +154,37 @@
             title.textContent = "TEAM WIPED";
             title.className = "lose-text";
             hook.textContent = "Don't let your daily operations suffer the same fate.";
+        }
+
+        // --- SUPABASE SCORE FETCHING ---
+        const supabaseUrl = localStorage.getItem('supabaseUrl') || '';
+        const supabaseKey = localStorage.getItem('supabaseAnonKey') || '';
+        
+        if (supabaseUrl && supabaseKey) {
+            const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+            
+            async function fetchFinalScore() {
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                        const { data, error } = await supabase.from('profiles').select('score').eq('id', user.id).single();
+                        if (data && data.score !== undefined) {
+                            scoreDisplay.textContent = `FINAL SCORE: ${data.score}`;
+                        } else {
+                            scoreDisplay.textContent = "FINAL SCORE: ERROR";
+                        }
+                    } else {
+                        scoreDisplay.textContent = "FINAL SCORE: GUEST MODE";
+                    }
+                } catch (err) {
+                    console.error("Error fetching score:", err);
+                    scoreDisplay.textContent = "FINAL SCORE: OFFLINE";
+                }
+            }
+            
+            fetchFinalScore();
+        } else {
+            scoreDisplay.textContent = "FINAL SCORE: DATABASE DISCONNECTED";
         }
     </script>
 </body>
