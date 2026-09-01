@@ -6,6 +6,8 @@
     <title>Needful Thingz - Level 1: Scorched Outskirts</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
+    <!-- SUPABASE CDN ADDED HERE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { margin: 0; padding: 0; background-color: #121a12; overflow: hidden; } 
         canvas { display: block; margin: 0 auto; }
@@ -14,6 +16,13 @@
 <body>
 
 <script>
+    // --- 1. SUPABASE INITIALIZATION ---
+    const supabaseUrl = 'https://zndgwxlnwftschvwwvob.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    let currentUser = null;
+    // ----------------------------------
+
     const config = {
         type: Phaser.AUTO,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 400 },
@@ -21,14 +30,12 @@
         scene: { preload: preload, create: create, update: update },
         backgroundColor: '#121a12' 
     };
-
-    const game = new Phaser.Game(config);
     
     let player, joyStickLeft, platforms;
     let uiElements = []; 
     let meleeText, gunText, ammoText, grenadeText, actionText, rosterText, scoreText, centerMsgText;
     let facingDirection = 0, currentScene, grenadesGroup; 
-    let score = 0;
+    let score = 0; // This will now be overwritten by the database
     
     const weaponArmory = {
         'Knife': { name: 'Combat Knife', damage: 28, reach: 40, pierce: 0.15, stun: 0, speed: 80, color: 0xcccccc },
@@ -52,8 +59,8 @@
     };
     let activeOrdnance = ordnanceArmory['Frag'];
 
-    let savedRoster = localStorage.getItem('nt_roster');
-    const playerRoster = savedRoster ? JSON.parse(savedRoster) : [
+    // Default Roster (Replaced localStorage logic)
+    let playerRoster = [
         { name: "Vanguard", spriteKey: 'vanguard', color: 0x00aaff, melee: 'Whip',  gun1: 'Rifle', gun2: 'Shotgun' },
         { name: "Recon",    spriteKey: 'recon',    color: 0xaaaa00, melee: 'Knife', gun1: 'Rifle', gun2: 'Sniper' },
         { name: "Heavy",    spriteKey: 'heavy',    color: 0xaa00ff, melee: 'Sword', gun1: 'Rifle', gun2: 'Rocket' }
@@ -82,6 +89,40 @@
     let enemiesGroup, enemyProjectiles;
     const WORLD_WIDTH = 4800; 
     let boss, bossActive = false, bossDefeated = false, bossHpBar, bossWall, bossAIEvent;
+
+    // --- 2. ASYNC BOOT ROUTINE ---
+    async function initializeGame() {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+            currentUser = session.user;
+            console.log("Player Authenticated. Fetching payload...");
+
+            // Fetch progression payload using maybeSingle()
+            const { data: progData, error } = await supabase
+                .from('player_progression')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
+
+            if (progData) {
+                // Map the database payload to your local game variables
+                if (progData.score) {
+                    score = progData.score;
+                }
+                // (Future proofing: if you eventually save custom rosters to the DB, map them here)
+            }
+        } else {
+            console.warn("No active session. Booting in Guest Mode.");
+        }
+
+        // Launch the engine ONLY after data is secured
+        new Phaser.Game(config);
+    }
+
+    // Trigger the boot routine immediately
+    initializeGame();
+    // -----------------------------
     
     function preload() {
         this.load.plugin('rexvirtualjoystickplugin', 'https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js', true);
@@ -238,7 +279,8 @@
         uiElements.push(this.add.text(10, 60, `Nades: `, { fontSize: '14px', fill: '#00ff00', fontStyle: 'bold', backgroundColor: '#000000' })); grenadeText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); actionText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); rosterText = uiElements[uiElements.length-1];
-        uiElements.push(this.add.text(400, 65, 'SCORE: 0', { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); scoreText = uiElements[uiElements.length-1];
+        // The display will now correctly initialize with the payload score
+        uiElements.push(this.add.text(400, 65, `SCORE: ${score}`, { fontSize: '22px', fill: '#ffaa00', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); scoreText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(400, 150, '', { fontSize: '32px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0)); centerMsgText = uiElements[uiElements.length-1];
 
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
