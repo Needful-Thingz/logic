@@ -525,7 +525,9 @@
                     console.error('Error saving progress:', error);
                 }
             }
-            window.location.href = 'debrief.html?status=win'; 
+            // --- NEW WAY: Route to Armory for Level 4 ---
+            localStorage.setItem('nt_nextDeployment', 'level4.html');
+            window.location.href = 'armory.html'; 
         });
     }
 
