@@ -21,6 +21,10 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
     let currentUser = null;
+    
+    // --- CAPTURE URL PARAMS FOR MULTIPLAYER ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentMatchId = urlParams.get('match_id') || 'solo_match';
     // ----------------------------------
 
     const config = {
@@ -594,9 +598,29 @@
             showCenterMessage("SECTOR CLEARED!", '#00ff00');
         });
 
-        currentScene.time.delayedCall(4500, () => {
-            window.location.href = 'debrief.html?status=win';
+        // --- UPDATED BOSS DEFEAT SYNC & ROUTING ---
+        currentScene.time.delayedCall(4500, async () => {
+            // 1. Pause to sync data to Supabase before routing
+            console.log("Boss defeated! Syncing data to Supabase...");
+            try {
+                const { data, error } = await supabase.rpc('log_match_stats', {
+                    p_match_id: currentMatchId,
+                    p_score: score, // Passing the score variable you already track
+                    p_boss_defeated: true
+                });
+
+                if (error) throw error;
+                console.log("Database updated successfully.");
+
+            } catch (error) {
+                console.error("Error logging stats:", error);
+                // We will still route the player even if it fails so they don't get stuck
+            }
+
+            // 2. Transition to the Armory, passing the match_id and the next map
+            window.location.href = `armory.html?match_id=${currentMatchId}&target_level=level2.html`;
         });
+        // ------------------------------------------
     }
 
     function dealDamageToEnemy(enemy, dmg, piercePercent, stunDuration) {
