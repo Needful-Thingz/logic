@@ -46,6 +46,14 @@
     let dbActivePrimary = 'Rifle';
     let dbActiveMelee = 'Knife';
 
+    // --- MULTIPLAYER NETWORK VARIABLES ---
+    let matchId = new URLSearchParams(window.location.search).get('match_id') || 'default_lobby';
+    let myPlayerId = 'player_' + Math.random().toString(36).substr(2, 9);
+    let room;
+    let opponents = {};
+    let networkTickRate = 1000 / 15; // Target 15 Updates Per Second
+    let lastNetworkUpdate = 0;
+
     // --- STAT TRACKING VARIABLES ---
     let currentMatchShotsFired = 0;
     let currentMatchShotsHit = 0;
@@ -130,11 +138,11 @@
         this.load.spritesheet('boss_lvl2', 'assets/boss_lvl2.png', { frameWidth: 96, frameHeight: 96 });
     }
 
-    // NEW: Fetch user loadout logic to translate Database Columns -> Game Arrays
     async function fetchPlayerLoadout() {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
             currentUserId = session.user.id;
+            myPlayerId = currentUserId; // Set the network ID to the real user ID if logged in
             const { data, error } = await supabase
                 .from('players')
                 .select('active_primary, active_melee')
@@ -153,7 +161,6 @@
                     'combat_knife': 'Knife',
                     'katana': 'Katana'
                 };
-                // Store the translated keys
                 dbActivePrimary = primaryMap[data.active_primary] || 'Rifle';
                 dbActiveMelee = meleeMap[data.active_melee] || 'Knife';
             }
@@ -164,7 +171,7 @@
         currentScene = this; 
         this.input.addPointer(5);
         
-        // PAUSE INITIALIZATION: Fetch user loadout before building the UI or spawning the player
+        // Fetch user loadout before building the UI or spawning the player
         await fetchPlayerLoadout();
 
         let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
@@ -218,7 +225,6 @@
             this.anims.create({ key: `${char}_die`, frames: this.anims.generateFrameNumbers(char, { start: 125, end: 129 }), frameRate: 8, repeat: 0 });
         });
 
-        // Boss Anims
         this.anims.create({ key: 'boss_walk', frames: this.anims.generateFrameNumbers('boss', { start: 0, end: 7 }), frameRate: 6, repeat: -1 });
         this.anims.create({ key: 'boss_shoot', frames: this.anims.generateFrameNumbers('boss', { start: 8, end: 15 }), frameRate: 10, repeat: 0 });
         this.anims.create({ key: 'boss_slam', frames: this.anims.generateFrameNumbers('boss', { start: 16, end: 23 }), frameRate: 8, repeat: 0 });
@@ -241,7 +247,29 @@
 
         this.physics.add.overlap(player, enemyProjectiles, (p, proj) => { proj.destroy(); playerTakeDamage(proj.dmg, proj.x); });
 
-        // --- UI SETUP & ECONOMY INITIALIZATION ---
+        // --- SUPABASE REALTIME MULTIPLAYER SETUP ---
+        room = supabase.channel(`match_${matchId}`);
+
+        room.on('presence', { event: 'sync' }, () => {
+            syncOpponents(room.presenceState());
+        });
+
+        room.on('broadcast', { event: 'player_action' }, (payload) => {
+            updateOpponentState(payload.payload);
+        });
+
+        room.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await room.track({ 
+                    id: myPlayerId, 
+                    x: player.x, 
+                    y: player.y,
+                    spriteKey: activeCharDef.spriteKey 
+                });
+            }
+        });
+        // -------------------------------------------
+
         let savedCredits = parseInt(localStorage.getItem('nt_credits')) || 0;
         this.registry.set('credits', savedCredits);
 
@@ -252,7 +280,6 @@
         uiElements.push(this.add.text(400, 20, 'Ready', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); actionText = uiElements[uiElements.length-1];
         uiElements.push(this.add.text(400, 40, 'TEAM: 3 LIVES', { fontSize: '14px', fill: '#00ffff', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); rosterText = uiElements[uiElements.length-1];
         
-        // Upgraded Score/Credit Display
         uiElements.push(this.add.text(400, 65, 'SCORE: 0 | CREDITS: ' + savedCredits, { fontSize: '20px', fill: '#ffaa00', fontStyle: 'bold', backgroundColor: '#000000' }).setOrigin(0.5)); 
         scoreText = uiElements[uiElements.length-1];
         
@@ -260,11 +287,9 @@
 
         joyStickLeft = this.plugins.get('rexvirtualjoystickplugin').add(this, { x: 120, y: 300, radius: 50, base: this.add.circle(0, 0, 60, 0x888888).setAlpha(0.3), thumb: this.add.circle(0, 0, 30, 0xcccccc).setAlpha(0.5), dir: '8dir', forceMin: 16 });
 
-        // --- UPGRADED MOBILE BUTTON LAYOUT ---
         const btnFire = this.add.circle(650, 340, 40, 0xff0000).setAlpha(0.6).setInteractive(); uiElements.push(btnFire); uiElements.push(this.add.text(650, 340, 'FIRE', { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); btnFire.on('pointerdown', () => { isFiring = true; }); btnFire.on('pointerup', () => { isFiring = false; }); btnFire.on('pointerout', () => { isFiring = false; });
         const btnJump = this.add.circle(740, 340, 40, 0x00ffff).setAlpha(0.6).setInteractive(); uiElements.push(btnJump); uiElements.push(this.add.text(740, 340, 'JUMP', { fontSize: '16px', fill: '#000', fontStyle: 'bold' }).setOrigin(0.5)); btnJump.on('pointerdown', () => { if (!isAttacking && !isBlocking && !isDashing && jumps < 3 && !isSpawning) { player.body.setVelocityY(-450); jumps++; actionText.setText('Jump: ' + jumps + '/3'); } });
         
-        // SWITCH TO DYNAMIC WEAPON SWAPPING
         const btnSwap = this.add.circle(560, 280, 25, 0x8800ff).setAlpha(0.7).setInteractive(); uiElements.push(btnSwap); uiElements.push(this.add.text(560, 280, 'SWAP', { fontSize: '12px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5)); 
         btnSwap.on('pointerdown', () => { 
             if (isSpawning || playerHealth <= 0) return; 
@@ -311,7 +336,6 @@
         spawnTimer = currentScene.time.addEvent({
             delay: spawnRate,
             callback: () => {
-                // Check if a wave boss is active. If so, pause spawns!
                 if (playerHealth > 0 && !arenaBossActive) {
                     let xPos = Phaser.Math.Between(0, 1) === 0 ? 50 : 750;
                     spawnEnemyAt(xPos, 300);
@@ -322,27 +346,18 @@
         });
     }
 
-    // --- MILESTONE BOSS 1: GOLIATH MECH ---
     function spawnGoliathBoss() {
         arenaBossActive = true;
         showCenterMessage("WARNING: GOLIATH MECH", '#ff0000');
-        
-        // Clear existing grunts for the 1v1
         enemiesGroup.getChildren().forEach(e => { if(!e.enemyData.isBoss) triggerEnemyDeath(e); });
 
         currentScene.time.delayedCall(2000, () => {
             activeBoss = currentScene.physics.add.sprite(750, 100, 'boss');
-            activeBoss.setScale(1.2);
-            activeBoss.setFlipX(true);
-            activeBoss.body.setCollideWorldBounds(true);
-            activeBoss.body.setImmovable(true);
-            activeBoss.body.setAllowGravity(true);
+            activeBoss.setScale(1.2); activeBoss.setFlipX(true);
+            activeBoss.body.setCollideWorldBounds(true); activeBoss.body.setImmovable(true); activeBoss.body.setAllowGravity(true);
             activeBoss.setDepth(15);
-            
-            // Scaled for Arena
             activeBoss.enemyData = { isBoss: true, bossType: 1, hp: 1000, maxHp: 1000, armor: 400, maxArmor: 400, state: 'active', isStunned: false };
             enemiesGroup.add(activeBoss);
-            
             bossAIEvent = currentScene.time.addEvent({ delay: 3000, callback: runGoliathPattern, loop: true });
         });
     }
@@ -358,60 +373,38 @@
                 if(!activeBoss.active) return;
                 for (let i = -2; i <= 2; i++) {
                     let bullet = currentScene.add.rectangle(activeBoss.x - 110, activeBoss.y - 20, 20, 20, 0xff5500); 
-                    currentScene.physics.add.existing(bullet); 
-                    enemyProjectiles.add(bullet); 
-                    bullet.body.setAllowGravity(false);
-                    
+                    currentScene.physics.add.existing(bullet); enemyProjectiles.add(bullet); bullet.body.setAllowGravity(false);
                     let angle = Math.PI + (i * 0.15); 
-                    currentScene.physics.velocityFromRotation(angle, 700, bullet.body.velocity);
-                    bullet.rotation = angle;
-                    bullet.dmg = 20; 
-                    
+                    currentScene.physics.velocityFromRotation(angle, 700, bullet.body.velocity); bullet.rotation = angle; bullet.dmg = 20; 
                     currentScene.time.delayedCall(3000, () => { if(bullet.active) bullet.destroy(); });
                 }
             });
             currentScene.time.delayedCall(1200, () => { if(activeBoss.active) { activeBoss.anims.play('boss_walk', true); } });
-            
         } else {
             activeBoss.anims.play('boss_slam', true); 
             currentScene.time.delayedCall(600, () => { 
                 if(!activeBoss.active) return; 
                 currentScene.cameras.main.shake(200, 0.01); 
-                
                 let shockwave = currentScene.add.rectangle(activeBoss.x - 80, 360, 40, 60, 0x00ffff); 
-                currentScene.physics.add.existing(shockwave); 
-                enemyProjectiles.add(shockwave);
-                shockwave.body.setAllowGravity(false);
-                shockwave.body.setVelocityX(-500); 
-                shockwave.dmg = 35; 
-                
+                currentScene.physics.add.existing(shockwave); enemyProjectiles.add(shockwave);
+                shockwave.body.setAllowGravity(false); shockwave.body.setVelocityX(-500); shockwave.dmg = 35; 
                 currentScene.time.delayedCall(3000, () => { if(shockwave.active) shockwave.destroy(); });
             });
             currentScene.time.delayedCall(1200, () => { if(activeBoss.active) { activeBoss.anims.play('boss_walk', true); } });
         }
     }
 
-    // --- MILESTONE BOSS 2: SIEGE TANK ---
     function spawnSiegeTankBoss() {
         arenaBossActive = true;
         showCenterMessage("WARNING: SIEGE TANK", '#ff0000');
-        
         enemiesGroup.getChildren().forEach(e => { if(!e.enemyData.isBoss) triggerEnemyDeath(e); });
 
         currentScene.time.delayedCall(2000, () => {
             activeBoss = currentScene.physics.add.sprite(750, 374, 'boss_lvl2', 0); 
-            activeBoss.setOrigin(0.5, 1.0); 
-            activeBoss.setScale(2.2); 
-            activeBoss.setFlipX(true); 
-            activeBoss.body.setCollideWorldBounds(true);
-            activeBoss.body.setImmovable(true);
-            activeBoss.body.setAllowGravity(false); 
-            activeBoss.setDepth(15); 
-            
-            // Scaled for Arena
+            activeBoss.setOrigin(0.5, 1.0); activeBoss.setScale(2.2); activeBoss.setFlipX(true); 
+            activeBoss.body.setCollideWorldBounds(true); activeBoss.body.setImmovable(true); activeBoss.body.setAllowGravity(false); activeBoss.setDepth(15); 
             activeBoss.enemyData = { isBoss: true, bossType: 2, hp: 1500, maxHp: 1500, armor: 600, maxArmor: 600, state: 'active', isStunned: false };
             enemiesGroup.add(activeBoss);
-            
             bossAIEvent = currentScene.time.addEvent({ delay: 3200, callback: runSiegePattern, loop: true }); 
         });
     }
@@ -421,37 +414,28 @@
         let attackType = Phaser.Math.Between(1, 2);
 
         if (attackType === 1) {
-            actionText.setText('WARNING: ACID MORTARS!');
-            activeBoss.setTint(0x39ff14);
+            actionText.setText('WARNING: ACID MORTARS!'); activeBoss.setTint(0x39ff14);
             currentScene.time.delayedCall(200, () => { if (activeBoss.active) activeBoss.clearTint(); });
 
             for (let i = 0; i < 3; i++) {
                 currentScene.time.delayedCall(i * 350, () => {
                     if (!activeBoss.active) return;
                     let mortar = currentScene.add.circle(activeBoss.x - 60, activeBoss.y - 60, 10, 0x39ff14);
-                    currentScene.physics.add.existing(mortar);
-                    enemyProjectiles.add(mortar);
-                    mortar.body.setAllowGravity(true);
-                    mortar.body.setVelocity(Phaser.Math.Between(-320, -520), Phaser.Math.Between(-550, -380));
-                    mortar.dmg = 25;
+                    currentScene.physics.add.existing(mortar); enemyProjectiles.add(mortar); mortar.body.setAllowGravity(true);
+                    mortar.body.setVelocity(Phaser.Math.Between(-320, -520), Phaser.Math.Between(-550, -380)); mortar.dmg = 25;
                     currentScene.time.delayedCall(4000, () => { if (mortar.active) mortar.destroy(); });
                 });
             }
-
         } else {
-            actionText.setText('WARNING: CHEMICAL SWEEP!');
-            activeBoss.setTint(0xff5500);
+            actionText.setText('WARNING: CHEMICAL SWEEP!'); activeBoss.setTint(0xff5500);
             currentScene.time.delayedCall(200, () => { if (activeBoss.active) activeBoss.clearTint(); });
 
             for (let j = 0; j < 5; j++) {
                 currentScene.time.delayedCall(j * 150, () => {
                     if (!activeBoss.active) return;
                     let bullet = currentScene.add.rectangle(activeBoss.x - 80, activeBoss.y - 20, 18, 6, 0x00ff66);
-                    currentScene.physics.add.existing(bullet);
-                    enemyProjectiles.add(bullet);
-                    bullet.body.setAllowGravity(false);
-                    bullet.body.setVelocityX(-650);
-                    bullet.dmg = 15;
+                    currentScene.physics.add.existing(bullet); enemyProjectiles.add(bullet); bullet.body.setAllowGravity(false);
+                    bullet.body.setVelocityX(-650); bullet.dmg = 15;
                     currentScene.time.delayedCall(2500, () => { if (bullet.active) bullet.destroy(); });
                 });
             }
@@ -466,9 +450,7 @@
     }
 
     function spawnEnemyAt(x, y) {
-        let enemy = currentScene.physics.add.sprite(x, y, 'grunt');
-        enemy.setScale(2);
-        enemy.body.setCollideWorldBounds(true);
+        let enemy = currentScene.physics.add.sprite(x, y, 'grunt'); enemy.setScale(2); enemy.body.setCollideWorldBounds(true);
         let hitbox = currentScene.add.rectangle(-100, -100, 30, 30, 0xffffff).setAlpha(0); currentScene.physics.add.existing(hitbox); hitbox.body.setAllowGravity(false);
         let barGraphics = currentScene.add.graphics().setDepth(10);
         let hpScaling = 60 + (Math.floor(score / 100) * 10);
@@ -476,22 +458,19 @@
         enemiesGroup.add(enemy);
     }
 
-    // MODIFIED: Injects the active database values instead of the static array strings
     function applyCharacterLoadout() {
         activeCharDef = playerRoster[currentRosterIndex]; 
-        player.clearTint(); 
-        player.setTexture(activeCharDef.spriteKey);
-        
-        currentWeaponIndex = weaponKeys.indexOf(dbActiveMelee); 
-        activeWeapon = weaponArmory[dbActiveMelee] || weaponArmory['Knife'];
-        
-        usingPrimaryGun = true;
-        activeGun = gunArmory[dbActivePrimary] || gunArmory['Rifle'];
-        
-        playerHealth = 100; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
-        isSpawning = false;
+        player.clearTint(); player.setTexture(activeCharDef.spriteKey);
+        currentWeaponIndex = weaponKeys.indexOf(dbActiveMelee); activeWeapon = weaponArmory[dbActiveMelee] || weaponArmory['Knife'];
+        usingPrimaryGun = true; activeGun = gunArmory[dbActivePrimary] || gunArmory['Rifle'];
+        playerHealth = 100; currentOrdnanceAmmo = activeOrdnance.maxAmmo; isSpawning = false;
         meleeText.setText('Melee: ' + activeWeapon.name); gunText.setText('Gun: ' + activeGun.name);
         rosterText.setText(`TEAM: ${3 - currentRosterIndex} LIVES`); actionText.setText(`${activeCharDef.name} DROPS IN!`); updateUI();
+        
+        // Let the server know we swapped loadouts if connected
+        if(room && room.state === 'joined') {
+            room.track({ id: myPlayerId, x: player.x, y: player.y, spriteKey: activeCharDef.spriteKey });
+        }
     }
 
     function spawnNextCharacter() {
@@ -510,15 +489,9 @@
     }
 
     function drawWhipFX(isHeavy) {
-        let slashGraphic = currentScene.add.graphics();
-        slashGraphic.lineStyle(isHeavy ? 10 : 4, activeWeapon.color, 1);
-        slashGraphic.beginPath();
-        let whipLength = (facingDirection === 0) ? activeWeapon.reach : -activeWeapon.reach;
-        let startY = player.y - 5;
-        slashGraphic.moveTo(player.x, startY);
-        slashGraphic.lineTo(player.x + whipLength * 0.4, startY - 15);
-        slashGraphic.lineTo(player.x + whipLength * 0.8, startY + 10);
-        slashGraphic.lineTo(player.x + whipLength, startY);
+        let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(isHeavy ? 10 : 4, activeWeapon.color, 1); slashGraphic.beginPath();
+        let whipLength = (facingDirection === 0) ? activeWeapon.reach : -activeWeapon.reach; let startY = player.y - 5;
+        slashGraphic.moveTo(player.x, startY); slashGraphic.lineTo(player.x + whipLength * 0.4, startY - 15); slashGraphic.lineTo(player.x + whipLength * 0.8, startY + 10); slashGraphic.lineTo(player.x + whipLength, startY);
         slashGraphic.strokePath();
         let crack = currentScene.add.circle(player.x + whipLength, startY, isHeavy ? 25 : 12, 0xffffff, 0.9);
         currentScene.tweens.add({ targets: crack, scale: 1.5, alpha: 0, duration: 150, onComplete: () => crack.destroy() });
@@ -533,8 +506,7 @@
 
         currentScene.time.delayedCall(activeWeapon.speed * 1.5, () => {
             actionText.setText(`HEAVY STRIKE!`);
-            let currentReach = activeWeapon.reach * 1.5; meleeHitbox.width = currentReach; meleeHitbox.height = 40; 
-            meleeHitbox.setAlpha(0); 
+            let currentReach = activeWeapon.reach * 1.5; meleeHitbox.width = currentReach; meleeHitbox.height = 40; meleeHitbox.setAlpha(0); 
             let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); 
             meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection;
 
@@ -614,20 +586,16 @@
         player.setTint(0xff0000); currentScene.time.delayedCall(150, () => { if (!isBlocking && !isAttacking && !isDashing) player.clearTint(); });
         playerHealth -= finalDmg; spawnDamageText(player.x, player.y - 30, finalDmg, finalDmg >= 30, true);
         
-        // --- UPGRADED GAME OVER LOGIC ---
         if (playerHealth <= 0) {
             playerHealth = 0; 
             currentRosterIndex++;
             if (currentRosterIndex < playerRoster.length) {
                 spawnNextCharacter();
             } else { 
-                player.setAlpha(0); 
-                actionText.setText('ARENA OVER'); 
-                rosterText.setText('TEAM: 0 LIVES'); 
+                player.setAlpha(0); actionText.setText('ARENA OVER'); rosterText.setText('TEAM: 0 LIVES'); 
                 if(spawnTimer) spawnTimer.remove(); 
                 showCenterMessage(`FINAL SCORE: ${score}`, '#ffaa00'); 
                 
-                // NOW INJECTS THE AUTHENTICATED USER ID
                 sendMatchResults({
                     playerId: currentUserId,
                     kills: Math.floor(score / 15), 
@@ -646,16 +614,9 @@
         if (currentOrdnanceAmmo <= 0 || isAttacking || isBlocking || isDashing || isSpawning || currentScene.time.now < lastTossedTime + activeOrdnance.cooldown) return;
         currentOrdnanceAmmo--; updateUI(); lastTossedTime = currentScene.time.now; actionText.setText("TOSS!");
         let nade = currentScene.add.circle(player.x + (facingDirection === 0 ? 15 : -15), player.y - 10, 6, activeOrdnance.color);
-        currentScene.physics.add.existing(nade); 
-        nade.body.setBounce(0.2); 
-        nade.body.setDrag(350, 0); 
-        nade.body.setCollideWorldBounds(true);
-        grenadesGroup.add(nade); 
-        let throwX = (facingDirection === 0) ? 280 : -280;
-        nade.body.setVelocity(throwX, -260);
-        currentScene.time.delayedCall(activeOrdnance.fuse, () => {
-            if (nade && nade.active) explodeGrenade(nade);
-        });
+        currentScene.physics.add.existing(nade); nade.body.setBounce(0.2); nade.body.setDrag(350, 0); nade.body.setCollideWorldBounds(true); grenadesGroup.add(nade); 
+        let throwX = (facingDirection === 0) ? 280 : -280; nade.body.setVelocity(throwX, -260);
+        currentScene.time.delayedCall(activeOrdnance.fuse, () => { if (nade && nade.active) explodeGrenade(nade); });
     }
     
     function explodeGrenade(nade) {
@@ -669,8 +630,7 @@
                 let dist = Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y);
                 if (dist <= activeOrdnance.radius) {
                     dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); 
-                    enemy.setTint(0xff7700); 
-                    currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
+                    enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
                 }
             }
         });
@@ -688,13 +648,11 @@
             currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false); 
             currentScene.physics.velocityFromRotation(currentAngle, activeGun.speed, bullet.body.velocity); bullet.rotation = currentAngle;
             
-            // TRACKING: Shot Fired
             currentMatchShotsFired++;
 
             currentScene.physics.add.overlap(bullet, enemiesGroup, (b, enemy) => {
                 if (enemy.enemyData.state !== 'dead') {
                     b.destroy(); 
-                    // TRACKING: Shot Hit
                     currentMatchShotsHit++; 
                     dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); enemy.setTint(enemy.enemyData.isBoss ? 0xffffff : activeGun.color); 
                     currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
@@ -705,28 +663,20 @@
     }
 
     function triggerEnemyDeath(enemy) {
-        enemy.enemyData.state = 'dead';
-        enemy.body.enable = false; 
-        if (enemy.enemyData.bars) enemy.enemyData.bars.destroy();
-        if (enemy.enemyData.hitbox) enemy.enemyData.hitbox.destroy();
-        enemy.anims.play('grunt_die', true); 
-        currentScene.tweens.add({ targets: enemy, alpha: 0, delay: 1500, duration: 1000, onComplete: () => enemy.destroy() });
+        enemy.enemyData.state = 'dead'; enemy.body.enable = false; 
+        if (enemy.enemyData.bars) enemy.enemyData.bars.destroy(); if (enemy.enemyData.hitbox) enemy.enemyData.hitbox.destroy();
+        enemy.anims.play('grunt_die', true); currentScene.tweens.add({ targets: enemy, alpha: 0, delay: 1500, duration: 1000, onComplete: () => enemy.destroy() });
     }
 
     function triggerArenaBossDefeat(bossEnemy) {
         if (bossAIEvent) bossAIEvent.remove();
-        bossEnemy.body.setVelocity(0, 0);
-        bossEnemy.body.setAllowGravity(false);
-        bossEnemy.body.enable = false;
-
-        currentScene.cameras.main.shake(1500, 0.02);
-        currentScene.cameras.main.flash(300, 255, 255, 255);
+        bossEnemy.body.setVelocity(0, 0); bossEnemy.body.setAllowGravity(false); bossEnemy.body.enable = false;
+        currentScene.cameras.main.shake(1500, 0.02); currentScene.cameras.main.flash(300, 255, 255, 255);
 
         for (let i = 0; i < 10; i++) {
             currentScene.time.delayedCall(i * 150, () => {
                 if (!bossEnemy || !bossEnemy.active) return;
-                let exX = bossEnemy.x + Phaser.Math.Between(-50, 50);
-                let exY = bossEnemy.y + Phaser.Math.Between(-50, 50);
+                let exX = bossEnemy.x + Phaser.Math.Between(-50, 50); let exY = bossEnemy.y + Phaser.Math.Between(-50, 50);
                 let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(20, 50), 0xffaa00, 0.9).setDepth(25);
                 currentScene.tweens.add({ targets: blast, scale: 1.8, alpha: 0, duration: 350, onComplete: () => blast.destroy() });
             });
@@ -737,13 +687,8 @@
             let finalWave = currentScene.add.circle(bossEnemy.x, bossEnemy.y, 25, 0x00ffff, 0.9).setDepth(30);
             currentScene.tweens.add({ targets: finalWave, scale: 14, alpha: 0, duration: 500, onComplete: () => finalWave.destroy() });
             
-            bossEnemy.destroy();
-            activeBoss = null;
-            arenaBossActive = false;
-            
+            bossEnemy.destroy(); activeBoss = null; arenaBossActive = false;
             showCenterMessage("WAVE CLEARED!", '#00ff00');
-            
-            // Resume the Grunt onslaught!
             currentScene.time.delayedCall(2000, () => { startSpawner(); });
         });
     }
@@ -755,8 +700,7 @@
         data.hp -= piercingDmg; spawnDamageText(enemy.x + Phaser.Math.Between(-10, 10), enemy.y - 30, Math.round(dmg), dmg >= 40, false);
         
         if (data.isBoss && data.bossType === 2) {
-            enemy.setFrame(1);
-            currentScene.time.delayedCall(70, () => { if (enemy.active) enemy.setFrame(0); });
+            enemy.setFrame(1); currentScene.time.delayedCall(70, () => { if (enemy.active) enemy.setFrame(0); });
         }
 
         if (stunDuration > 0 && !data.isBoss) {
@@ -764,26 +708,16 @@
             currentScene.time.delayedCall(stunDuration * 1000, () => { if(enemy.active && data.state !== 'dead') { data.isStunned = false; data.state = 'idle'; enemy.clearTint(); } });
         }
 
-        // --- UPGRADED ECONOMY PAYOUT ---
         if (data.hp <= 0) { 
             let currentCredits = currentScene.registry.get('credits');
             if (data.isBoss) {
-                score += 5000; 
-                let newBalance = currentCredits + 500; // 500 Credit Boss Bonus
-                currentScene.registry.set('credits', newBalance);
-                localStorage.setItem('nt_credits', newBalance);
-                scoreText.setText('SCORE: ' + score + ' | CREDITS: ' + newBalance);
-                
-                if (data.bossType === 1) goliathDefeated = true;
-                if (data.bossType === 2) siegeTankDefeated = true;
-                
+                score += 5000; let newBalance = currentCredits + 500; 
+                currentScene.registry.set('credits', newBalance); localStorage.setItem('nt_credits', newBalance); scoreText.setText('SCORE: ' + score + ' | CREDITS: ' + newBalance);
+                if (data.bossType === 1) goliathDefeated = true; if (data.bossType === 2) siegeTankDefeated = true;
                 triggerArenaBossDefeat(enemy);
             } else {
-                score += 10; 
-                let newBalance = currentCredits + 15; // 15 Credit Grunt Bounty
-                currentScene.registry.set('credits', newBalance);
-                localStorage.setItem('nt_credits', newBalance);
-                scoreText.setText('SCORE: ' + score + ' | CREDITS: ' + newBalance);
+                score += 10; let newBalance = currentCredits + 15; 
+                currentScene.registry.set('credits', newBalance); localStorage.setItem('nt_credits', newBalance); scoreText.setText('SCORE: ' + score + ' | CREDITS: ' + newBalance);
                 triggerEnemyDeath(enemy); 
             }
         }
@@ -805,12 +739,8 @@
     function update() {
         drawFloatingBars(); let currentTime = currentScene.time.now;
 
-        // --- MILESTONE WAVE TRIGGERS ---
-        if (score >= 1000 && !goliathDefeated && !arenaBossActive && !activeBoss) {
-            spawnGoliathBoss();
-        } else if (score >= 2500 && goliathDefeated && !siegeTankDefeated && !arenaBossActive && !activeBoss) {
-            spawnSiegeTankBoss();
-        }
+        if (score >= 1000 && !goliathDefeated && !arenaBossActive && !activeBoss) { spawnGoliathBoss(); } 
+        else if (score >= 2500 && goliathDefeated && !siegeTankDefeated && !arenaBossActive && !activeBoss) { spawnSiegeTankBoss(); }
 
         if (!isDashing && !isAttacking && !isBlocking && !isSpawning && playerHealth > 0) {
             player.rotation = 0; 
@@ -819,12 +749,9 @@
             else if (joyStickLeft.right) { player.body.setVelocityX(250); playAnim('run_normal'); }
             else { player.body.setVelocityX(0); playAnim('unarmed_idle'); }
             
-            // --- UPGRADED JUMP LOGIC ---
             if (player.body.touching.down || player.body.blocked.down) jumps = 0;
 
-            let shootAngle = facingDirection;
-            let nearestEnemy = null;
-            let minDist = 600;
+            let shootAngle = facingDirection; let nearestEnemy = null; let minDist = 600;
 
             if (isFiring) {
                 enemiesGroup.getChildren().forEach(enemy => {
@@ -844,28 +771,20 @@
                     } 
                 }
                 
-                if (currentTime > lastFiredTime + activeGun.fireRate) {
-                    shootGun(shootAngle); lastFiredTime = currentTime; 
-                }
+                if (currentTime > lastFiredTime + activeGun.fireRate) { shootGun(shootAngle); lastFiredTime = currentTime; }
             } else {
-                if (joyStickLeft.left) facingDirection = Math.PI;
-                else if (joyStickLeft.right) facingDirection = 0;
+                if (joyStickLeft.left) facingDirection = Math.PI; else if (joyStickLeft.right) facingDirection = 0;
             }
 
             player.setFlipX(facingDirection === Math.PI);
-
         } else if (isAttacking || isBlocking) { player.body.setVelocityX(0); player.rotation = 0; }
         
-        // --- UPGRADED DRONE LOGIC ---
         if (droneActive && drone && playerHealth > 0) {
-            let targetX = player.x + (facingDirection === 0 ? -30 : 30);
-            let targetY = player.y - 40 + (Math.sin(currentTime / 200) * 8); 
-            drone.x = Phaser.Math.Linear(drone.x, targetX, 0.1);
-            drone.y = Phaser.Math.Linear(drone.y, targetY, 0.1);
+            let targetX = player.x + (facingDirection === 0 ? -30 : 30); let targetY = player.y - 40 + (Math.sin(currentTime / 200) * 8); 
+            drone.x = Phaser.Math.Linear(drone.x, targetX, 0.1); drone.y = Phaser.Math.Linear(drone.y, targetY, 0.1);
 
             if (currentTime > lastDroneFire + 300) {
-                let nearestEnemy = null;
-                let minDist = 500;
+                let nearestEnemy = null; let minDist = 500;
                 enemiesGroup.getChildren().forEach(enemy => {
                     if (enemy.active && enemy.enemyData.state !== 'dead' && enemy.y <= 450) {
                         let dist = Phaser.Math.Distance.Between(drone.x, drone.y, enemy.x, enemy.y);
@@ -874,52 +793,31 @@
                 });
 
                 if (nearestEnemy) {
-                    let angle = Phaser.Math.Angle.Between(drone.x, drone.y, nearestEnemy.x, nearestEnemy.y);
-                    drone.rotation = angle;
-                    
-                    let laser = currentScene.add.rectangle(drone.x, drone.y, 10, 3, 0x00ffff);
-                    currentScene.physics.add.existing(laser);
-                    laser.body.setAllowGravity(false);
-                    currentScene.physics.velocityFromRotation(angle, 900, laser.body.velocity);
-                    laser.rotation = angle;
-                    
+                    let angle = Phaser.Math.Angle.Between(drone.x, drone.y, nearestEnemy.x, nearestEnemy.y); drone.rotation = angle;
+                    let laser = currentScene.add.rectangle(drone.x, drone.y, 10, 3, 0x00ffff); currentScene.physics.add.existing(laser);
+                    laser.body.setAllowGravity(false); currentScene.physics.velocityFromRotation(angle, 900, laser.body.velocity); laser.rotation = angle;
                     currentScene.physics.add.overlap(laser, enemiesGroup, (l, enemy) => {
                         if (enemy.enemyData.state !== 'dead') {
-                            l.destroy(); 
-                            dealDamageToEnemy(enemy, 15, 0.8, 0); 
+                            l.destroy(); dealDamageToEnemy(enemy, 15, 0.8, 0); 
                             if(!enemy.enemyData.isBoss) {
-                                enemy.setTint(0x00ffff); 
-                                currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
+                                enemy.setTint(0x00ffff); currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
                             }
                         }
                     });
-                    currentScene.time.delayedCall(1000, () => { if(laser.active) laser.destroy(); });
-                    lastDroneFire = currentTime;
-                } else {
-                    drone.rotation = facingDirection;
-                }
+                    currentScene.time.delayedCall(1000, () => { if(laser.active) laser.destroy(); }); lastDroneFire = currentTime;
+                } else { drone.rotation = facingDirection; }
             }
-        } else if (droneActive && playerHealth <= 0) {
-            droneActive = false;
-            if(drone) drone.destroy();
-        }
+        } else if (droneActive && playerHealth <= 0) { droneActive = false; if(drone) drone.destroy(); }
         
-        // --- UPGRADED GRUNT AI LOOP ---
         enemiesGroup.getChildren().forEach(enemy => {
-            let data = enemy.enemyData; 
-            if (data.isBoss) return; 
-            if (enemy.y > 450) { if (enemy.active) enemy.destroy(); return; }
-            if (data.state === 'dead') return; 
+            let data = enemy.enemyData; if (data.isBoss) return; 
+            if (enemy.y > 450) { if (enemy.active) enemy.destroy(); return; } if (data.state === 'dead') return; 
 
-            let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); 
-            let yDistance = Math.abs(player.y - enemy.y);
+            let distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y); let yDistance = Math.abs(player.y - enemy.y);
 
-            // AGGRO UPGRADE: If player is far away, or on a different vertical platform, go idle
             if (distToPlayer > 400 || yDistance > 40) {
                 if (data.state !== 'attack' && data.state !== 'shoot') { 
-                    data.state = 'idle'; 
-                    enemy.body.setVelocityX(0); 
-                    if(enemy.active && data.state !== 'dead') enemy.anims.play('grunt_unarmed_idle', true); 
+                    data.state = 'idle'; enemy.body.setVelocityX(0); if(enemy.active && data.state !== 'dead') enemy.anims.play('grunt_unarmed_idle', true); 
                 }
             }
             else if (!data.isStunned && playerHealth > 0 && !isSpawning) {
@@ -936,45 +834,29 @@
                     currentScene.time.delayedCall(2000, () => { data.canAttack = true; });
                     
                 } else if (distToPlayer >= 100 && distToPlayer <= 350 && data.canAttack && data.state !== 'attack') {
-                    // FASTER SHOOTING COOLDOWN
                     data.state = 'shoot'; data.canAttack = false; enemy.body.setVelocityX(0); enemy.clearTint();
                     
-                    let dir = (player.x > enemy.x) ? 1 : -1; 
-                    enemy.setFlipX(dir === -1);
-                    enemy.anims.play('grunt_punch_left', true);
+                    let dir = (player.x > enemy.x) ? 1 : -1; enemy.setFlipX(dir === -1); enemy.anims.play('grunt_punch_left', true);
 
                     currentScene.time.delayedCall(300, () => {
                         if (data.isStunned || !enemy.active || playerHealth <= 0 || data.state === 'dead') return; 
-                        
-                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0xffaa00);
-                        currentScene.physics.add.existing(enemyBullet);
-                        
-                        enemyProjectiles.add(enemyBullet); 
-                        enemyBullet.body.setAllowGravity(false); 
-                        
-                        enemyBullet.body.setVelocityX(dir * 500); 
-                        enemyBullet.dmg = 10;
-                        
+                        let enemyBullet = currentScene.add.rectangle(enemy.x + (dir * 25), enemy.y, 10, 4, 0xffaa00); currentScene.physics.add.existing(enemyBullet);
+                        enemyProjectiles.add(enemyBullet); enemyBullet.body.setAllowGravity(false); enemyBullet.body.setVelocityX(dir * 500); enemyBullet.dmg = 10;
                         currentScene.time.delayedCall(1500, () => { if(enemyBullet.active) enemyBullet.destroy(); });
                         if (data.state !== 'dead') data.state = 'idle';
                     });
-                    
                     currentScene.time.delayedCall(1500, () => { data.canAttack = true; });
                     
                 } else if (distToPlayer > 75 && data.state !== 'attack' && data.state !== 'shoot') {
                     data.state = 'chase'; let dir = (player.x > enemy.x) ? 1 : -1; enemy.body.setVelocityX(100 * dir); 
-                    enemy.setFlipX(dir === -1);
-                    enemy.anims.play('grunt_run_normal', true);
-
+                    enemy.setFlipX(dir === -1); enemy.anims.play('grunt_run_normal', true);
                     if (enemy.body.blocked.left || enemy.body.blocked.right) { if(enemy.body.touching.down) enemy.body.setVelocityY(-400); }
                 } else if (data.state !== 'attack' && data.state !== 'shoot') { 
-                    data.state = 'idle'; enemy.body.setVelocityX(0); 
-                    enemy.anims.play('grunt_unarmed_idle', true);
+                    data.state = 'idle'; enemy.body.setVelocityX(0); enemy.anims.play('grunt_unarmed_idle', true);
                 }
             } else { 
                 if (data.state !== 'attack' && data.state !== 'shoot') { 
-                    enemy.body.setVelocityX(0); 
-                    if(enemy.active && data.state !== 'dead') enemy.anims.play('grunt_unarmed_idle', true); 
+                    enemy.body.setVelocityX(0); if(enemy.active && data.state !== 'dead') enemy.anims.play('grunt_unarmed_idle', true); 
                 } 
             }
         });
@@ -983,6 +865,85 @@
             specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
             specialGraphics.arc(750, 210, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false); specialGraphics.strokePath();
             if (specialCharge >= specialMax) { specialReady = true; specialButton.setFillStyle(0x00ffff); }
+        }
+
+        // --- SUPABASE NETWORK THROTTLE LOGIC ---
+        if (currentTime > lastNetworkUpdate + networkTickRate) {
+            broadcastPlayerState();
+            lastNetworkUpdate = currentTime;
+        }
+    }
+
+    // --- NEW NETWORK LOGIC HANDLERS ---
+    function broadcastPlayerState() {
+        if (!room || playerHealth <= 0 || isSpawning) return;
+        
+        let currentAnim = (player.anims && player.anims.currentAnim) ? player.anims.currentAnim.key : 'unarmed_idle';
+        
+        room.send({
+            type: 'broadcast',
+            event: 'player_action',
+            payload: {
+                id: myPlayerId,
+                x: player.x,
+                y: player.y,
+                anim: currentAnim,
+                flipX: player.flipX
+            }
+        });
+    }
+
+    function syncOpponents(presenceState) {
+        const activeIds = new Set();
+        
+        for (const key in presenceState) {
+            const playerInfo = presenceState[key][0];
+            
+            // Skip spawning ourselves
+            if (playerInfo.id === myPlayerId) continue;
+            activeIds.add(playerInfo.id);
+            
+            // Spawn new opponent if they just connected
+            if (!opponents[playerInfo.id]) {
+                let spriteKey = playerInfo.spriteKey || 'vanguard';
+                let opp = currentScene.physics.add.sprite(playerInfo.x, playerInfo.y, spriteKey);
+                opp.setScale(2);
+                opp.setCollideWorldBounds(true);
+                currentScene.physics.add.collider(opp, platforms);
+                
+                // Add a small player name tag hovering above them
+                let nameTag = currentScene.add.text(0, 0, 'Opponent', { fontSize: '12px', fill: '#00ffff' }).setOrigin(0.5);
+                opp.nameTag = nameTag;
+                
+                opponents[playerInfo.id] = opp;
+            }
+        }
+
+        // Cleanup opponents who left the room
+        for (const oppId in opponents) {
+            if (!activeIds.has(oppId)) {
+                if (opponents[oppId].nameTag) opponents[oppId].nameTag.destroy();
+                opponents[oppId].destroy();
+                delete opponents[oppId];
+            }
+        }
+    }
+
+    function updateOpponentState(data) {
+        const opp = opponents[data.id];
+        if (opp) {
+            opp.x = data.x;
+            opp.y = data.y;
+            opp.setFlipX(data.flipX);
+            
+            if (data.anim && opp.anims) {
+                opp.anims.play(data.anim, true);
+            }
+            
+            if (opp.nameTag) {
+                opp.nameTag.x = opp.x;
+                opp.nameTag.y = opp.y - 40;
+            }
         }
     }
 
@@ -1001,7 +962,6 @@
             console.error('Match stats processing failed:', error.message);
             return;
         }
-
         console.log('Match Processed Successfully:', data);
     }
 
@@ -1009,17 +969,11 @@
     let isGamePaused = false;
     document.getElementById('pauseBtn').addEventListener('click', () => {
         if (!isGamePaused) {
-            game.scene.scenes[0].scene.pause();
-            isGamePaused = true;
-            document.getElementById('pauseBtn').innerText = 'RESUME';
-            document.getElementById('pauseBtn').style.background = '#00aaff';
-            document.getElementById('pauseBtn').style.color = '#000';
+            game.scene.scenes[0].scene.pause(); isGamePaused = true;
+            document.getElementById('pauseBtn').innerText = 'RESUME'; document.getElementById('pauseBtn').style.background = '#00aaff'; document.getElementById('pauseBtn').style.color = '#000';
         } else {
-            game.scene.scenes[0].scene.resume();
-            isGamePaused = false;
-            document.getElementById('pauseBtn').innerText = 'PAUSE';
-            document.getElementById('pauseBtn').style.background = '#333';
-            document.getElementById('pauseBtn').style.color = '#fff';
+            game.scene.scenes[0].scene.resume(); isGamePaused = false;
+            document.getElementById('pauseBtn').innerText = 'PAUSE'; document.getElementById('pauseBtn').style.background = '#333'; document.getElementById('pauseBtn').style.color = '#fff';
         }
     });
 </script>
