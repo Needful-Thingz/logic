@@ -6,6 +6,8 @@
     <title>Needful Thingz - Danger Room Arena</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
         body { margin: 0; padding: 0; background-color: #121a12; overflow: hidden; } 
@@ -18,6 +20,11 @@
 <div id="pauseBtn" style="position: absolute; top: 15px; right: 15px; background: #333; border: 2px solid #58a6ff; color: #fff; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-family: 'Share Tech Mono', monospace; font-weight: bold; z-index: 100; font-size: 16px;">PAUSE</div>
 
 <script>
+    // --- SUPABASE INITIALIZATION ---
+    const supabaseUrl = 'https://zndgwxlnwftschvwwvob.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZGd3eGxud2Z0c2Nodnd3dm9iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTg1MzksImV4cCI6MjEwMjM5NDUzOX0.jqXapcoBUOyG0TbE8AX0hKQQu6Pl_b-j2Qb-yrf8t6Q';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
     const config = {
         type: Phaser.AUTO,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 400 },
@@ -546,10 +553,31 @@
         player.setTint(0xff0000); currentScene.time.delayedCall(150, () => { if (!isBlocking && !isAttacking && !isDashing) player.clearTint(); });
         playerHealth -= finalDmg; spawnDamageText(player.x, player.y - 30, finalDmg, finalDmg >= 30, true);
         
-        if (playerHealth <= 0) { 
-            playerHealth = 0; currentRosterIndex++;
-            if (currentRosterIndex < playerRoster.length) spawnNextCharacter();
-            else { player.setAlpha(0); actionText.setText('ARENA OVER'); rosterText.setText('TEAM: 0 LIVES'); if(spawnTimer) spawnTimer.remove(); showCenterMessage(`FINAL SCORE: ${score}`, '#ffaa00'); currentScene.time.delayedCall(4000, () => { window.location.href = 'debrief.html?status=lose'; }); }
+        // --- UPGRADED GAME OVER LOGIC ---
+        if (playerHealth <= 0) {
+            playerHealth = 0; 
+            currentRosterIndex++;
+            if (currentRosterIndex < playerRoster.length) {
+                spawnNextCharacter();
+            } else { 
+                player.setAlpha(0); 
+                actionText.setText('ARENA OVER'); 
+                rosterText.setText('TEAM: 0 LIVES'); 
+                if(spawnTimer) spawnTimer.remove(); 
+                showCenterMessage(`FINAL SCORE: ${score}`, '#ffaa00'); 
+                
+                // Send the stats to Supabase!
+                sendMatchResults({
+                    playerId: "REPLACE_WITH_LOGGED_IN_USER_ID", // We will wire up auth later
+                    kills: Math.floor(score / 15), // Temporary estimation based on your grunt credit payout
+                    shotsFired: 100, // Placeholder until we add ammo tracking to this file
+                    shotsHit: 45,    // Placeholder
+                    veteranTakedowns: (goliathDefeated ? 1 : 0) + (siegeTankDefeated ? 1 : 0),
+                    placedBottomHalf: true // They died, so it counts as a loss
+                });
+
+                currentScene.time.delayedCall(4000, () => { window.location.href = 'debrief.html?status=lose'; }); 
+            }
         } 
     }
 
@@ -889,6 +917,25 @@
             specialGraphics.arc(750, 210, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false); specialGraphics.strokePath();
             if (specialCharge >= specialMax) { specialReady = true; specialButton.setFillStyle(0x00ffff); }
         }
+    }
+
+    // --- SUPABASE DATA TRANSMISSION FUNCTION ---
+    async function sendMatchResults(matchData) {
+        const { data, error } = await supabase.rpc('process_match_results', {
+            p_player_id: matchData.playerId,
+            p_kills: matchData.kills,
+            p_shots_fired: matchData.shotsFired,
+            p_shots_hit: matchData.shotsHit,
+            p_veteran_takedowns: matchData.veteranTakedowns,
+            p_placed_bottom_half: matchData.placedBottomHalf
+        });
+
+        if (error) {
+            console.error('Match stats processing failed:', error.message);
+            return;
+        }
+
+        console.log('Match Processed Successfully:', data);
     }
 
     // --- GLOBAL HTML PAUSE CONTROLLER ---
