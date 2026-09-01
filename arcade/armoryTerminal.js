@@ -14,8 +14,9 @@ class ArmoryTerminal extends Phaser.Scene {
         this.menuGroup = null;
         this.shopGroup = null;
 
-        // MASTER WEAPON CATALOG
+        // MASTER WEAPON CATALOG (Arcade Economy)
         this.weaponCatalog = [
+            { id: 'armor', name: 'Kevlar Plating', dbColumn: 'unlock_armor', cost: 500, desc: 'Passive: Permanent +25 Max Health', slot: 'upgrade' },
             { id: 'shotgun', name: 'Tactical Shotgun', dbColumn: 'unlock_shotgun', cost: 800, desc: 'Devastating at close range, wide spread', slot: 'primary' },
             { id: 'katana', name: 'Cyber Katana', dbColumn: 'unlock_katana', cost: 1200, desc: 'Faster swing rate, deflects small projectiles', slot: 'melee' },
             { id: 'sniper', name: 'Heavy Sniper', dbColumn: 'unlock_sniper', cost: 1500, desc: 'High damage, slow fire rate, pierces armor', slot: 'primary' },
@@ -63,7 +64,7 @@ class ArmoryTerminal extends Phaser.Scene {
     async fetchPlayerData() {
         const { data, error } = await supabase
             .from('players')
-            .select('credits, active_primary, active_melee, unlock_sniper, unlock_shotgun, unlock_katana, unlock_plasma, unlock_rpg')
+            .select('credits, active_primary, active_melee, unlock_sniper, unlock_shotgun, unlock_katana, unlock_plasma, unlock_rpg, unlock_armor')
             .eq('id', this.currentUserId)
             .single();
 
@@ -78,6 +79,7 @@ class ArmoryTerminal extends Phaser.Scene {
             this.unlocked.katana = data.unlock_katana || false;
             this.unlocked.plasma = data.unlock_plasma || false;
             this.unlocked.rpg = data.unlock_rpg || false;
+            this.unlocked.armor = data.unlock_armor || false; 
         }
     }
 
@@ -102,11 +104,12 @@ class ArmoryTerminal extends Phaser.Scene {
     buildShopMenu() {
         this.shopGroup.clear(true, true);
 
-        const header = this.add.text(this.cameras.main.centerX, 150, '--- QUARTERMASTER ARMORY ---', { fontSize: '20px', fill: '#aaaaaa', fontFamily: 'Courier' }).setOrigin(0.5);
+        const header = this.add.text(this.cameras.main.centerX, 140, '--- QUARTERMASTER ARMORY ---', { fontSize: '20px', fill: '#aaaaaa', fontFamily: 'Courier' }).setOrigin(0.5);
         this.shopGroup.add(header);
 
-        let startY = 230; 
-        const spacingY = 80;
+        // Adjusted spacing to fit the 6th catalog item
+        let startY = 200; 
+        const spacingY = 70;
 
         // Loop through catalog and dynamically generate buttons
         this.weaponCatalog.forEach((weapon, index) => {
@@ -121,6 +124,11 @@ class ArmoryTerminal extends Phaser.Scene {
                 btnText = `[ BUY ${weapon.name.toUpperCase()} - ${weapon.cost} CR ]`;
                 btnColor = '#ff00ff';
                 btnAction = () => this.purchaseWeapon(weapon.name, weapon.dbColumn, weapon.cost, weapon.id);
+            } else if (weapon.slot === 'upgrade') {
+                // Passive upgrades that don't need equipping
+                btnText = `[ ${weapon.name.toUpperCase()} - INSTALLED ]`;
+                btnColor = '#00ff00';
+                btnAction = () => this.flashMessage('SYSTEM ALREADY INSTALLED', '#00ff00');
             } else if (isActive) {
                 btnText = `[ ${weapon.name.toUpperCase()} - EQUIPPED ]`;
                 btnColor = '#00ff00';
@@ -136,7 +144,7 @@ class ArmoryTerminal extends Phaser.Scene {
             this.shopGroup.addMultiple([wpnBtn.btn, wpnBtn.descText]);
         });
 
-        const backBtn = this.createInteractiveButton(this.cameras.main.centerX, 650, '[ RETURN TO DEPLOYMENT ]', '', '#ff0000');
+        const backBtn = this.createInteractiveButton(this.cameras.main.centerX, 670, '[ RETURN TO DEPLOYMENT ]', '', '#ff0000');
         backBtn.btn.on('pointerdown', () => this.toggleView('menu'));
         this.shopGroup.addMultiple([backBtn.btn, backBtn.descText]);
     }
@@ -268,7 +276,7 @@ class ArmoryTerminal extends Phaser.Scene {
     }
 
     flashMessage(text, color) {
-        const msg = this.add.text(this.cameras.main.centerX, 700, text, {
+        const msg = this.add.text(this.cameras.main.centerX, 720, text, {
             fontSize: '24px', fill: color, fontFamily: 'Courier', fontStyle: 'bold'
         }).setOrigin(0.5);
         this.tweens.add({ targets: msg, alpha: 0, delay: 2000, duration: 1000, onComplete: () => msg.destroy() });
