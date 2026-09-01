@@ -6,6 +6,7 @@
     <title>Needful Thingz - Level 3: The Foundry</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { margin: 0; padding: 0; background-color: #1a0a05; overflow: hidden; } 
         
@@ -38,6 +39,15 @@
 <img id="bossGif" src="" alt="Foundry Boss">
 
 <script>
+    // --- SUPABASE INITIALIZATION ---
+    const supabaseUrl = localStorage.getItem('supabaseUrl') || '';
+    const supabaseKey = localStorage.getItem('supabaseAnonKey') || '';
+    let supabase = null;
+    if (supabaseUrl && supabaseKey) {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    }
+    // -------------------------------
+
     const config = {
         type: Phaser.AUTO,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 400 },
@@ -363,7 +373,30 @@
     function playerTakeDamage(incomingDmg, attackXLocation) {
         if (isInvincible || playerHealth <= 0) return; let finalDmg = incomingDmg; if (isBlocking) { let playerFacingRight = (facingDirection === 0), attackFromRight = (attackXLocation > player.x); if ((playerFacingRight && attackFromRight) || (!playerFacingRight && !attackFromRight)) finalDmg *= 0.2; }
         player.setTint(0xff0000); currentScene.time.delayedCall(150, () => { if (!isBlocking && !isAttacking && !isDashing) player.clearTint(); }); playerHealth -= finalDmg; spawnDamageText(player.x, player.y - 30, finalDmg, finalDmg >= 30, true);
-        if (playerHealth <= 0) { playerHealth = 0; currentRosterIndex++; if (currentRosterIndex < playerRoster.length) spawnNextCharacter(); else { player.setAlpha(0); actionText.setText('TEAM WIPED! Redirecting...'); rosterText.setText('TEAM: 0 LIVES'); if(bossAIEvent) bossAIEvent.remove(); currentScene.time.delayedCall(3000, () => { window.location.href = 'debrief.html?status=lose'; }); } } 
+        if (playerHealth <= 0) { 
+            playerHealth = 0; currentRosterIndex++; 
+            if (currentRosterIndex < playerRoster.length) {
+                spawnNextCharacter(); 
+            } else { 
+                player.setAlpha(0); actionText.setText('TEAM WIPED! Redirecting...'); rosterText.setText('TEAM: 0 LIVES'); 
+                if(bossAIEvent) bossAIEvent.remove(); 
+                
+                // Supabase Save Progress & Redirect (Loss)
+                currentScene.time.delayedCall(3000, async () => { 
+                    if (supabase) {
+                        try {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (user) {
+                                await supabase.from('profiles').update({ score: score }).eq('id', user.id);
+                            }
+                        } catch (error) {
+                            console.error('Error saving progress:', error);
+                        }
+                    }
+                    window.location.href = 'debrief.html?status=lose'; 
+                }); 
+            } 
+        } 
     }
 
     function tossGrenade() {
@@ -423,7 +456,24 @@
         
         for (let i = 0; i < 16; i++) { currentScene.time.delayedCall(i * 120, () => { if (!bossEnemy || !bossEnemy.active) return; let exX = bossEnemy.x + Phaser.Math.Between(-150, 150); let exY = Phaser.Math.Between(-50, 150); let blastColor = (i % 2 === 0) ? 0xff3300 : 0xffcc00; let blast = currentScene.add.circle(exX, exY, Phaser.Math.Between(40, 80), blastColor, 0.9).setDepth(25); currentScene.tweens.add({ targets: blast, scale: 2.0, alpha: 0, duration: 400, onComplete: () => blast.destroy() }); }); }
         currentScene.time.delayedCall(2000, () => { currentScene.cameras.main.flash(600, 255, 255, 255); bossWall.body.checkCollision.none = true; bossWall.setAlpha(0); showCenterMessage("FOUNDRY OVERRIDDEN!", '#ff5500'); if (gif) gif.style.display = "none"; });
-        currentScene.time.delayedCall(4500, () => { window.location.href = 'debrief.html?status=win'; });
+        
+        // Supabase Save Progress & Redirect (Win)
+        currentScene.time.delayedCall(4500, async () => { 
+            if (supabase) {
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                        await supabase.from('profiles').update({ 
+                            level_3_completed: true, 
+                            score: score 
+                        }).eq('id', user.id);
+                    }
+                } catch (error) {
+                    console.error('Error saving progress:', error);
+                }
+            }
+            window.location.href = 'debrief.html?status=win'; 
+        });
     }
 
     function dealDamageToEnemy(enemy, dmg, piercePercent, stunDuration) {
