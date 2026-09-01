@@ -60,7 +60,8 @@
     ];
     
     let currentRosterIndex = 0, activeCharDef = playerRoster[currentRosterIndex];
-    let playerHealth = 100, jumps = 0, playerHealthBar; 
+    let maxPlayerHealth = 100;
+    let playerHealth = maxPlayerHealth, jumps = 0, playerHealthBar; 
     let currentWeaponIndex = 0, activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife'];
     
     let activeGun = gunArmory[activeCharDef.gun1] || gunArmory['Rifle'];
@@ -100,10 +101,30 @@
         this.load.spritesheet('boss_lvl2', 'assets/boss_lvl2.png', { frameWidth: 96, frameHeight: 96 });
     }
 
-    function create() {
+    async function create() {
         currentScene = this; 
         this.input.addPointer(5);
         
+        // --- NEW: KEVLAR PLATING CHECK ---
+        try {
+            // Replace 'YOUR_USER_ID' with how you track the logged-in user
+            if (typeof supabase !== 'undefined') {
+                const { data: playerData, error } = await supabase
+                    .from('players')
+                    .select('unlock_armor')
+                    .eq('id', 'YOUR_USER_ID') 
+                    .single();
+
+                if (playerData && playerData.unlock_armor) {
+                    maxPlayerHealth = 125; 
+                    playerHealth = maxPlayerHealth; 
+                }
+            }
+        } catch (err) {
+            console.error("Armory fetch failed:", err);
+        }
+        // ---------------------------------
+
         let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
         dGraphics.fillStyle(0x222222, 1);
         dGraphics.fillRoundedRect(0, 6, 20, 12, 4); 
@@ -383,7 +404,7 @@
         usingPrimaryGun = true;
         activeGun = gunArmory[activeCharDef.gun1] || gunArmory['Rifle'];
         
-        playerHealth = 100; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
+        playerHealth = maxPlayerHealth; currentOrdnanceAmmo = activeOrdnance.maxAmmo;
         isSpawning = false;
         meleeText.setText('Melee: ' + activeWeapon.name); gunText.setText('Gun: ' + activeGun.name);
         rosterText.setText(`TEAM: ${3 - currentRosterIndex} LIVES`); actionText.setText(`${activeCharDef.name} DROPS IN!`); updateUI();
@@ -682,7 +703,7 @@
 
     function drawFloatingBars() {
         playerHealthBar.clear(); 
-        if (playerHealth > 0 && !isSpawning) { playerHealthBar.fillStyle(0x333333, 1).fillRect(player.x - 20, player.y - 40, 40, 5); playerHealthBar.fillStyle(0x00ff00, 1).fillRect(player.x - 20, player.y - 40, 40 * (playerHealth / 100), 5); }
+        if (playerHealth > 0 && !isSpawning) { playerHealthBar.fillStyle(0x333333, 1).fillRect(player.x - 20, player.y - 40, 40, 5); playerHealthBar.fillStyle(0x00ff00, 1).fillRect(player.x - 20, player.y - 40, 40 * (playerHealth / maxPlayerHealth), 5); }
         enemiesGroup.getChildren().forEach(enemy => {
             let data = enemy.enemyData; 
             if (!data.isBoss && data.bars && data.state !== 'dead') {
