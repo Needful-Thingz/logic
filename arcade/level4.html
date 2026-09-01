@@ -6,6 +6,8 @@
     <title>Needful Thingz - Level 4: Android Assembly Lab</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser3-rex-plugins@1.1.39/dist/rexvirtualjoystickplugin.min.js"></script>
+    <!-- Supabase CDN Added Here -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { margin: 0; padding: 0; background-color: #020a14; overflow: hidden; } 
         canvas { display: block; margin: 0 auto; position: relative; z-index: 10; }
@@ -14,6 +16,15 @@
 <body>
 
 <script>
+    // --- SUPABASE INITIALIZATION ---
+    const supabaseUrl = localStorage.getItem('supabaseUrl') || '';
+    const supabaseKey = localStorage.getItem('supabaseAnonKey') || '';
+    let supabase = null;
+    if (supabaseUrl && supabaseKey) {
+        supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    }
+    // -------------------------------
+
     const config = {
         type: Phaser.AUTO,
         scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 800, height: 400 },
@@ -314,18 +325,65 @@
     }
 
     function applyCharacterLoadout() { activeCharDef = playerRoster[currentRosterIndex]; player.clearTint(); player.setTexture(activeCharDef.spriteKey); currentWeaponIndex = weaponKeys.indexOf(activeCharDef.melee); activeWeapon = weaponArmory[activeCharDef.melee] || weaponArmory['Knife']; usingPrimaryGun = true; activeGun = gunArmory[activeCharDef.gun1] || gunArmory['Rifle']; playerHealth = 100; currentOrdnanceAmmo = activeOrdnance.maxAmmo; isSpawning = false; meleeText.setText('Melee: ' + activeWeapon.name); gunText.setText('Gun: ' + activeGun.name); rosterText.setText(`TEAM: ${3 - currentRosterIndex} LIVES`); actionText.setText(`${activeCharDef.name} DROPS IN!`); updateUI(); }
+    
     function spawnNextCharacter() { if (currentRosterIndex >= 3) return; isSpawning = true; isInvincible = true; player.x = currentScene.cameras.main.scrollX + 100; player.y = -50; player.body.setVelocityY(800); applyCharacterLoadout(); player.setAlpha(0.5); currentScene.time.delayedCall(1500, () => { isInvincible = false; player.setAlpha(1); actionText.setText('Ready'); }); }
+    
     function spawnDamageText(x, y, amount, isCritical = false, isPlayerHit = false) { let textContent = amount >= 900 ? "BIO-BURN!" : Math.round(amount).toString(); if(isNaN(amount)) textContent = amount; let floatText = currentScene.add.text(x, y, textContent, { fontSize: isCritical ? '36px' : '22px', fill: isPlayerHit ? '#ff3300' : '#00ffff', fontStyle: 'bold', stroke: '#000000', strokeThickness: 5 }).setOrigin(0.5).setDepth(25); currentScene.tweens.add({ targets: floatText, x: floatText.x + Math.random()*50-25, y: floatText.y - 60, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() }); }
     
     function drawWhipFX(isHeavy) { let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(isHeavy ? 10 : 4, activeWeapon.color, 1); slashGraphic.beginPath(); let whipLength = (facingDirection === 0) ? activeWeapon.reach : -activeWeapon.reach; let startY = player.y - 5; slashGraphic.moveTo(player.x, startY); slashGraphic.lineTo(player.x + whipLength * 0.4, startY - 15); slashGraphic.lineTo(player.x + whipLength * 0.8, startY + 10); slashGraphic.lineTo(player.x + whipLength, startY); slashGraphic.strokePath(); let crack = currentScene.add.circle(player.x + whipLength, startY, isHeavy ? 25 : 12, 0xffffff, 0.9); currentScene.tweens.add({ targets: crack, scale: 1.5, alpha: 0, duration: 150, onComplete: () => crack.destroy() }); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 150, onComplete: () => slashGraphic.destroy() }); }
+    
     function executeHeavyAttack() { isAttacking = true; inputBuffered = false; canCancel = false; if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove(); actionText.setText(`WINDUP: ${activeWeapon.name}!`); if (activeWeapon.name === 'Energy Whip') playAnim('whip_stand'); else playAnim('punch_right'); currentScene.time.delayedCall(activeWeapon.speed * 1.5, () => { actionText.setText(`HEAVY STRIKE!`); let currentReach = activeWeapon.reach * 1.5; meleeHitbox.width = currentReach; meleeHitbox.height = 40; meleeHitbox.setAlpha(0); let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection; if (activeWeapon.name === 'Energy Whip') { drawWhipFX(true); } else { let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(10, activeWeapon.color, 1); slashGraphic.beginPath(); slashGraphic.arc(player.x, player.y, 50, Phaser.Math.DegToRad(facingDirection === 0 ? -90 : 270), Phaser.Math.DegToRad(90), false); slashGraphic.strokePath(); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 300, onComplete: () => slashGraphic.destroy() }); } enemiesGroup.getChildren().forEach(enemy => { if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds()) && enemy.enemyData.state !== 'dead') { let heavyStun = activeWeapon.stun > 0 ? activeWeapon.stun * 2 : 0.5; dealDamageToEnemy(enemy, activeWeapon.damage * 2.5, activeWeapon.pierce, heavyStun); if(!enemy.enemyData.isBoss) { enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); enemy.body.setVelocityX(facingDirection === 0 ? 300 : -300); } } }); attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => { meleeHitbox.setPosition(-100, -100); attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * 2.5, () => { isAttacking = false; playAnim('unarmed_idle'); actionText.setText('Ready'); }); }); }); }
+    
     function executeAttack(step) { isAttacking = true; comboStep = step; inputBuffered = false; canCancel = false; if (attackRecoveryTimer) attackRecoveryTimer.remove(); if (attackActiveTimer) attackActiveTimer.remove(); if (activeWeapon.name === 'Energy Whip') playAnim('whip_stand'); else if (step === 1) playAnim('punch_right'); else playAnim('punch_left'); let currentReach = step === 3 ? activeWeapon.reach * 1.5 : activeWeapon.reach; meleeHitbox.width = currentReach; meleeHitbox.height = step === 3 ? 40 : 20; meleeHitbox.setAlpha(0); let reachX = facingDirection === 0 ? (currentReach / 2 + 15) : -(currentReach / 2 + 15); meleeHitbox.setPosition(player.x + reachX, player.y); meleeHitbox.rotation = facingDirection; currentScene.time.delayedCall(activeWeapon.speed * 0.5, () => { if (activeWeapon.name === 'Energy Whip') { drawWhipFX(false); } else { let slashGraphic = currentScene.add.graphics(); slashGraphic.lineStyle(6, activeWeapon.color, 1); slashGraphic.beginPath(); slashGraphic.arc(player.x, player.y, 30, Phaser.Math.DegToRad(facingDirection === 0 ? -45 : 225), Phaser.Math.DegToRad(facingDirection === 0 ? 45 : 135), false); slashGraphic.strokePath(); currentScene.tweens.add({ targets: slashGraphic, alpha: 0, duration: 200, onComplete: () => slashGraphic.destroy() }); } enemiesGroup.getChildren().forEach(enemy => { if (Phaser.Geom.Intersects.RectangleToRectangle(meleeHitbox.getBounds(), enemy.getBounds()) && enemy.enemyData.state !== 'dead') { dealDamageToEnemy(enemy, activeWeapon.damage * (step === 3 ? 2 : 1), activeWeapon.pierce, activeWeapon.stun); if(!enemy.enemyData.isBoss) { enemy.setTint(activeWeapon.color); currentScene.time.delayedCall(100, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); if(step === 3) enemy.body.setVelocityX(facingDirection === 0 ? 150 : -150); } } }); }); attackActiveTimer = currentScene.time.delayedCall(activeWeapon.speed, () => { meleeHitbox.setPosition(-100, -100); canCancel = true; if (inputBuffered && step < 3) triggerNextHit(); else { attackRecoveryTimer = currentScene.time.delayedCall(activeWeapon.speed * (step === 3 ? 2.5 : 1.5), () => { isAttacking = false; comboStep = 0; inputBuffered = false; canCancel = false; playAnim('unarmed_idle'); }); } }); }
+    
     function triggerNextHit() { if (comboStep < 3) executeAttack(comboStep + 1); }
+    
     function executeDash() { isDashing = true; canDash = false; isInvincible = true; actionText.setText('DODGE!'); player.setAlpha(0.5); player.setTint(0x00ffff); player.body.setVelocityX((facingDirection === 0) ? 700 : -700); currentScene.time.delayedCall(250, () => { isDashing = false; isInvincible = false; player.setAlpha(1); player.clearTint(); actionText.setText('Ready'); }); currentScene.time.delayedCall(1200, () => { canDash = true; }); }
-    function playerTakeDamage(incomingDmg, attackXLocation) { if (isInvincible || playerHealth <= 0) return; let finalDmg = incomingDmg; if (isBlocking) { let playerFacingRight = (facingDirection === 0), attackFromRight = (attackXLocation > player.x); if ((playerFacingRight && attackFromRight) || (!playerFacingRight && !attackFromRight)) finalDmg *= 0.2; } player.setTint(0xff0000); currentScene.time.delayedCall(150, () => { if (!isBlocking && !isAttacking && !isDashing) player.clearTint(); }); playerHealth -= finalDmg; spawnDamageText(player.x, player.y - 30, finalDmg, finalDmg >= 30, true); if (playerHealth <= 0) { playerHealth = 0; currentRosterIndex++; if (currentRosterIndex < playerRoster.length) spawnNextCharacter(); else { player.setAlpha(0); actionText.setText('TEAM WIPED! Redirecting...'); rosterText.setText('TEAM: 0 LIVES'); currentScene.time.delayedCall(3000, () => { window.location.href = 'debrief.html?status=lose'; }); } }  }
+    
+    function playerTakeDamage(incomingDmg, attackXLocation) { 
+        if (isInvincible || playerHealth <= 0) return; 
+        let finalDmg = incomingDmg; 
+        if (isBlocking) { 
+            let playerFacingRight = (facingDirection === 0), attackFromRight = (attackXLocation > player.x); 
+            if ((playerFacingRight && attackFromRight) || (!playerFacingRight && !attackFromRight)) finalDmg *= 0.2; 
+        } 
+        player.setTint(0xff0000); 
+        currentScene.time.delayedCall(150, () => { if (!isBlocking && !isAttacking && !isDashing) player.clearTint(); }); 
+        playerHealth -= finalDmg; 
+        spawnDamageText(player.x, player.y - 30, finalDmg, finalDmg >= 30, true); 
+        
+        if (playerHealth <= 0) { 
+            playerHealth = 0; 
+            currentRosterIndex++; 
+            if (currentRosterIndex < playerRoster.length) {
+                spawnNextCharacter(); 
+            } else { 
+                player.setAlpha(0); 
+                actionText.setText('TEAM WIPED! Redirecting...'); 
+                rosterText.setText('TEAM: 0 LIVES'); 
+                currentScene.time.delayedCall(3000, async () => { 
+                    if (supabase) {
+                        try {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (user) {
+                                await supabase.from('profiles').update({ score: score }).eq('id', user.id);
+                            }
+                        } catch (error) {
+                            console.error('Error saving progress:', error);
+                        }
+                    }
+                    window.location.href = 'debrief.html?status=lose'; 
+                }); 
+            } 
+        }  
+    }
+    
     function tossGrenade() { if (isPaused || currentOrdnanceAmmo <= 0 || isAttacking || isBlocking || isDashing || isSpawning || currentScene.time.now < lastTossedTime + activeOrdnance.cooldown) return; currentOrdnanceAmmo--; updateUI(); lastTossedTime = currentScene.time.now; actionText.setText("TOSS!"); let nade = currentScene.add.circle(player.x + (facingDirection === 0 ? 15 : -15), player.y - 10, 6, activeOrdnance.color); currentScene.physics.add.existing(nade); nade.body.setBounce(0.2); nade.body.setDrag(350, 0); nade.body.setCollideWorldBounds(true); grenadesGroup.add(nade); let throwX = (facingDirection === 0) ? 280 : -280; nade.body.setVelocity(throwX, -260); currentScene.time.delayedCall(activeOrdnance.fuse, () => { if (nade && nade.active) explodeGrenade(nade); }); }
+    
     function explodeGrenade(nade) { if (!nade || !nade.active) return; let exX = nade.x, exY = nade.y; nade.destroy(); let blastVisual = currentScene.add.circle(exX, exY, activeOrdnance.radius, 0xff7700, 0.8).setDepth(20); currentScene.tweens.add({ targets: blastVisual, scale: 1.2, alpha: 0, duration: 250, onComplete: () => blastVisual.destroy() }); enemiesGroup.getChildren().forEach(enemy => { if (enemy.active && enemy.enemyData.state !== 'dead') { if (Phaser.Math.Distance.Between(exX, exY, enemy.x, enemy.y) <= activeOrdnance.radius || (enemy.enemyData.isBoss && Phaser.Math.Distance.Between(exX, exY, boss.x, boss.y) < 180)) { dealDamageToEnemy(enemy, activeOrdnance.damage, 0.6, 0.4); if(!enemy.enemyData.isBoss) { enemy.setTint(0xff7700); currentScene.time.delayedCall(150, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); } } } }); }
+    
     function updateUI() { grenadeText.setText(`Nades: ${currentOrdnanceAmmo} / ${activeOrdnance.maxAmmo}`); if (currentOrdnanceAmmo === 0) grenadeText.setFill('#ff0000'); else grenadeText.setFill('#00ff00'); }
+    
     function shootGun(baseAngle) { for (let i = 0; i < activeGun.count; i++) { let currentAngle = baseAngle + (i - Math.floor(activeGun.count / 2)) * 0.15; let bullet = currentScene.add.rectangle(player.x, player.y, 12, 4, activeGun.color); currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false); currentScene.physics.velocityFromRotation(currentAngle, activeGun.speed, bullet.body.velocity); bullet.rotation = currentAngle; currentScene.physics.add.overlap(bullet, enemiesGroup, (b, enemy) => { if (enemy.enemyData.state !== 'dead') { b.destroy(); dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); if(!enemy.enemyData.isBoss) { enemy.setTint(activeGun.color); currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); }); } } }); currentScene.time.delayedCall(activeGun.lifespan, () => { if(bullet.active) bullet.destroy(); }); } }
     
     function triggerEnemyDeath(enemy) { enemy.enemyData.state = 'dead'; enemy.body.enable = false; if (enemy.enemyData.bars) enemy.enemyData.bars.destroy(); if (enemy.enemyData.hitbox) enemy.enemyData.hitbox.destroy(); enemy.anims.play('grunt_die', true); currentScene.tweens.add({ targets: enemy, alpha: 0, delay: 1500, duration: 1000, onComplete: () => enemy.destroy() }); }
@@ -363,10 +421,27 @@
             bossEnemy.setAlpha(0); 
             showCenterMessage("PROTOTYPE DESTROYED!", '#00ffff'); 
         }); 
-        currentScene.time.delayedCall(4500, () => { window.location.href = 'debrief.html?status=win'; }); 
+        
+        currentScene.time.delayedCall(4500, async () => { 
+            if (supabase) {
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                        await supabase.from('profiles').update({ 
+                            level_4_completed: true, 
+                            score: score 
+                        }).eq('id', user.id);
+                    }
+                } catch (error) {
+                    console.error('Error saving progress:', error);
+                }
+            }
+            window.location.href = 'debrief.html?status=win'; 
+        }); 
     }
     
     function dealDamageToEnemy(enemy, dmg, piercePercent, stunDuration) { if (!enemy.active || enemy.enemyData.state === 'dead') return; let data = enemy.enemyData; let piercingDmg = dmg * piercePercent, standardDmg = dmg - piercingDmg; if (data.armor > 0) { data.armor -= standardDmg; if (data.armor < 0) { data.hp += data.armor; data.armor = 0; } } else { data.hp -= standardDmg; } data.hp -= piercingDmg; let dmgX = enemy.x + (enemy.enemyData.isBoss ? Phaser.Math.Between(-30, 30) : Phaser.Math.Between(-10, 10)); spawnDamageText(dmgX, enemy.y + (enemy.enemyData.isBoss ? Phaser.Math.Between(-60, 20) : -30), Math.round(dmg), dmg >= 40, false); if (data.isBoss) { enemy.setTint(0xff0000); currentScene.time.delayedCall(80, () => { if (enemy.active && !bossDefeated) enemy.clearTint(); }); } else if (stunDuration > 0) { data.isStunned = true; data.state = 'stunned'; enemy.setTint(0x00ffff); currentScene.time.delayedCall(stunDuration * 1000, () => { if(enemy.active && data.state !== 'dead') { data.isStunned = false; data.state = 'idle'; enemy.clearTint(); } }); } if (data.hp <= 0) { score += data.isBoss ? 5000 : 10; scoreText.setText('SCORE: ' + score); if (data.isBoss) triggerBossDefeat(enemy); else triggerEnemyDeath(enemy); } }
+    
     function drawFloatingBars() { playerHealthBar.clear(); if (playerHealth > 0 && !isSpawning) { playerHealthBar.fillStyle(0x333333, 1).fillRect(player.x - 20, player.y - 40, 40, 5); playerHealthBar.fillStyle(0x00ff00, 1).fillRect(player.x - 20, player.y - 40, 40 * (playerHealth / 100), 5); } enemiesGroup.getChildren().forEach(enemy => { let data = enemy.enemyData; if (!data.isBoss && data.bars && data.state !== 'dead') { let bars = data.bars; bars.clear(); bars.fillStyle(0x333333, 1).fillRect(enemy.x - 25, enemy.y - 45, 50, 6); bars.fillStyle(0x333333, 1).fillRect(enemy.x - 25, enemy.y - 36, 50, 6); bars.fillStyle(0x00ff00, 1).fillRect(enemy.x - 25, enemy.y - 45, 50 * (data.hp / data.maxHp), 6); bars.fillStyle(0xcccccc, 1).fillRect(enemy.x - 25, enemy.y - 36, 50 * (data.armor / data.maxArmor), 6); } }); }
     
     function triggerBoss() { 
