@@ -80,7 +80,7 @@
     let isBlocking = false, isDashing = false, canDash = true, isInvincible = false, isSpawning = false;
     let isFiring = false; 
     
-    let enemiesGroup, enemyProjectiles;
+    let enemiesGroup, enemyProjectiles, playerProjectiles;
     const WORLD_WIDTH = 4800; 
     let boss, bossActive = false, bossDefeated = false, bossHpBar, bossWall, bossAIEvent;
     let acidGraphicLayers = [];
@@ -162,6 +162,7 @@
         grenadesGroup = this.physics.add.group(); 
         enemiesGroup = this.physics.add.group();
         enemyProjectiles = this.physics.add.group();
+        playerProjectiles = this.physics.add.group(); // Centralized player projectiles group
         platforms = this.physics.add.staticGroup();
         acidGroup = this.physics.add.staticGroup();
 
@@ -254,6 +255,21 @@
         this.physics.add.collider(player, bossWall); 
         this.physics.add.collider(enemiesGroup, platforms); 
         this.physics.add.collider(grenadesGroup, platforms);
+
+        // Global overlap logic for ALL player projectiles (Fix for the crash)
+        this.physics.add.overlap(playerProjectiles, enemiesGroup, (projectile, enemy) => {
+            if (enemy.enemyData.state !== 'dead') {
+                projectile.destroy(); 
+                dealDamageToEnemy(enemy, projectile.dmg, projectile.pierce, 0); 
+                
+                if(!enemy.enemyData.isBoss) {
+                    enemy.setTint(projectile.hitColor); 
+                    currentScene.time.delayedCall(50, () => { 
+                        if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); 
+                    });
+                }
+            }
+        });
 
         // Instant Detonation on Contact with Enemies / Boss
         this.physics.add.overlap(grenadesGroup, enemiesGroup, (nade, enemy) => {
@@ -598,14 +614,18 @@
         for (let i = 0; i < activeGun.count; i++) {
             let currentAngle = baseAngle + (i - Math.floor(activeGun.count / 2)) * 0.15;
             let bullet = currentScene.add.rectangle(player.x, player.y, 12, 4, activeGun.color);
-            currentScene.physics.add.existing(bullet); bullet.body.setAllowGravity(false); 
-            currentScene.physics.velocityFromRotation(currentAngle, activeGun.speed, bullet.body.velocity); bullet.rotation = currentAngle;
-            currentScene.physics.add.overlap(bullet, enemiesGroup, (b, enemy) => {
-                if (enemy.enemyData.state !== 'dead') {
-                    b.destroy(); dealDamageToEnemy(enemy, activeGun.damage, 0.20, 0); enemy.setTint(enemy.enemyData.isBoss ? 0xffffff : activeGun.color); 
-                    currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
-                }
-            });
+            
+            currentScene.physics.add.existing(bullet); 
+            playerProjectiles.add(bullet); 
+            bullet.body.setAllowGravity(false); 
+            
+            currentScene.physics.velocityFromRotation(currentAngle, activeGun.speed, bullet.body.velocity); 
+            bullet.rotation = currentAngle;
+            
+            bullet.dmg = activeGun.damage;
+            bullet.pierce = 0.20;
+            bullet.hitColor = activeGun.color;
+
             currentScene.time.delayedCall(activeGun.lifespan, () => { if(bullet.active) bullet.destroy(); });
         }
     }
@@ -894,20 +914,16 @@
                     
                     let laser = currentScene.add.rectangle(drone.x, drone.y, 10, 3, 0x00ffff);
                     currentScene.physics.add.existing(laser);
+                    playerProjectiles.add(laser); // Add to unified group
                     laser.body.setAllowGravity(false);
+                    
                     currentScene.physics.velocityFromRotation(angle, 900, laser.body.velocity);
                     laser.rotation = angle;
                     
-                    currentScene.physics.add.overlap(laser, enemiesGroup, (l, enemy) => {
-                        if (enemy.enemyData.state !== 'dead') {
-                            l.destroy(); 
-                            dealDamageToEnemy(enemy, 15, 0.8, 0); 
-                            if(!enemy.enemyData.isBoss) {
-                                enemy.setTint(0x00ffff); 
-                                currentScene.time.delayedCall(50, () => { if(enemy.active && !enemy.enemyData.isStunned) enemy.clearTint(); });
-                            }
-                        }
-                    });
+                    laser.dmg = 15;
+                    laser.pierce = 0.8;
+                    laser.hitColor = 0x00ffff;
+                    
                     currentScene.time.delayedCall(1000, () => { if(laser.active) laser.destroy(); });
                     lastDroneFire = currentTime;
                 } else {
@@ -992,7 +1008,7 @@
 
         if (!specialReady) {
             specialCharge += 0.2; specialGraphics.clear(); specialGraphics.lineStyle(6, 0x00ffff, 1); specialGraphics.beginPath();
-            specialGraphics.arc(750, 210, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false); specialGraphics.strokePath();
+            specialGraphics.arc(750, 200, 36, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + (360 * (specialCharge/specialMax))), false); specialGraphics.strokePath();
             if (specialCharge >= specialMax) { specialReady = true; specialButton.setFillStyle(0x00ffff); }
         }
     }
