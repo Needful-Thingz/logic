@@ -697,7 +697,9 @@
         });
 
         currentScene.time.delayedCall(4500, () => {
-            window.location.href = 'debrief.html?status=win';
+            // Write the next level to local storage so the Armory knows where to send them
+            localStorage.setItem('nt_nextDeployment', 'level3.html');
+            window.location.href = 'armory.html';
         });
     }
 
