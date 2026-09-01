@@ -105,25 +105,32 @@
         currentScene = this; 
         this.input.addPointer(5);
         
-        // --- NEW: KEVLAR PLATING CHECK ---
+        // --- NEW: DYNAMIC KEVLAR PLATING CHECK ---
         try {
-            // Replace 'YOUR_USER_ID' with how you track the logged-in user
             if (typeof supabase !== 'undefined') {
-                const { data: playerData, error } = await supabase
-                    .from('players')
-                    .select('unlock_armor')
-                    .eq('id', 'YOUR_USER_ID') 
-                    .single();
+                // 1. Ask Supabase who is currently logged in
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-                if (playerData && playerData.unlock_armor) {
-                    maxPlayerHealth = 125; 
-                    playerHealth = maxPlayerHealth; 
+                if (user) {
+                    // 2. Use their dynamic ID to check the armory
+                    const { data: playerData, error: dbError } = await supabase
+                        .from('players')
+                        .select('unlock_armor')
+                        .eq('id', user.id) 
+                        .single();
+
+                    if (playerData && playerData.unlock_armor) {
+                        maxPlayerHealth = 125; 
+                        playerHealth = maxPlayerHealth; 
+                    }
+                } else {
+                    console.warn("No player is logged in to fetch armory data.");
                 }
             }
         } catch (err) {
             console.error("Armory fetch failed:", err);
         }
-        // ---------------------------------
+        // -----------------------------------------
 
         let dGraphics = this.make.graphics({x: 0, y: 0, add: false});
         dGraphics.fillStyle(0x222222, 1);
