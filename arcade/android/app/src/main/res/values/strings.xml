@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vanguard X</string>
+    <string name="title_activity_main">Vanguard X</string>
+    <string name="package_name">com.needfulthingz.vanguardx</string>
+    <string name="custom_url_scheme">com.needfulthingz.vanguardx</string>
+</resources>
